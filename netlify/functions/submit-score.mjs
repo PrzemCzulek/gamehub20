@@ -51,33 +51,36 @@ function validateScore(payload) {
 }
 
 export async function handler(event) {
-  if (event.httpMethod === 'OPTIONS') {
-    return handleOptions();
-  }
-
-  if (event.httpMethod !== 'POST') {
-    return json(405, { error: 'Method not allowed' });
-  }
-
-  let payload;
-
   try {
-    payload = JSON.parse(event.body || '{}');
-  } catch {
-    return json(400, { error: 'Invalid JSON' });
-  }
+    if (event.httpMethod === 'OPTIONS') {
+      return handleOptions();
+    }
 
-  const { errors, value } = validateScore(payload);
+    if (event.httpMethod !== 'POST') {
+      return json(405, { error: 'Method not allowed' });
+    }
 
-  if (errors.length > 0) {
-    return json(400, { error: 'Validation failed', details: errors });
-  }
+    let payload;
 
-  try {
+    try {
+      payload = JSON.parse(event.body || '{}');
+    } catch {
+      return json(400, { error: 'Invalid JSON' });
+    }
+
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      return json(400, { error: 'Invalid payload', details: ['JSON body must be an object'] });
+    }
+
+    const { errors, value } = validateScore(payload);
+
+    if (errors.length > 0) {
+      return json(400, { error: 'Validation failed', details: errors });
+    }
+
     if (!getDatabaseUrl()) {
       return json(503, {
-        error: 'Database is not configured',
-        details: ['Set NETLIFY_DATABASE_URL or DATABASE_URL. Local score remains saved in localStorage.'],
+        error: 'Database URL missing',
       });
     }
 
@@ -113,7 +116,7 @@ export async function handler(event) {
 
     return json(200, { score: mapScoreRow(row) });
   } catch (error) {
-    console.error(error);
+    console.error('FUNCTION ERROR', error);
     return json(500, {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,

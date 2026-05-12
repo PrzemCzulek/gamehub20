@@ -21,36 +21,36 @@ function getMetricExpression(metric) {
 }
 
 export async function handler(event) {
-  if (event.httpMethod === 'OPTIONS') {
-    return handleOptions();
-  }
-
-  if (event.httpMethod !== 'GET') {
-    return json(405, { error: 'Method not allowed' });
-  }
-
-  const params = event.queryStringParameters ?? {};
-  const gameId = params.gameId;
-  const game = getGame(gameId);
-
-  if (!game) {
-    return json(400, { error: 'gameId is required or invalid' });
-  }
-
-  const metric = getMetric(gameId, params.metric ?? 'score');
-  const limit = readLimit(params.limit);
-  const metricExpression = getMetricExpression(metric);
-  const direction = metric?.direction === 'ascending' ? 'ASC' : 'DESC';
-  const query = `
-    SELECT *
-    FROM scores
-    WHERE game_id = $1
-      AND ${metricExpression} IS NOT NULL
-    ORDER BY ${metricExpression} ${direction}, created_at DESC
-    LIMIT $2
-  `;
-
   try {
+    if (event.httpMethod === 'OPTIONS') {
+      return handleOptions();
+    }
+
+    if (event.httpMethod !== 'GET') {
+      return json(405, { error: 'Method not allowed' });
+    }
+
+    const params = event.queryStringParameters ?? {};
+    const gameId = typeof params.gameId === 'string' ? params.gameId : '';
+    const game = getGame(gameId);
+
+    if (!game) {
+      return json(400, { error: 'gameId is required or invalid', entries: [], scores: [] });
+    }
+
+    const metric = getMetric(gameId, params.metric ?? 'score');
+    const limit = readLimit(params.limit);
+    const metricExpression = getMetricExpression(metric);
+    const direction = metric?.direction === 'ascending' ? 'ASC' : 'DESC';
+    const query = `
+      SELECT *
+      FROM scores
+      WHERE game_id = $1
+        AND ${metricExpression} IS NOT NULL
+      ORDER BY ${metricExpression} ${direction}, created_at DESC
+      LIMIT $2
+    `;
+
     if (!getDatabaseUrl()) {
       console.warn('get-leaderboard skipped: database URL is not configured');
       return json(200, {
@@ -58,7 +58,8 @@ export async function handler(event) {
         metric: params.metric ?? 'score',
         limit,
         entries: [],
-        warning: 'Database is not configured',
+        scores: [],
+        warning: 'Database URL missing',
       });
     }
 
@@ -71,12 +72,15 @@ export async function handler(event) {
       metric: params.metric ?? 'score',
       limit,
       entries: rows.map(mapScoreRow),
+      scores: rows.map(mapScoreRow),
     });
   } catch (error) {
-    console.error(error);
+    console.error('FUNCTION ERROR', error);
     return json(500, {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
+      entries: [],
+      scores: [],
     });
   }
 }
