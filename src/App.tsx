@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { GameCarousel } from './components/GameCarousel';
 import { Leaderboard } from './components/Leaderboard';
 import { PlayerPanel } from './components/PlayerPanel';
-import { ProgressionPreview } from './components/ProgressionPreview';
 import { MetaPanel } from './components/meta/MetaPanel';
 import { games } from './data/games';
 import { AimTestGame } from './games/AimTestGame';
@@ -86,12 +85,12 @@ export default function App() {
   }
 
   return (
-    <main className="min-h-screen px-3 py-5 text-slate-100 sm:px-5 lg:px-8">
+    <main className="min-h-screen px-3 py-4 text-slate-100 sm:px-5 lg:px-8">
       <div className="mx-auto w-full max-w-7xl">
-        <header className="grid gap-4 border-b border-white/10 pb-6 md:grid-cols-[minmax(0,1fr)_minmax(20rem,36rem)] md:items-center">
-          <div className="min-w-0">
+        <header className="grid gap-4 rounded-xl border border-white/10 bg-white/[0.03] p-4 shadow-[0_0_35px_rgba(34,211,238,0.06)] md:grid-cols-[minmax(0,1fr)_minmax(20rem,36rem)] md:items-center">
+          <div className="min-w-0 px-1">
             <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-200">GAME HUB 2.0</p>
-            <p className="mt-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Skill Arcade Network</p>
+            <p className="mt-2 text-sm font-semibold uppercase tracking-wide text-slate-400">SKILL ARCADE NETWORK</p>
           </div>
           <MetaPanel profile={profile} revision={revision} />
         </header>
@@ -112,7 +111,6 @@ export default function App() {
 
           <aside className="space-y-6">
             <PlayerPanel onRename={handleRename} onReset={handleResetLocalData} profile={profile} />
-            <ProgressionPreview revision={revision} />
             <Leaderboard entries={leaderboard} gameId={activeGameId} />
           </aside>
         </div>

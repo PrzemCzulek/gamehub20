@@ -19,14 +19,14 @@ export function MetaPanel({ profile, revision }: MetaPanelProps) {
 
   return (
     <section
-      className="relative overflow-hidden rounded-xl border border-cyan-300/20 bg-slate-950/70 p-4 shadow-[0_0_35px_rgba(34,211,238,0.10)] backdrop-blur"
+      className="relative overflow-hidden rounded-lg border border-cyan-300/20 bg-slate-950/70 p-3 shadow-[0_0_35px_rgba(34,211,238,0.10)] backdrop-blur"
       data-revision={revision}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.18),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(168,85,247,0.14),transparent_45%)]" />
-      <div className="relative grid gap-3">
+      <div className="relative grid gap-2.5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-cyan-200">Profil pilota</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-cyan-200">PROFIL GRACZA</p>
             <h2 className="truncate text-lg font-bold text-white">{profile.playerName}</h2>
           </div>
           <div className="rounded-lg border border-violet-300/30 bg-violet-300/10 px-3 py-2 text-right">
@@ -38,7 +38,7 @@ export function MetaPanel({ profile, revision }: MetaPanelProps) {
         <div>
           <div className="flex items-center justify-between text-xs text-slate-300">
             <span>XP {profile.xp}</span>
-            <span>{profile.levelProgressPercent}% do nastÄ™pnego poziomu</span>
+            <span>{profile.levelProgressPercent}% do nastêpnego poziomu</span>
           </div>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
             <div
@@ -79,3 +79,4 @@ export function MetaPanel({ profile, revision }: MetaPanelProps) {
     </section>
   );
 }
+
