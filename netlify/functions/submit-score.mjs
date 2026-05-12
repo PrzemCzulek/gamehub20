@@ -1,4 +1,4 @@
-import { ensureLeaderboardTable, getSql, mapScoreRow } from './lib/db.mjs';
+import { getDatabaseUrl, getSql, initializeDatabase, mapScoreRow } from './lib/db.mjs';
 import { getGame } from './lib/games.mjs';
 import { handleOptions, json } from './lib/http.mjs';
 
@@ -74,10 +74,17 @@ export async function handler(event) {
   }
 
   try {
-    await ensureLeaderboardTable();
+    if (!getDatabaseUrl()) {
+      return json(503, {
+        error: 'Database is not configured',
+        details: ['Set NETLIFY_DATABASE_URL or DATABASE_URL. Local score remains saved in localStorage.'],
+      });
+    }
+
+    await initializeDatabase();
     const sql = getSql();
     const [row] = await sql(
-      `INSERT INTO leaderboard_scores (
+      `INSERT INTO scores (
         player_id,
         player_name,
         game_id,
@@ -106,7 +113,10 @@ export async function handler(event) {
 
     return json(200, { score: mapScoreRow(row) });
   } catch (error) {
-    console.error('submit-score failed', error);
-    return json(500, { error: 'Could not submit score' });
+    console.error(error);
+    return json(500, {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
   }
 }
