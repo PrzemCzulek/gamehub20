@@ -5,6 +5,7 @@ import { readStoredTypingDuration, storeTypingDuration, typingDurationOptions } 
 import { buildPlayerProfileSummary, emptyValueLabel } from '../progression/playerProfile';
 import { playNormalClickSound } from '../services/audio';
 import { getOnlineLeaderboard } from '../services/onlineLeaderboard';
+import { fetchOnlinePlayerProfile, type OnlinePlayerProfile } from '../services/onlinePlayerProfile';
 import { getPlayerId, getPlayerName, getProfile, sortScoresByMetric } from '../services/storage';
 import type { GameId, LeaderboardEntry, LeaderboardMetric, PlayerProfileSummary } from '../types';
 import { formatPercent } from '../utils/format';
@@ -26,18 +27,9 @@ const typingMetricLabels: Record<string, string> = {
 function getRankClass(index: number, isOwnEntry: boolean): string {
   const ownClass = isOwnEntry ? ' ring-1 ring-cyan-300/45 shadow-[0_0_24px_rgba(34,211,238,0.16)]' : '';
 
-  if (index === 0) {
-    return `border-cyan-300/40 bg-cyan-300/[0.085] shadow-[0_0_26px_rgba(34,211,238,0.18)]${ownClass}`;
-  }
-
-  if (index === 1) {
-    return `border-slate-200/25 bg-slate-200/[0.055] shadow-[0_0_18px_rgba(226,232,240,0.08)]${ownClass}`;
-  }
-
-  if (index === 2) {
-    return `border-amber-300/25 bg-amber-300/[0.055] shadow-[0_0_18px_rgba(251,191,36,0.08)]${ownClass}`;
-  }
-
+  if (index === 0) return `border-cyan-300/40 bg-cyan-300/[0.085] shadow-[0_0_26px_rgba(34,211,238,0.18)]${ownClass}`;
+  if (index === 1) return `border-slate-200/25 bg-slate-200/[0.055] shadow-[0_0_18px_rgba(226,232,240,0.08)]${ownClass}`;
+  if (index === 2) return `border-amber-300/25 bg-amber-300/[0.055] shadow-[0_0_18px_rgba(251,191,36,0.08)]${ownClass}`;
   return `border-white/7 bg-black/20${ownClass}`;
 }
 
@@ -66,8 +58,8 @@ function getMetricLabel(gameId: GameId, metric: LeaderboardMetric): string {
   return gameId === 'typing-speed' ? typingMetricLabels[metric.id] ?? metric.label : metric.label;
 }
 
-function getGameTitle(gameId: GameId): string {
-  return getGameConfig(gameId).title;
+function getGameTitle(gameId?: GameId): string {
+  return gameId ? getGameConfig(gameId).title : emptyValueLabel;
 }
 
 function getSecondaryInfo(entry: LeaderboardEntry, gameId: GameId, localAttempts?: number): string[] {
@@ -80,13 +72,8 @@ function getSecondaryInfo(entry: LeaderboardEntry, gameId: GameId, localAttempts
     if (duration) info.push(duration);
   }
 
-  if (gameId === 'reaction-time' && localAttempts && localAttempts > 1) {
-    info.push(`Próby lokalnie ${localAttempts}`);
-  }
-
-  if (gameId === 'aim-test' && stats.accuracy !== undefined) {
-    info.push(`Celność ${formatPercent(stats.accuracy)}`);
-  }
+  if (gameId === 'reaction-time' && localAttempts && localAttempts > 1) info.push(`Próby lokalnie ${localAttempts}`);
+  if (gameId === 'aim-test' && stats.accuracy !== undefined) info.push(`Celność ${formatPercent(stats.accuracy)}`);
 
   if (gameId === 'color-memory') {
     const similarity = stats.bestSimilarity ?? stats.finalSimilarity ?? stats.averageSimilarity;
@@ -107,17 +94,18 @@ function getSecondaryInfo(entry: LeaderboardEntry, gameId: GameId, localAttempts
 }
 
 function formatMetricValue(entry: LeaderboardEntry, metric: LeaderboardMetric): string {
-  if (metric.id === 'score') {
-    return entry.scoreLabel;
-  }
+  if (metric.id === 'score') return entry.scoreLabel;
 
   const value = metric.source === 'score' ? entry.score : metric.statKey ? entry.stats?.[metric.statKey] : undefined;
 
   if (value === undefined) return '-';
   if (metric.valueType === 'percent') return formatPercent(value);
   if (metric.valueType === 'ms') return `${Math.round(value)} ms`;
-
   return `${value}${metric.suffix ? ` ${metric.suffix}` : ''}`;
+}
+
+function formatHighlightPercent(value?: number): string | undefined {
+  return value !== undefined ? formatPercent(value) : undefined;
 }
 
 function MiniProfileCard({
@@ -126,14 +114,60 @@ function MiniProfileCard({
   metric,
   ownEntry,
   summary,
+  onlineProfile,
+  onlineLoading,
 }: {
   entry: LeaderboardEntry;
   gameId: GameId;
   metric: LeaderboardMetric;
   ownEntry: boolean;
   summary: PlayerProfileSummary;
+  onlineProfile?: OnlinePlayerProfile | null;
+  onlineLoading?: boolean;
 }) {
   if (!ownEntry) {
+    if (onlineLoading) {
+      return (
+        <div className="rounded-xl border border-cyan-300/20 bg-slate-950/95 p-4 shadow-[0_18px_42px_rgba(0,0,0,0.45)] backdrop-blur">
+          <p className="text-[0.65rem] font-black uppercase tracking-[0.22em] text-cyan-200">Mini profil</p>
+          <div className="mt-4 flex items-center gap-3 text-sm text-cyan-100">
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-cyan-300/20 border-t-cyan-300" />
+            Ładuję profil gracza
+          </div>
+        </div>
+      );
+    }
+
+    if (onlineProfile) {
+      const highlights = [
+        { label: 'Reaction', value: onlineProfile.highlights.bestReactionTime?.scoreLabel },
+        { label: 'WPM', value: onlineProfile.highlights.bestTypingWpm?.scoreLabel },
+        { label: 'Aim', value: formatHighlightPercent(onlineProfile.highlights.bestAimAccuracy?.metricValue) },
+        { label: 'Color', value: formatHighlightPercent(onlineProfile.highlights.bestColorSimilarity?.metricValue) },
+      ];
+
+      return (
+        <div className="rounded-xl border border-cyan-300/25 bg-slate-950/95 p-4 shadow-[0_18px_42px_rgba(0,0,0,0.45),0_0_28px_rgba(34,211,238,0.12)] backdrop-blur">
+          <p className="text-[0.65rem] font-black uppercase tracking-[0.22em] text-cyan-200">Profil publiczny</p>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <h3 className="min-w-0 truncate text-base font-black text-white">{onlineProfile.playerName}</h3>
+            <span className="rounded-full border border-violet-300/35 bg-violet-300/10 px-2 py-1 text-[0.65rem] font-black text-violet-100">L{onlineProfile.level}</span>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <MiniStat label="XP" value={String(onlineProfile.xp)} />
+            <MiniStat label="Gry" value={String(onlineProfile.gamesPlayed)} />
+            <MiniStat label="Ulubiona" value={getGameTitle(onlineProfile.favoriteGame)} />
+            <MiniStat label="Achievementy" value={`${onlineProfile.achievementsUnlocked}/${onlineProfile.achievementsTotal}`} />
+          </div>
+          <div className="mt-3 space-y-1.5 text-xs">
+            {highlights.map((item) => (
+              <MiniHighlight key={item.label} label={item.label} value={item.value} />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="rounded-xl border border-cyan-300/20 bg-slate-950/95 p-4 shadow-[0_18px_42px_rgba(0,0,0,0.45)] backdrop-blur">
         <p className="text-[0.65rem] font-black uppercase tracking-[0.22em] text-cyan-200">Mini profil</p>
@@ -154,15 +188,14 @@ function MiniProfileCard({
     { label: 'WPM', value: summary.highlights.bestTypingWpm?.scoreLabel },
     {
       label: 'Aim',
-      value: summary.highlights.bestAimAccuracy?.stats?.accuracy !== undefined
-        ? formatPercent(summary.highlights.bestAimAccuracy.stats.accuracy)
-        : undefined,
+      value: summary.highlights.bestAimAccuracy?.stats?.accuracy !== undefined ? formatPercent(summary.highlights.bestAimAccuracy.stats.accuracy) : undefined,
     },
     {
       label: 'Color',
-      value: summary.highlights.bestColorSimilarity?.stats?.bestSimilarity !== undefined
-        ? formatPercent(summary.highlights.bestColorSimilarity.stats.bestSimilarity)
-        : undefined,
+      value:
+        summary.highlights.bestColorSimilarity?.stats?.bestSimilarity !== undefined
+          ? formatPercent(summary.highlights.bestColorSimilarity.stats.bestSimilarity)
+          : undefined,
     },
   ];
 
@@ -174,31 +207,34 @@ function MiniProfileCard({
         <span className="rounded-full border border-violet-300/35 bg-violet-300/10 px-2 py-1 text-[0.65rem] font-black text-violet-100">L{summary.level}</span>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-        <div className="rounded-lg border border-white/10 bg-black/25 px-3 py-2">
-          <span className="block text-slate-500">XP</span>
-          <strong className="text-white">{summary.xp}</strong>
-        </div>
-        <div className="rounded-lg border border-white/10 bg-black/25 px-3 py-2">
-          <span className="block text-slate-500">Gry</span>
-          <strong className="text-white">{summary.gamesPlayed}</strong>
-        </div>
-        <div className="rounded-lg border border-white/10 bg-black/25 px-3 py-2">
-          <span className="block text-slate-500">Ulubiona</span>
-          <strong className="block truncate text-white">{summary.favoriteGame ? getGameTitle(summary.favoriteGame) : emptyValueLabel}</strong>
-        </div>
-        <div className="rounded-lg border border-white/10 bg-black/25 px-3 py-2">
-          <span className="block text-slate-500">Achievementy</span>
-          <strong className="text-white">{summary.achievementsUnlocked}/{summary.achievementsTotal}</strong>
-        </div>
+        <MiniStat label="XP" value={String(summary.xp)} />
+        <MiniStat label="Gry" value={String(summary.gamesPlayed)} />
+        <MiniStat label="Ulubiona" value={summary.favoriteGame ? getGameTitle(summary.favoriteGame) : emptyValueLabel} />
+        <MiniStat label="Achievementy" value={`${summary.achievementsUnlocked}/${summary.achievementsTotal}`} />
       </div>
       <div className="mt-3 space-y-1.5 text-xs">
         {highlights.map((item) => (
-          <div className="flex justify-between gap-3 rounded-md bg-white/[0.04] px-2 py-1.5" key={item.label}>
-            <span className="text-slate-400">{item.label}</span>
-            <span className="font-semibold text-white">{item.value ?? emptyValueLabel}</span>
-          </div>
+          <MiniHighlight key={item.label} label={item.label} value={item.value} />
         ))}
       </div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-black/25 px-3 py-2">
+      <span className="block text-slate-500">{label}</span>
+      <strong className="block truncate text-white">{value || emptyValueLabel}</strong>
+    </div>
+  );
+}
+
+function MiniHighlight({ label, value }: { label: string; value?: string }) {
+  return (
+    <div className="flex justify-between gap-3 rounded-md bg-white/[0.04] px-2 py-1.5">
+      <span className="text-slate-400">{label}</span>
+      <span className="font-semibold text-white">{value ?? emptyValueLabel}</span>
     </div>
   );
 }
@@ -222,6 +258,8 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   const [onlineError, setOnlineError] = useState<string | null>(null);
   const [onlineLoading, setOnlineLoading] = useState(false);
   const [activeProfileKey, setActiveProfileKey] = useState<string | null>(null);
+  const [onlineProfiles, setOnlineProfiles] = useState<Record<string, OnlinePlayerProfile | null>>({});
+  const [loadingProfiles, setLoadingProfiles] = useState<Record<string, boolean>>({});
   const hoverTimerRef = useRef<number | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
   const game = getGameConfig(gameId);
@@ -283,14 +321,33 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   }, [activeMetric.id, entries.length, gameId, isTypingSpeed, source, typingDuration]);
 
   useEffect(() => {
+    const activeEntry = visibleEntries.find((entry, index) => getEntryKey(entry, index) === activeProfileKey);
+
+    if (!activeEntry?.playerId || isOwnEntry(activeEntry) || onlineProfiles[activeEntry.playerId] !== undefined || loadingProfiles[activeEntry.playerId]) {
+      return;
+    }
+
+    let ignore = false;
+    setLoadingProfiles((current) => ({ ...current, [activeEntry.playerId!]: true }));
+
+    fetchOnlinePlayerProfile(activeEntry.playerId).then((profile) => {
+      if (ignore) return;
+      setOnlineProfiles((current) => ({ ...current, [activeEntry.playerId!]: profile }));
+      setLoadingProfiles((current) => ({ ...current, [activeEntry.playerId!]: false }));
+    });
+
+    return () => {
+      ignore = true;
+    };
+  }, [activeProfileKey, loadingProfiles, onlineProfiles, visibleEntries]);
+
+  useEffect(() => {
     function handleKeyDown(event: globalThis.KeyboardEvent) {
       if (event.key === 'Escape') setActiveProfileKey(null);
     }
 
     function handlePointerDown(event: globalThis.PointerEvent) {
-      if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
-        setActiveProfileKey(null);
-      }
+      if (panelRef.current && !panelRef.current.contains(event.target as Node)) setActiveProfileKey(null);
     }
 
     window.addEventListener('keydown', handleKeyDown);
@@ -331,12 +388,10 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
 
   function openMiniProfile(key: string, delayed = false) {
     if (hoverTimerRef.current) window.clearTimeout(hoverTimerRef.current);
-
     if (!delayed) {
       setActiveProfileKey(key);
       return;
     }
-
     hoverTimerRef.current = window.setTimeout(() => setActiveProfileKey(key), 150);
   }
 
@@ -449,6 +504,8 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
               const secondaryInfo = getSecondaryInfo(entry, gameId, source === 'local' ? localAttemptsByPlayer[attemptsKey] : undefined);
               const entryKey = getEntryKey(entry, index);
               const miniOpen = activeProfileKey === entryKey;
+              const onlineProfile = entry.playerId ? onlineProfiles[entry.playerId] : null;
+              const onlineProfileLoading = entry.playerId ? loadingProfiles[entry.playerId] : false;
 
               return (
                 <div
@@ -489,7 +546,15 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
 
                   {miniOpen && (
                     <div className="z-30 mt-3 w-full lg:absolute lg:right-2 lg:top-full lg:mt-2 lg:w-80">
-                      <MiniProfileCard entry={entry} gameId={gameId} metric={activeMetric} ownEntry={ownEntry} summary={profileSummary} />
+                      <MiniProfileCard
+                        entry={entry}
+                        gameId={gameId}
+                        metric={activeMetric}
+                        onlineLoading={onlineProfileLoading}
+                        onlineProfile={onlineProfile}
+                        ownEntry={ownEntry}
+                        summary={profileSummary}
+                      />
                     </div>
                   )}
                 </div>

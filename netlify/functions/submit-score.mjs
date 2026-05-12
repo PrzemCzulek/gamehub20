@@ -31,6 +31,13 @@ function validateScore(payload) {
   if (!isPlainObject(payload.stats)) errors.push('stats must be an object');
   if (!isPlainObject(payload.meta)) errors.push('meta must be an object');
 
+  try {
+    if (JSON.stringify(payload.stats ?? {}).length > 20000) errors.push('stats payload is too large');
+    if (JSON.stringify(payload.meta ?? {}).length > 20000) errors.push('meta payload is too large');
+  } catch {
+    errors.push('stats/meta must be JSON serializable');
+  }
+
   if (score !== undefined) {
     if (gameId === 'typing-speed' && score > 300) errors.push('typing-speed score is too high');
     if (gameId === 'reaction-time' && score < 80) errors.push('reaction-time score is too low');
@@ -73,6 +80,142 @@ function getLeaderboardScope(value) {
   return `duration:${durationSeconds}`;
 }
 
+function getLevelFromXp(xp) {
+  return Math.floor(Math.sqrt(Math.max(0, xp) / 100)) + 1;
+}
+
+function createHighlight(value, metricValue = value.score) {
+  return {
+    gameId: value.gameId,
+    score: value.score,
+    scoreLabel: value.scoreLabel,
+    metricValue,
+    stats: value.stats,
+    createdAt: value.createdAt,
+  };
+}
+
+function isBetterHighlight(nextValue, currentHighlight, direction) {
+  if (nextValue === undefined) {
+    return false;
+  }
+
+  if (!currentHighlight || typeof currentHighlight.metricValue !== 'number') {
+    return true;
+  }
+
+  return direction === 'ascending' ? nextValue < currentHighlight.metricValue : nextValue > currentHighlight.metricValue;
+}
+
+function mergeHighlights(currentHighlights, value) {
+  const highlights = currentHighlights && typeof currentHighlights === 'object' && !Array.isArray(currentHighlights) ? { ...currentHighlights } : {};
+  const accuracy = readNumber(value.stats?.accuracy);
+  const bestSimilarity = readNumber(value.stats?.bestSimilarity) ?? readNumber(value.stats?.finalSimilarity) ?? readNumber(value.stats?.averageSimilarity);
+  const moves = readNumber(value.stats?.moves) ?? value.score;
+  const completedRound = readNumber(value.stats?.completedRound) ?? value.score;
+
+  if (value.gameId === 'reaction-time' && isBetterHighlight(value.score, highlights.bestReactionTime, 'ascending')) {
+    highlights.bestReactionTime = createHighlight(value);
+  }
+
+  if (value.gameId === 'typing-speed') {
+    if (isBetterHighlight(value.score, highlights.bestTypingWpm, 'descending')) {
+      highlights.bestTypingWpm = createHighlight(value);
+    }
+
+    if (isBetterHighlight(accuracy, highlights.bestTypingAccuracy, 'descending')) {
+      highlights.bestTypingAccuracy = createHighlight(value, accuracy);
+    }
+  }
+
+  if (value.gameId === 'aim-test' && isBetterHighlight(accuracy, highlights.bestAimAccuracy, 'descending')) {
+    highlights.bestAimAccuracy = createHighlight(value, accuracy);
+  }
+
+  if (value.gameId === 'color-memory' && isBetterHighlight(bestSimilarity, highlights.bestColorSimilarity, 'descending')) {
+    highlights.bestColorSimilarity = createHighlight(value, bestSimilarity);
+  }
+
+  if (value.gameId === 'word-memory' && isBetterHighlight(value.score, highlights.bestWordMemoryScore, 'descending')) {
+    highlights.bestWordMemoryScore = createHighlight(value);
+  }
+
+  if (value.gameId === 'symbol-match' && isBetterHighlight(moves, highlights.bestSymbolMatchMoves, 'ascending')) {
+    highlights.bestSymbolMatchMoves = createHighlight(value, moves);
+  }
+
+  if (value.gameId === 'memory-test' && isBetterHighlight(completedRound, highlights.highestMemoryLevel, 'descending')) {
+    highlights.highestMemoryLevel = createHighlight(value, completedRound);
+  }
+
+  return highlights;
+}
+
+async function upsertPlayerProfile(sql, value) {
+  const [existingProfile] = await sql.query(
+    `
+      SELECT *
+      FROM player_profiles
+      WHERE player_id = $1
+      LIMIT 1
+    `,
+    [value.playerId],
+  );
+  const nextXp = Number(existingProfile?.xp ?? 0) + (value.xpGained ?? 0);
+  const nextLevel = getLevelFromXp(nextXp);
+  const nextHighlights = mergeHighlights(existingProfile?.highlights ?? {}, value);
+  const favoriteGame = existingProfile?.favorite_game ?? value.gameId;
+  const bestGame = existingProfile?.best_game ?? value.gameId;
+  const achievementsUnlocked = Number(existingProfile?.achievements_unlocked ?? 0);
+  const achievementsTotal = Number(existingProfile?.achievements_total ?? 0);
+
+  const [profileRow] = await sql.query(
+    `
+      INSERT INTO player_profiles (
+        player_id,
+        player_name,
+        level,
+        xp,
+        games_played,
+        total_score_entries,
+        favorite_game,
+        best_game,
+        achievements_unlocked,
+        achievements_total,
+        highlights,
+        updated_at
+      ) VALUES ($1, $2, $3, $4, 1, 1, $5, $6, $7, $8, $9::jsonb, NOW())
+      ON CONFLICT (player_id) DO UPDATE
+      SET
+        player_name = EXCLUDED.player_name,
+        level = EXCLUDED.level,
+        xp = EXCLUDED.xp,
+        games_played = player_profiles.games_played + 1,
+        total_score_entries = player_profiles.total_score_entries + 1,
+        favorite_game = COALESCE(player_profiles.favorite_game, EXCLUDED.favorite_game),
+        best_game = COALESCE(player_profiles.best_game, EXCLUDED.best_game),
+        achievements_unlocked = player_profiles.achievements_unlocked,
+        achievements_total = player_profiles.achievements_total,
+        highlights = EXCLUDED.highlights,
+        updated_at = NOW()
+      RETURNING *
+    `,
+    [
+      value.playerId,
+      value.playerName,
+      nextLevel,
+      nextXp,
+      favoriteGame,
+      bestGame,
+      achievementsUnlocked,
+      achievementsTotal,
+      JSON.stringify(nextHighlights),
+    ],
+  );
+
+  return profileRow;
+}
+
 export async function handler(event) {
   try {
     if (event.httpMethod === 'OPTIONS') {
@@ -111,6 +254,7 @@ export async function handler(event) {
     await initializeDatabase();
     const sql = getSql();
     const leaderboardScope = getLeaderboardScope(value);
+    await upsertPlayerProfile(sql, value);
     const [existingRow] = await sql.query(
       `
         SELECT *

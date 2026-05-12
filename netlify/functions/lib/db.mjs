@@ -102,6 +102,25 @@ export async function initializeDatabase() {
           sql.query('CREATE UNIQUE INDEX IF NOT EXISTS scores_player_game_scope_unique_idx ON scores (player_id, game_id, leaderboard_scope)'),
         ]),
       )
+      .then(() =>
+        sql.query(`
+          CREATE TABLE IF NOT EXISTS player_profiles (
+            player_id TEXT PRIMARY KEY,
+            player_name TEXT NOT NULL,
+            level INTEGER DEFAULT 1,
+            xp INTEGER DEFAULT 0,
+            games_played INTEGER DEFAULT 0,
+            total_score_entries INTEGER DEFAULT 0,
+            favorite_game TEXT,
+            best_game TEXT,
+            achievements_unlocked INTEGER DEFAULT 0,
+            achievements_total INTEGER DEFAULT 0,
+            highlights JSONB DEFAULT '{}'::jsonb,
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+          )
+        `),
+      )
+      .then(() => sql.query('CREATE INDEX IF NOT EXISTS player_profiles_updated_at_idx ON player_profiles (updated_at DESC)'))
       .catch((error) => {
         initializePromise = undefined;
         throw error;
@@ -127,5 +146,22 @@ export function mapScoreRow(row) {
     runDurationMs: row.run_duration_ms ?? undefined,
     leaderboardScope: row.leaderboard_scope ?? 'default',
     createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+  };
+}
+
+export function mapPlayerProfileRow(row) {
+  return {
+    playerId: row.player_id,
+    playerName: row.player_name,
+    level: Number(row.level ?? 1),
+    xp: Number(row.xp ?? 0),
+    gamesPlayed: Number(row.games_played ?? 0),
+    totalScoreEntries: Number(row.total_score_entries ?? 0),
+    favoriteGame: row.favorite_game ?? undefined,
+    bestGame: row.best_game ?? undefined,
+    achievementsUnlocked: Number(row.achievements_unlocked ?? 0),
+    achievementsTotal: Number(row.achievements_total ?? 0),
+    highlights: row.highlights ?? {},
+    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : row.updated_at,
   };
 }
