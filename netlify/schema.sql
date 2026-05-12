@@ -16,3 +16,4 @@ CREATE INDEX IF NOT EXISTS scores_game_id_idx ON scores (game_id);
 CREATE INDEX IF NOT EXISTS scores_created_at_idx ON scores (created_at DESC);
 CREATE INDEX IF NOT EXISTS scores_score_idx ON scores (score);
 CREATE INDEX IF NOT EXISTS scores_player_id_idx ON scores (player_id);
+CREATE UNIQUE INDEX IF NOT EXISTS scores_player_game_unique_idx ON scores (player_id, game_id);

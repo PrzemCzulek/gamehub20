@@ -50,6 +50,10 @@ function validateScore(payload) {
   };
 }
 
+function isBetterScore(game, nextScore, currentScore) {
+  return game.scoreDirection === 'ascending' ? nextScore < currentScore : nextScore > currentScore;
+}
+
 export async function handler(event) {
   try {
     if (event.httpMethod === 'OPTIONS') {
@@ -73,6 +77,7 @@ export async function handler(event) {
     }
 
     const { errors, value } = validateScore(payload);
+    const game = getGame(value.gameId);
 
     if (errors.length > 0) {
       return json(400, { error: 'Validation failed', details: errors });
@@ -86,36 +91,86 @@ export async function handler(event) {
 
     await initializeDatabase();
     const sql = getSql();
-    const [row] = await sql.query(
-      `INSERT INTO scores (
-        player_id,
-        player_name,
-        game_id,
-        score,
-        score_label,
-        stats,
-        meta,
-        xp_gained,
-        run_duration_ms,
-        created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $10)
-      RETURNING *`,
-      [
-        value.playerId,
-        value.playerName,
-        value.gameId,
-        value.score,
-        value.scoreLabel,
-        JSON.stringify(value.stats),
-        JSON.stringify(value.meta),
-        value.xpGained ?? null,
-        value.runDurationMs ?? null,
-        value.createdAt,
-      ],
+    const [existingRow] = await sql.query(
+      `
+        SELECT *
+        FROM scores
+        WHERE player_id = $1
+          AND game_id = $2
+        LIMIT 1
+      `,
+      [value.playerId, value.gameId],
     );
 
+    if (existingRow && !isBetterScore(game, value.score, Number(existingRow.score))) {
+      const entry = mapScoreRow(existingRow);
+
+      return json(200, {
+        ok: true,
+        updated: false,
+        reason: 'not_best',
+        entry,
+        score: entry,
+      });
+    }
+
+    const values = [
+      value.playerId,
+      value.playerName,
+      value.gameId,
+      value.score,
+      value.scoreLabel,
+      JSON.stringify(value.stats),
+      JSON.stringify(value.meta),
+      value.xpGained ?? null,
+      value.runDurationMs ?? null,
+      value.createdAt,
+    ];
+
+    const [row] = existingRow
+      ? await sql.query(
+          `
+            UPDATE scores
+            SET
+              player_name = $2,
+              score = $4,
+              score_label = $5,
+              stats = $6::jsonb,
+              meta = $7::jsonb,
+              xp_gained = $8,
+              run_duration_ms = $9,
+              created_at = $10
+            WHERE player_id = $1
+              AND game_id = $3
+            RETURNING *
+          `,
+          values,
+        )
+      : await sql.query(
+          `INSERT INTO scores (
+            player_id,
+            player_name,
+            game_id,
+            score,
+            score_label,
+            stats,
+            meta,
+            xp_gained,
+            run_duration_ms,
+            created_at
+          ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $10)
+          RETURNING *`,
+          values,
+        );
+
     const entry = mapScoreRow(row);
-    return json(200, { ok: true, entry, score: entry });
+    return json(200, {
+      ok: true,
+      updated: true,
+      mode: existingRow ? 'updated_best' : 'inserted_best',
+      entry,
+      score: entry,
+    });
   } catch (error) {
     console.error('FUNCTION ERROR', error);
     return json(500, {
