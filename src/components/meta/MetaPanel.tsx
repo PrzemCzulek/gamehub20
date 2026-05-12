@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { achievementDefinitions } from '../../data/achievements';
 import { questDefinitions } from '../../data/quests';
-import { getAchievementUnlocks, getQuestProgress } from '../../progression/progressionEngine';
+import { buildPlayerProfileSummary } from '../../progression/playerProfile';
+import { getQuestProgress } from '../../progression/progressionEngine';
 import { getAudioEnabled, playNormalClickSound, toggleAudioEnabled } from '../../services/audio';
 import type { LocalProfile } from '../../types';
 
@@ -15,8 +15,8 @@ export function MetaPanel({ profile, onReset, revision }: MetaPanelProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [audioEnabled, setAudioEnabledState] = useState(getAudioEnabled);
   const [resetInput, setResetInput] = useState('');
+  const summary = buildPlayerProfileSummary(profile);
   const questProgress = getQuestProgress();
-  const achievementUnlocks = getAchievementUnlocks();
   const dailyQuest = questDefinitions.find((quest) => quest.type === 'daily');
   const dailyProgress = dailyQuest ? questProgress.find((item) => item.questId === dailyQuest.id) : undefined;
   const dailyValue = dailyProgress?.progress ?? 0;
@@ -68,26 +68,26 @@ export function MetaPanel({ profile, onReset, revision }: MetaPanelProps) {
         <div className="min-w-0">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-violet-300/35 bg-violet-300/10 text-sm font-black text-violet-100 shadow-[0_0_22px_rgba(168,85,247,0.20)]">
-              {profile.playerName.slice(0, 1).toUpperCase() || 'G'}
+              {summary.displayName.slice(0, 1).toUpperCase() || 'G'}
             </div>
             <div className="min-w-0">
               <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-cyan-200">PROFIL GRACZA</p>
               <div className="flex min-w-0 items-center gap-2">
-                <h2 className="truncate text-sm font-bold text-white">{profile.playerName}</h2>
-                <span className="rounded-full border border-violet-300/25 px-2 py-0.5 text-[0.65rem] font-semibold text-violet-100">L{profile.level}</span>
+                <h2 className="truncate text-sm font-bold text-white">{summary.displayName}</h2>
+                <span className="rounded-full border border-violet-300/25 px-2 py-0.5 text-[0.65rem] font-semibold text-violet-100">L{summary.level}</span>
               </div>
             </div>
           </div>
 
           <div className="mt-2">
             <div className="flex items-center justify-between text-[0.68rem] text-slate-300">
-              <span>XP {profile.xp}</span>
-              <span>{profile.levelProgressPercent}%</span>
+              <span>XP {summary.xp}</span>
+              <span>{summary.levelProgressPercent}%</span>
             </div>
             <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-cyan-300 via-teal-300 to-violet-300 shadow-[0_0_14px_rgba(45,212,191,0.5)]"
-                style={{ width: `${profile.levelProgressPercent}%` }}
+                style={{ width: `${summary.levelProgressPercent}%` }}
               />
             </div>
           </div>
@@ -110,8 +110,8 @@ export function MetaPanel({ profile, onReset, revision }: MetaPanelProps) {
 
         <div className="flex items-center justify-between gap-2 sm:flex-col sm:items-end">
           <div className="text-right text-[0.68rem] text-slate-400">
-            <div>Gry: <span className="font-semibold text-white">{profile.totalGamesPlayed}</span></div>
-            <div>Odblokowane: <span className="font-semibold text-white">{achievementUnlocks.length}/{achievementDefinitions.length}</span></div>
+            <div>Gry: <span className="font-semibold text-white">{summary.gamesPlayed}</span></div>
+            <div>Odblokowane: <span className="font-semibold text-white">{summary.achievementsUnlocked}/{summary.achievementsTotal}</span></div>
           </div>
           <button
             aria-label="Ustawienia"

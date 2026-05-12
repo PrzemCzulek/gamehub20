@@ -93,3 +93,39 @@ export type LocalProfile = {
     bestWordMemory?: LeaderboardEntry;
   };
 };
+
+export type PlayerHighlights = {
+  bestReactionTime?: LeaderboardEntry;
+  bestTypingWpm?: LeaderboardEntry;
+  bestTypingAccuracy?: LeaderboardEntry;
+  bestAimAccuracy?: LeaderboardEntry;
+  bestColorSimilarity?: LeaderboardEntry;
+  bestWordMemoryScore?: LeaderboardEntry;
+  bestSymbolMatchMoves?: LeaderboardEntry;
+  highestMemoryLevel?: LeaderboardEntry;
+};
+
+export type PlayerAchievementSummary = {
+  unlocked: number;
+  total: number;
+};
+
+export type PlayerProfileSummary = {
+  playerId: string;
+  playerName: string;
+  displayName: string;
+  level: number;
+  xp: number;
+  currentLevelXp: number;
+  nextLevelXp: number;
+  levelProgressPercent: number;
+  gamesPlayed: number;
+  totalScoreEntries: number;
+  favoriteGame?: GameId;
+  mostPlayedGame?: GameId;
+  bestGame?: GameId;
+  achievementsUnlocked: number;
+  achievementsTotal: number;
+  achievements: PlayerAchievementSummary;
+  highlights: PlayerHighlights;
+};

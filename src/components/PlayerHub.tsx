@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { achievementDefinitions } from '../data/achievements';
 import { games } from '../data/games';
 import { questDefinitions } from '../data/quests';
+import { buildPlayerProfileSummary, emptyValueLabel } from '../progression/playerProfile';
 import { getAchievementUnlocks, getQuestProgress } from '../progression/progressionEngine';
 import { playNormalClickSound } from '../services/audio';
 import type { LocalProfile } from '../types';
@@ -47,8 +48,8 @@ const rarityStyles: Record<Rarity, { unlocked: string; locked: string; badge: st
   },
 };
 
-function getGameTitle(gameId: string): string {
-  return games.find((game) => game.id === gameId)?.title ?? gameId;
+function getGameTitle(gameId?: string): string {
+  return gameId ? games.find((game) => game.id === gameId)?.title ?? gameId : emptyValueLabel;
 }
 
 function getQuestResetLabel(type: 'daily' | 'weekly'): string {
@@ -85,12 +86,41 @@ function formatUnlockDate(value?: string): string {
 export function PlayerHub({ onRename, profile, revision }: PlayerHubProps) {
   const [activeTab, setActiveTab] = useState<PlayerHubTab>('stats');
   const [draftName, setDraftName] = useState(profile.playerName);
+  const summary = buildPlayerProfileSummary(profile);
   const questProgress = getQuestProgress();
   const achievementUnlocks = getAchievementUnlocks();
   const unlockById = new Map(achievementUnlocks.map((unlock) => [unlock.achievementId, unlock]));
   const unlockedIds = new Set(unlockById.keys());
-  const mostPlayedGameTitle = profile.mostPlayedGame ? getGameTitle(profile.mostPlayedGame) : '-';
-  const bestGameTitle = profile.bestGame ? getGameTitle(profile.bestGame) : '-';
+  const mostPlayedGameTitle = getGameTitle(summary.favoriteGame);
+  const bestGameTitle = getGameTitle(summary.bestGame);
+  const highlights = [
+    { label: 'Najlepszy Reaction Time', value: summary.highlights.bestReactionTime?.scoreLabel },
+    { label: 'Najwyższy WPM', value: summary.highlights.bestTypingWpm?.scoreLabel },
+    {
+      label: 'Najlepsza dokładność pisania',
+      value:
+        summary.highlights.bestTypingAccuracy?.stats?.accuracy !== undefined
+          ? formatPercent(summary.highlights.bestTypingAccuracy.stats.accuracy)
+          : undefined,
+    },
+    {
+      label: 'Najlepsza celność Aim Test',
+      value:
+        summary.highlights.bestAimAccuracy?.stats?.accuracy !== undefined
+          ? formatPercent(summary.highlights.bestAimAccuracy.stats.accuracy)
+          : undefined,
+    },
+    {
+      label: 'Najlepsze podobieństwo Color Memory',
+      value:
+        summary.highlights.bestColorSimilarity?.stats?.bestSimilarity !== undefined
+          ? formatPercent(summary.highlights.bestColorSimilarity.stats.bestSimilarity)
+          : undefined,
+    },
+    { label: 'Najlepszy Word Memory', value: summary.highlights.bestWordMemoryScore?.scoreLabel },
+    { label: 'Najlepszy Symbol Match', value: summary.highlights.bestSymbolMatchMoves?.scoreLabel },
+    { label: 'Najwyższy poziom Memory Test', value: summary.highlights.highestMemoryLevel?.scoreLabel },
+  ];
 
   useEffect(() => {
     setDraftName(profile.playerName);
@@ -109,7 +139,7 @@ export function PlayerHub({ onRename, profile, revision }: PlayerHubProps) {
         <div className="grid grid-cols-3 gap-2 text-xs sm:min-w-[24rem]">
           <div className="rounded-md border border-white/10 bg-black/25 px-3 py-2">
             <span className="block text-slate-400">Wyniki</span>
-            <strong className="mt-1 block text-white">{profile.totalScoreEntries}</strong>
+            <strong className="mt-1 block text-white">{summary.totalScoreEntries}</strong>
           </div>
           <div className="rounded-md border border-white/10 bg-black/25 px-3 py-2">
             <span className="block text-slate-400">Najczęściej</span>
@@ -170,7 +200,7 @@ export function PlayerHub({ onRename, profile, revision }: PlayerHubProps) {
                 {games.map((game) => (
                   <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm" key={game.id}>
                     <span className="block truncate text-slate-400">{game.title}</span>
-                    <strong className="mt-1 block text-white">{profile.bestScores[game.id]?.scoreLabel ?? '-'}</strong>
+                    <strong className="mt-1 block text-white">{profile.bestScores[game.id]?.scoreLabel ?? emptyValueLabel}</strong>
                   </div>
                 ))}
               </div>
@@ -179,20 +209,11 @@ export function PlayerHub({ onRename, profile, revision }: PlayerHubProps) {
             <div>
               <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-300">Highlighty</h3>
               <div className="mt-3 space-y-2 text-sm">
-                <p className="rounded-md bg-black/20 px-3 py-2">Najlepszy Reaction Time: {profile.highlights.bestReactionTime?.scoreLabel ?? '-'}</p>
-                <p className="rounded-md bg-black/20 px-3 py-2">Najwyższy WPM: {profile.highlights.highestWpm?.scoreLabel ?? '-'}</p>
-                <p className="rounded-md bg-black/20 px-3 py-2">
-                  Najlepsza celność Aim Test:{' '}
-                  {profile.highlights.highestAimAccuracy?.stats?.accuracy !== undefined
-                    ? formatPercent(profile.highlights.highestAimAccuracy.stats.accuracy)
-                    : '-'}
-                </p>
-                <p className="rounded-md bg-black/20 px-3 py-2">
-                  Najlepsze podobieństwo Color Memory:{' '}
-                  {profile.highlights.bestColorSimilarity?.stats?.bestSimilarity !== undefined
-                    ? formatPercent(profile.highlights.bestColorSimilarity.stats.bestSimilarity)
-                    : '-'}
-                </p>
+                {highlights.map((item) => (
+                  <p className="rounded-md bg-black/20 px-3 py-2" key={item.label}>
+                    {item.label}: <span className="font-semibold text-white">{item.value ?? emptyValueLabel}</span>
+                  </p>
+                ))}
               </div>
             </div>
           </div>
