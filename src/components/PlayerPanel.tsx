@@ -39,6 +39,7 @@ export function PlayerPanel({ profile, onRename, onReset }: PlayerPanelProps) {
   return (
     <section className="rounded-lg border border-white/10 bg-white/[0.04] p-5">
       <h2 className="text-base font-semibold text-white">Profil lokalny</h2>
+
       <form
         className="mt-4 flex gap-2"
         onSubmit={(event) => {
@@ -54,10 +55,7 @@ export function PlayerPanel({ profile, onRename, onReset }: PlayerPanelProps) {
           placeholder="Nick"
           value={draftName}
         />
-        <button
-          className="rounded-md bg-teal-300 px-3 py-2 text-sm font-semibold text-slate-950"
-          type="submit"
-        >
+        <button className="rounded-md bg-teal-300 px-3 py-2 text-sm font-semibold text-slate-950" type="submit">
           Zmień
         </button>
       </form>
@@ -69,37 +67,6 @@ export function PlayerPanel({ profile, onRename, onReset }: PlayerPanelProps) {
       >
         Dźwięki: {audioEnabled ? 'Wł.' : 'Wył.'}
       </button>
-
-      <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-        <div className="rounded-md bg-black/20 p-3">
-          <span className="text-slate-400">Nick</span>
-          <strong className="mt-1 block truncate text-white">{profile.playerName}</strong>
-        </div>
-        <div className="rounded-md bg-black/20 p-3">
-          <span className="text-slate-400">Level</span>
-          <strong className="mt-1 block text-white">{profile.level}</strong>
-        </div>
-        <div className="rounded-md bg-black/20 p-3">
-          <span className="text-slate-400">XP</span>
-          <strong className="mt-1 block text-white">{profile.xp}</strong>
-        </div>
-        <div className="rounded-md bg-black/20 p-3">
-          <span className="text-slate-400">Rozegrane gry</span>
-          <strong className="mt-1 block text-white">{profile.totalGamesPlayed}</strong>
-        </div>
-      </div>
-      <div className="mt-3 rounded-md bg-black/20 p-3">
-        <div className="flex items-center justify-between text-xs text-slate-400">
-          <span>Postęp levelu</span>
-          <span>{profile.levelProgressPercent}%</span>
-        </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
-          <div className="h-full rounded-full bg-teal-300" style={{ width: `${profile.levelProgressPercent}%` }} />
-        </div>
-        <p className="mt-2 text-xs text-slate-500">
-          {profile.xp - profile.currentLevelXp} / {profile.nextLevelXp - profile.currentLevelXp} XP do kolejnego levelu
-        </p>
-      </div>
 
       <button
         className="mt-3 w-full rounded-md border border-white/10 px-3 py-2 text-sm text-slate-200 transition hover:bg-white/10"
@@ -120,25 +87,13 @@ export function PlayerPanel({ profile, onRename, onReset }: PlayerPanelProps) {
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-md bg-black/20 px-3 py-2">
-              <span className="text-slate-400">Level</span>
-              <strong className="mt-1 block text-white">{profile.level}</strong>
-            </div>
-            <div className="rounded-md bg-black/20 px-3 py-2">
-              <span className="text-slate-400">XP</span>
-              <strong className="mt-1 block text-white">{profile.xp}</strong>
-            </div>
-            <div className="rounded-md bg-black/20 px-3 py-2">
-              <span className="text-slate-400">Rozegrane gry</span>
-              <strong className="mt-1 block text-white">{profile.totalGamesPlayed}</strong>
-            </div>
-            <div className="rounded-md bg-black/20 px-3 py-2">
               <span className="text-slate-400">Zapisane wyniki</span>
               <strong className="mt-1 block text-white">{profile.totalScoreEntries}</strong>
             </div>
-          </div>
-          <div className="rounded-md bg-black/20 px-3 py-2">
-            <span className="text-slate-400">Najczęściej grana gra</span>
-            <strong className="mt-1 block text-white">{mostPlayedGameTitle}</strong>
+            <div className="rounded-md bg-black/20 px-3 py-2">
+              <span className="text-slate-400">Najczęściej grana</span>
+              <strong className="mt-1 block truncate text-white">{mostPlayedGameTitle}</strong>
+            </div>
           </div>
           <div className="rounded-md bg-black/20 px-3 py-2">
             <span className="text-slate-400">Najlepsza gra</span>

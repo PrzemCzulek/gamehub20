@@ -3,6 +3,7 @@ import { GameCarousel } from './components/GameCarousel';
 import { Leaderboard } from './components/Leaderboard';
 import { PlayerPanel } from './components/PlayerPanel';
 import { ProgressionPreview } from './components/ProgressionPreview';
+import { MetaPanel } from './components/meta/MetaPanel';
 import { games } from './data/games';
 import { AimTestGame } from './games/AimTestGame';
 import { ColorMemoryGame } from './games/ColorMemoryGame';
@@ -87,16 +88,12 @@ export default function App() {
   return (
     <main className="min-h-screen px-3 py-5 text-slate-100 sm:px-5 lg:px-8">
       <div className="mx-auto w-full max-w-7xl">
-        <header className="grid gap-4 border-b border-white/10 pb-6 md:grid-cols-[minmax(0,1fr)_minmax(18rem,34rem)] md:items-end">
+        <header className="grid gap-4 border-b border-white/10 pb-6 md:grid-cols-[minmax(0,1fr)_minmax(20rem,36rem)] md:items-center">
           <div className="min-w-0">
-            <p className="text-sm font-semibold uppercase tracking-wide text-teal-200">Game Hub 2.0</p>
-            <h1 className="mt-2 max-w-full text-3xl font-bold leading-tight text-white sm:text-4xl lg:text-5xl">
-              Mini gry i lokalne rankingi
-            </h1>
+            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-200">GAME HUB 2.0</p>
+            <p className="mt-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Skill Arcade Network</p>
           </div>
-          <p className="min-w-0 text-sm leading-6 text-slate-300 md:text-right">
-            MVP działa lokalnie w przeglądarce: nick, wyniki, profil i leaderboardy są zapisywane w localStorage.
-          </p>
+          <MetaPanel profile={profile} revision={revision} />
         </header>
 
         <GameCarousel activeGameId={activeGameId} games={games} onSelectGame={setActiveGameId} />
