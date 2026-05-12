@@ -17,7 +17,7 @@ export async function handler(event) {
 
     await initializeDatabase();
     const sql = getSql();
-    const rows = await sql`SELECT 1 AS ok`;
+    const rows = await sql.query('SELECT 1 AS ok');
 
     return json(200, {
       ok: true,

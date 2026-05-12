@@ -86,7 +86,7 @@ export async function handler(event) {
 
     await initializeDatabase();
     const sql = getSql();
-    const [row] = await sql(
+    const [row] = await sql.query(
       `INSERT INTO scores (
         player_id,
         player_name,

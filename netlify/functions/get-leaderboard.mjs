@@ -66,7 +66,7 @@ export async function handler(event) {
 
     await initializeDatabase();
     const sql = getSql();
-    const rows = await sql(query, [gameId, limit]);
+    const rows = await sql.query(query, [gameId, limit]);
 
     return json(200, {
       gameId,

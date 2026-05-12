@@ -27,7 +27,7 @@ export function getSql() {
 export async function initializeDatabase() {
   if (!initializePromise) {
     const sql = getSql();
-    initializePromise = sql`
+    initializePromise = sql.query(`
       CREATE TABLE IF NOT EXISTS scores (
         id BIGSERIAL PRIMARY KEY,
         player_id TEXT NOT NULL,
@@ -41,17 +41,19 @@ export async function initializeDatabase() {
         run_duration_ms INTEGER,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
-    `.then(() =>
-      sql.transaction([
-        sql`CREATE INDEX IF NOT EXISTS scores_game_id_idx ON scores (game_id)`,
-        sql`CREATE INDEX IF NOT EXISTS scores_created_at_idx ON scores (created_at DESC)`,
-        sql`CREATE INDEX IF NOT EXISTS scores_score_idx ON scores (score)`,
-        sql`CREATE INDEX IF NOT EXISTS scores_player_id_idx ON scores (player_id)`,
-      ]),
-    ).catch((error) => {
-      initializePromise = undefined;
-      throw error;
-    });
+    `)
+      .then(() =>
+        Promise.all([
+          sql.query('CREATE INDEX IF NOT EXISTS scores_game_id_idx ON scores (game_id)'),
+          sql.query('CREATE INDEX IF NOT EXISTS scores_created_at_idx ON scores (created_at DESC)'),
+          sql.query('CREATE INDEX IF NOT EXISTS scores_score_idx ON scores (score)'),
+          sql.query('CREATE INDEX IF NOT EXISTS scores_player_id_idx ON scores (player_id)'),
+        ]),
+      )
+      .catch((error) => {
+        initializePromise = undefined;
+        throw error;
+      });
   }
 
   return initializePromise;
