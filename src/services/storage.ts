@@ -1,4 +1,6 @@
 import { games, getGameConfig } from '../data/games';
+import { resetProgressionData } from '../progression/progressionEngine';
+import { calculateScoreXp, getLevelBaseXp, getLevelFromXp } from '../progression/xp';
 import type { GameId, LeaderboardEntry, LocalProfile, ScoreInput, ScoreStats } from '../types';
 
 const PLAYER_KEY = 'game-hub:player-name';
@@ -172,20 +174,6 @@ function deriveStats(entry: Pick<LeaderboardEntry, 'gameId' | 'score' | 'meta' |
   }
 }
 
-function calculateXp(entry: Pick<LeaderboardEntry, 'gameId' | 'score' | 'stats'>): number {
-  const bonusByGame: Record<GameId, number> = {
-    'reaction-time': Math.max(0, Math.min(30, Math.round((600 - Math.min(entry.score, 600)) / 20))),
-    'memory-test': Math.min(40, entry.score * 4),
-    'color-memory': Math.min(40, (entry.stats?.completedRound ?? entry.score) * 5),
-    'typing-speed': Math.min(40, Math.round(entry.score / 3)),
-    'symbol-match': Math.max(0, Math.min(30, 30 - Math.max(0, entry.score - 6) * 3)),
-    'aim-test': Math.min(45, Math.round(entry.score / 350)),
-    'word-memory': Math.min(45, Math.round(entry.score / 180)),
-  };
-
-  return 10 + Math.max(0, bonusByGame[entry.gameId] ?? 0);
-}
-
 function normalizeEntry(entry: LeaderboardEntry): LeaderboardEntry {
   const stats = deriveStats(entry);
   const runDurationMs = entry.runDurationMs ?? stats.durationMs;
@@ -198,7 +186,7 @@ function normalizeEntry(entry: LeaderboardEntry): LeaderboardEntry {
 
   return {
     ...normalizedEntry,
-    xpGained: entry.xpGained ?? calculateXp(normalizedEntry),
+    xpGained: entry.xpGained ?? calculateScoreXp(normalizedEntry),
   };
 }
 
@@ -331,17 +319,10 @@ export function resetLocalData(): void {
     localStorage.removeItem(PLAYER_KEY);
     localStorage.removeItem(PLAYER_ID_KEY);
     localStorage.removeItem(SCORES_KEY);
+    resetProgressionData();
   } catch {
     return;
   }
-}
-
-function getLevelFromXp(totalXp: number): number {
-  return Math.floor(Math.sqrt(totalXp / 100)) + 1;
-}
-
-function getLevelBaseXp(level: number): number {
-  return (level - 1) ** 2 * 100;
 }
 
 function getMostPlayedGame(scores: LeaderboardEntry[]): GameId | undefined {

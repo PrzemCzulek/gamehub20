@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { GameCarousel } from './components/GameCarousel';
 import { Leaderboard } from './components/Leaderboard';
 import { PlayerPanel } from './components/PlayerPanel';
+import { ProgressionPreview } from './components/ProgressionPreview';
 import { games } from './data/games';
 import { AimTestGame } from './games/AimTestGame';
 import { ColorMemoryGame } from './games/ColorMemoryGame';
@@ -10,6 +11,8 @@ import { ReactionTimeGame } from './games/ReactionTimeGame';
 import { SymbolMatchGame } from './games/SymbolMatchGame';
 import { TypingSpeedGame } from './games/TypingSpeedGame';
 import { WordMemoryGame } from './games/WordMemoryGame';
+import { createProgressionEvent } from './progression/events';
+import { processProgressionEvent } from './progression/progressionEngine';
 import { preloadAudio } from './services/audio';
 import { submitOnlineScore } from './services/onlineLeaderboard';
 import { getLeaderboard, getProfile, resetLocalData, saveScore, setPlayerName } from './services/storage';
@@ -62,6 +65,9 @@ export default function App() {
 
   function handleScore(score: ScoreInput) {
     const savedScore = saveScore(score);
+    const progressionEvent = createProgressionEvent(savedScore);
+    processProgressionEvent(progressionEvent);
+
     submitOnlineScore(savedScore).catch((error) => {
       console.warn('Online score submit failed', error);
     });
@@ -109,6 +115,7 @@ export default function App() {
 
           <aside className="space-y-6">
             <PlayerPanel onRename={handleRename} onReset={handleResetLocalData} profile={profile} />
+            <ProgressionPreview revision={revision} />
             <Leaderboard entries={leaderboard} gameId={activeGameId} />
           </aside>
         </div>
