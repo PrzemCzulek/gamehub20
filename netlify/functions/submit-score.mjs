@@ -114,7 +114,8 @@ export async function handler(event) {
       ],
     );
 
-    return json(200, { score: mapScoreRow(row) });
+    const entry = mapScoreRow(row);
+    return json(200, { ok: true, entry, score: entry });
   } catch (error) {
     console.error('FUNCTION ERROR', error);
     return json(500, {

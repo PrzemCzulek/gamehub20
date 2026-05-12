@@ -61,7 +61,7 @@ export const ensureLeaderboardTable = initializeDatabase;
 
 export function mapScoreRow(row) {
   return {
-    id: row.id,
+    id: row.id?.toString?.() ?? String(row.id),
     playerId: row.player_id,
     playerName: row.player_name,
     gameId: row.game_id,

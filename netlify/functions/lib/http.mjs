@@ -11,7 +11,7 @@ export function json(statusCode, body) {
       ...corsHeaders,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(body, (_key, value) => (typeof value === 'bigint' ? value.toString() : value)),
   };
 }
 

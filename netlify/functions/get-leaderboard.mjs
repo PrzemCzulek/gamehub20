@@ -17,7 +17,8 @@ function getMetricExpression(metric) {
     return 'score';
   }
 
-  return `NULLIF(COALESCE(stats, '{}'::jsonb) ->> '${metric.statKey}', '')::double precision`;
+  const valueExpression = `COALESCE(stats, '{}'::jsonb) ->> '${metric.statKey}'`;
+  return `CASE WHEN ${valueExpression} ~ '^-?[0-9]+(\\.[0-9]+)?$' THEN (${valueExpression})::numeric ELSE NULL END`;
 }
 
 export async function handler(event) {
