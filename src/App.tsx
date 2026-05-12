@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { GameCarousel } from './components/GameCarousel';
 import { Leaderboard } from './components/Leaderboard';
-import { PlayerPanel } from './components/PlayerPanel';
+import { PlayerHub } from './components/PlayerHub';
 import { MetaPanel } from './components/meta/MetaPanel';
 import { games } from './data/games';
 import { AimTestGame } from './games/AimTestGame';
@@ -87,17 +87,23 @@ export default function App() {
   return (
     <main className="min-h-screen px-3 py-4 text-slate-100 sm:px-5 lg:px-8">
       <div className="mx-auto w-full max-w-7xl">
-        <header className="grid gap-4 rounded-xl border border-white/10 bg-white/[0.03] p-4 shadow-[0_0_35px_rgba(34,211,238,0.06)] md:grid-cols-[minmax(0,1fr)_minmax(20rem,36rem)] md:items-center">
+        <header className="grid gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 shadow-[0_0_35px_rgba(34,211,238,0.06)] md:grid-cols-[minmax(0,1fr)_minmax(20rem,34rem)] md:items-center">
           <div className="min-w-0 px-1">
             <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-200">GAME HUB 2.0</p>
-            <p className="mt-2 text-sm font-semibold uppercase tracking-wide text-slate-400">SKILL ARCADE NETWORK</p>
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <span>SKILL ARCADE NETWORK</span>
+              <span className="inline-flex items-center gap-1.5 text-cyan-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.8)]" />
+                Online
+              </span>
+            </div>
           </div>
-          <MetaPanel profile={profile} revision={revision} />
+          <MetaPanel onReset={handleResetLocalData} profile={profile} revision={revision} />
         </header>
 
         <GameCarousel activeGameId={activeGameId} games={games} onSelectGame={setActiveGameId} />
 
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
           <section className="game-panel min-w-0 self-start rounded-lg border border-white/10 bg-white/[0.04] p-4 sm:p-5">
             <div className="mb-5 flex flex-col gap-2 border-b border-white/10 pb-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -109,11 +115,12 @@ export default function App() {
             {renderGame(activeGameId, handleScore)}
           </section>
 
-          <aside className="space-y-6">
-            <PlayerPanel onRename={handleRename} onReset={handleResetLocalData} profile={profile} />
+          <aside className="self-start">
             <Leaderboard entries={leaderboard} gameId={activeGameId} />
           </aside>
         </div>
+
+        <PlayerHub onRename={handleRename} profile={profile} revision={revision} />
       </div>
     </main>
   );

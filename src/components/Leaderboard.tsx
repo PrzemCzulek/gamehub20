@@ -14,7 +14,6 @@ type LeaderboardProps = {
 type LeaderboardSource = 'local' | 'online';
 
 export function Leaderboard({ gameId, entries }: LeaderboardProps) {
-  const [expanded, setExpanded] = useState(false);
   const [metricId, setMetricId] = useState('score');
   const [source, setSource] = useState<LeaderboardSource>('online');
   const [onlineEntries, setOnlineEntries] = useState<LeaderboardEntry[]>([]);
@@ -22,16 +21,14 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   const [onlineLoading, setOnlineLoading] = useState(false);
   const game = getGameConfig(gameId);
   const activeMetric = game.metrics.find((metric) => metric.id === metricId) ?? game.metrics[0];
-  const limit = expanded ? 15 : 5;
+  const limit = 10;
   const sortedEntries = useMemo(() => sortScoresByMetric(entries, gameId, activeMetric.id), [activeMetric.id, entries, gameId]);
   const usingOnline = source === 'online' && !onlineError;
   const displayedEntries = usingOnline ? onlineEntries : sortedEntries;
-  const visibleEntries = useMemo(() => displayedEntries.slice(0, limit), [displayedEntries, limit]);
+  const visibleEntries = useMemo(() => displayedEntries.slice(0, limit), [displayedEntries]);
   const totalEntriesLabel = usingOnline ? `${visibleEntries.length}+` : entries.length;
-  const canExpand = usingOnline ? visibleEntries.length >= 5 : entries.length > 5;
 
   useEffect(() => {
-    setExpanded(false);
     setMetricId('score');
   }, [gameId]);
 
@@ -53,7 +50,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
       .catch(() => {
         if (!ignore) {
           setOnlineEntries([]);
-          setOnlineError('Online leaderboard niedostepny - pokazuje lokalne wyniki.');
+          setOnlineError('Online leaderboard niedostępny - pokazuję lokalne wyniki.');
         }
       })
       .finally(() => {
@@ -65,7 +62,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
     return () => {
       ignore = true;
     };
-  }, [activeMetric.id, entries.length, gameId, limit, source]);
+  }, [activeMetric.id, entries.length, gameId, source]);
 
   function getMetricValue(entry: LeaderboardEntry, metric: LeaderboardMetric): number | undefined {
     return metric.source === 'score' ? entry.score : metric.statKey ? entry.stats?.[metric.statKey] : undefined;
@@ -94,49 +91,35 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   }
 
   return (
-    <section className="rounded-lg border border-white/10 bg-white/[0.04] p-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <section className="rounded-xl border border-cyan-300/15 bg-white/[0.04] p-4 shadow-[0_0_32px_rgba(34,211,238,0.06)]">
+      <div className="flex flex-col gap-3">
         <div>
-          <h2 className="text-base font-semibold text-white">Leaderboard</h2>
-          <p className="text-sm text-slate-400">
-            {activeMetric.direction === 'ascending'
-              ? 'Sortowanie rosnace: nizszy wynik jest lepszy.'
-              : 'Sortowanie malejace: wyzszy wynik jest lepszy.'}
+          <h2 className="text-base font-semibold uppercase tracking-wide text-white">Ranking</h2>
+          <p className="text-xs text-slate-400">
+            {activeMetric.direction === 'ascending' ? 'Niższy wynik jest lepszy.' : 'Wyższy wynik jest lepszy.'}
           </p>
           <p className="mt-1 text-xs text-slate-500">
-            Pokazuje Top {limit} z {totalEntriesLabel} zapisanych wynikow.
+            Top {limit} z {totalEntriesLabel} wyników.
           </p>
         </div>
-        {canExpand && (
-          <button
-            className="w-full rounded-md border border-white/15 px-3 py-2 text-sm text-slate-100 hover:bg-white/10 sm:w-auto"
-            onClick={() => {
-              playNormalClickSound();
-              setExpanded((value) => !value);
-            }}
-            type="button"
-          >
-            {expanded ? 'Pokaz mniej' : 'Pokaz wiecej'}
-          </button>
-        )}
-      </div>
 
-      <div className="mt-4 grid grid-cols-2 overflow-hidden rounded-md border border-white/10 bg-black/20 p-1">
-        {(['local', 'online'] as const).map((item) => (
-          <button
-            className={`rounded px-3 py-2 text-sm font-semibold transition ${
-              source === item ? 'bg-teal-300 text-slate-950' : 'text-slate-300 hover:bg-white/10'
-            }`}
-            key={item}
-            onClick={() => {
-              playNormalClickSound();
-              setSource(item);
-            }}
-            type="button"
-          >
-            {item === 'local' ? 'Lokalny' : 'Online'}
-          </button>
-        ))}
+        <div className="grid grid-cols-2 overflow-hidden rounded-md border border-white/10 bg-black/20 p-1">
+          {(['local', 'online'] as const).map((item) => (
+            <button
+              className={`rounded px-3 py-2 text-sm font-semibold transition ${
+                source === item ? 'bg-teal-300 text-slate-950' : 'text-slate-300 hover:bg-white/10'
+              }`}
+              key={item}
+              onClick={() => {
+                playNormalClickSound();
+                setSource(item);
+              }}
+              type="button"
+            >
+              {item === 'local' ? 'Lokalny' : 'Online'}
+            </button>
+          ))}
+        </div>
       </div>
 
       {onlineError && source === 'online' && (
@@ -144,7 +127,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
       )}
 
       {onlineLoading && source === 'online' && !onlineError && (
-        <p className="mt-3 rounded-md border border-white/10 bg-black/20 p-3 text-sm text-slate-300">Laduje online leaderboard...</p>
+        <p className="mt-3 rounded-md border border-white/10 bg-black/20 p-3 text-sm text-slate-300">Ładuję online leaderboard...</p>
       )}
 
       {game.metrics.length > 1 && (
@@ -155,7 +138,6 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
             onChange={(event) => {
               playNormalClickSound();
               setMetricId(event.target.value);
-              setExpanded(false);
             }}
             value={activeMetric.id}
           >
@@ -168,15 +150,15 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
         </label>
       )}
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-4 max-h-[31rem] space-y-2 overflow-y-auto pr-1">
         {visibleEntries.length === 0 ? (
           <p className="rounded-md border border-dashed border-white/10 p-4 text-sm text-slate-400">
-            {usingOnline ? 'Brak wynikow online dla tej gry.' : 'Brak wynikow dla tej gry. Zagraj runde, aby dodac pierwszy wpis.'}
+            {usingOnline ? 'Brak wyników online dla tej gry.' : 'Brak wyników dla tej gry. Zagraj rundę, aby dodać pierwszy wpis.'}
           </p>
         ) : (
           visibleEntries.map((entry, index) => (
             <div
-              className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-3 rounded-md bg-black/20 px-3 py-2"
+              className="grid grid-cols-[2.25rem_1fr_auto] items-center gap-3 rounded-md border border-white/5 bg-black/20 px-3 py-2"
               key={`${entry.createdAt}-${entry.playerName}-${index}`}
             >
               <span className="text-sm font-semibold text-teal-200">#{index + 1}</span>

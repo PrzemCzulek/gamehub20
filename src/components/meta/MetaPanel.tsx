@@ -1,14 +1,20 @@
+﻿import { useState } from 'react';
 import { achievementDefinitions } from '../../data/achievements';
 import { questDefinitions } from '../../data/quests';
 import { getAchievementUnlocks, getQuestProgress } from '../../progression/progressionEngine';
+import { getAudioEnabled, playNormalClickSound, toggleAudioEnabled } from '../../services/audio';
 import type { LocalProfile } from '../../types';
 
 type MetaPanelProps = {
   profile: LocalProfile;
+  onReset: () => void;
   revision: number;
 };
 
-export function MetaPanel({ profile, revision }: MetaPanelProps) {
+export function MetaPanel({ profile, onReset, revision }: MetaPanelProps) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [audioEnabled, setAudioEnabledState] = useState(getAudioEnabled);
+  const [resetInput, setResetInput] = useState('');
   const questProgress = getQuestProgress();
   const achievementUnlocks = getAchievementUnlocks();
   const dailyQuest = questDefinitions.find((quest) => quest.type === 'daily');
@@ -16,67 +22,133 @@ export function MetaPanel({ profile, revision }: MetaPanelProps) {
   const dailyValue = dailyProgress?.progress ?? 0;
   const dailyGoal = dailyQuest?.target.amount ?? 1;
   const dailyPercent = Math.min(100, Math.round((dailyValue / dailyGoal) * 100));
+  const canReset = resetInput === 'RESET';
+
+  function handleAudioToggle() {
+    playNormalClickSound();
+    setAudioEnabledState(toggleAudioEnabled());
+  }
+
+  function handleReset() {
+    if (!canReset) {
+      return;
+    }
+
+    playNormalClickSound();
+    const confirmed = window.confirm('Ta operacja jest nieodwracalna. Na pewno zresetować lokalne dane?');
+
+    if (confirmed) {
+      onReset();
+      setResetInput('');
+      setSettingsOpen(false);
+    }
+  }
 
   return (
-    <section
-      className="relative overflow-hidden rounded-lg border border-cyan-300/20 bg-slate-950/70 p-3 shadow-[0_0_35px_rgba(34,211,238,0.10)] backdrop-blur"
-      data-revision={revision}
-    >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.18),transparent_42%),radial-gradient(circle_at_bottom_left,rgba(168,85,247,0.14),transparent_45%)]" />
-      <div className="relative grid gap-2.5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-cyan-200">PROFIL GRACZA</p>
-            <h2 className="truncate text-lg font-bold text-white">{profile.playerName}</h2>
-          </div>
-          <div className="rounded-lg border border-violet-300/30 bg-violet-300/10 px-3 py-2 text-right">
-            <span className="block text-[0.65rem] uppercase tracking-wide text-violet-100">Level</span>
-            <strong className="text-xl leading-none text-white">{profile.level}</strong>
-          </div>
-        </div>
-
-        <div>
-          <div className="flex items-center justify-between text-xs text-slate-300">
-            <span>XP {profile.xp}</span>
-            <span>{profile.levelProgressPercent}% do nast�pnego poziomu</span>
-          </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-cyan-300 via-teal-300 to-violet-300 shadow-[0_0_16px_rgba(45,212,191,0.55)]"
-              style={{ width: `${profile.levelProgressPercent}%` }}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="rounded-md border border-white/10 bg-black/25 px-3 py-2">
-            <span className="block text-slate-400">Rozegrane gry</span>
-            <strong className="mt-1 block text-base text-white">{profile.totalGamesPlayed}</strong>
-          </div>
-          <div className="rounded-md border border-white/10 bg-black/25 px-3 py-2">
-            <span className="block text-slate-400">Odblokowane</span>
-            <strong className="mt-1 block text-base text-white">
-              {achievementUnlocks.length}/{achievementDefinitions.length}
-            </strong>
-          </div>
-        </div>
-
-        {dailyQuest && (
-          <div className="rounded-md border border-cyan-300/15 bg-cyan-300/[0.06] px-3 py-2">
-            <div className="flex items-center justify-between gap-3 text-xs">
-              <span className="font-semibold uppercase tracking-wide text-cyan-100">Dzienny cel</span>
-              <span className="text-cyan-100">
-                {dailyValue}/{dailyGoal}
-              </span>
+    <section className="relative" data-revision={revision}>
+      <div className="grid gap-3 rounded-lg border border-cyan-300/20 bg-slate-950/70 p-3 shadow-[0_0_28px_rgba(34,211,238,0.10)] backdrop-blur sm:grid-cols-[1fr_auto] sm:items-center">
+        <div className="min-w-0">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-violet-300/35 bg-violet-300/10 text-sm font-black text-violet-100 shadow-[0_0_22px_rgba(168,85,247,0.20)]">
+              {profile.playerName.slice(0, 1).toUpperCase() || 'G'}
             </div>
-            <p className="mt-1 truncate text-sm font-semibold text-white">{dailyQuest.title}</p>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full rounded-full bg-cyan-300" style={{ width: `${dailyPercent}%` }} />
+            <div className="min-w-0">
+              <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-cyan-200">PROFIL GRACZA</p>
+              <div className="flex min-w-0 items-center gap-2">
+                <h2 className="truncate text-sm font-bold text-white">{profile.playerName}</h2>
+                <span className="rounded-full border border-violet-300/25 px-2 py-0.5 text-[0.65rem] font-semibold text-violet-100">L{profile.level}</span>
+              </div>
             </div>
           </div>
-        )}
+
+          <div className="mt-2">
+            <div className="flex items-center justify-between text-[0.68rem] text-slate-300">
+              <span>XP {profile.xp}</span>
+              <span>{profile.levelProgressPercent}%</span>
+            </div>
+            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-cyan-300 via-teal-300 to-violet-300 shadow-[0_0_14px_rgba(45,212,191,0.5)]"
+                style={{ width: `${profile.levelProgressPercent}%` }}
+              />
+            </div>
+          </div>
+
+          {dailyQuest && (
+            <div className="mt-2 rounded-md border border-cyan-300/10 bg-cyan-300/[0.05] px-2 py-1.5">
+              <div className="flex items-center justify-between gap-2 text-[0.65rem]">
+                <span className="font-semibold uppercase tracking-wide text-cyan-100">Dzienny cel</span>
+                <span className="text-cyan-100">{dailyValue}/{dailyGoal}</span>
+              </div>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate text-xs text-white">{dailyQuest.title}</span>
+                <div className="h-1 w-20 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-full rounded-full bg-cyan-300" style={{ width: `${dailyPercent}%` }} />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-2 sm:flex-col sm:items-end">
+          <div className="text-right text-[0.68rem] text-slate-400">
+            <div>Gry: <span className="font-semibold text-white">{profile.totalGamesPlayed}</span></div>
+            <div>Odblokowane: <span className="font-semibold text-white">{achievementUnlocks.length}/{achievementDefinitions.length}</span></div>
+          </div>
+          <button
+            aria-label="Ustawienia"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-black/25 text-lg text-slate-200 transition hover:border-cyan-300/30 hover:bg-cyan-300/10"
+            onClick={() => {
+              playNormalClickSound();
+              setSettingsOpen((value) => !value);
+            }}
+            type="button"
+          >
+            ⚙
+          </button>
+        </div>
       </div>
+
+      {settingsOpen && (
+        <div className="absolute right-0 z-30 mt-2 w-full max-w-sm rounded-lg border border-white/10 bg-slate-950/95 p-4 shadow-[0_18px_60px_rgba(0,0,0,0.55)] backdrop-blur">
+          <h3 className="text-sm font-semibold text-white">Ustawienia</h3>
+
+          <div className="mt-4 rounded-md border border-white/10 bg-black/25 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-white">Dźwięki</p>
+                <p className="text-xs text-slate-400">Efekty UI i karuzeli</p>
+              </div>
+              <button
+                className={`rounded-md px-3 py-2 text-xs font-bold ${audioEnabled ? 'bg-cyan-300 text-slate-950' : 'border border-white/15 text-slate-200'}`}
+                onClick={handleAudioToggle}
+                type="button"
+              >
+                {audioEnabled ? 'ON' : 'OFF'}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-3 rounded-md border border-red-300/20 bg-red-400/10 p-3">
+            <p className="text-sm font-semibold text-red-100">DEV: Reset danych lokalnych</p>
+            <p className="mt-1 text-xs text-red-100/80">Ta operacja jest nieodwracalna.</p>
+            <input
+              className="mt-3 w-full rounded-md border border-red-300/20 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-slate-500"
+              onChange={(event) => setResetInput(event.target.value)}
+              placeholder="Wpisz RESET"
+              value={resetInput}
+            />
+            <button
+              className="mt-3 w-full rounded-md border border-red-300/30 px-3 py-2 text-sm font-semibold text-red-100 transition enabled:hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-40"
+              disabled={!canReset}
+              onClick={handleReset}
+              type="button"
+            >
+              Reset danych lokalnych
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
-

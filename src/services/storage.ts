@@ -6,6 +6,7 @@ import type { GameId, LeaderboardEntry, LocalProfile, ScoreInput, ScoreStats } f
 const PLAYER_KEY = 'game-hub:player-name';
 const PLAYER_ID_KEY = 'game-hub:player-id';
 const SCORES_KEY = 'game-hub:scores';
+const AUDIO_ENABLED_KEY = 'gameHubAudioEnabled';
 const DEFAULT_PLAYER_NAME = 'Gracz';
 const RECENT_LIMIT = 5;
 const validGameIds = new Set<GameId>(games.map((game) => game.id));
@@ -319,6 +320,7 @@ export function resetLocalData(): void {
     localStorage.removeItem(PLAYER_KEY);
     localStorage.removeItem(PLAYER_ID_KEY);
     localStorage.removeItem(SCORES_KEY);
+    localStorage.removeItem(AUDIO_ENABLED_KEY);
     resetProgressionData();
   } catch {
     return;
