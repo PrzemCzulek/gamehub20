@@ -6,7 +6,17 @@ type OnlineLeaderboardResponse = {
 
 async function readJsonResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    throw new Error(`Online leaderboard request failed: ${response.status}`);
+    const errorText = await response.text();
+    let errorBody: unknown = errorText;
+
+    try {
+      errorBody = JSON.parse(errorText);
+    } catch {
+      errorBody = errorText;
+    }
+
+    console.error('Online leaderboard error body', errorBody);
+    throw new Error(`Online leaderboard request failed: ${response.status} ${JSON.stringify(errorBody)}`);
   }
 
   return (await response.json()) as T;
