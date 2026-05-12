@@ -32,6 +32,7 @@ export type QuestDefinition = {
   title: string;
   description: string;
   category: QuestCategory;
+  rewardXp: number;
   target: {
     kind: QuestTargetKind;
     amount: number;
@@ -81,7 +82,10 @@ export type PlayerProgression = {
 export type ProgressionResult = {
   event: ProgressionEvent;
   playerProgression: PlayerProgression;
+  previousLevel: number;
   questProgress: QuestProgress[];
   achievementUnlocks: AchievementUnlock[];
+  newAchievementUnlocks: AchievementUnlock[];
+  newlyCompletedQuests: QuestProgress[];
   personalBestImproved: boolean;
 };

@@ -65,9 +65,12 @@ export function processProgressionEvent(event: ProgressionEvent): ProgressionRes
   const storedPlayerProgression = getStoredPlayerProgression();
   const currentQuestProgress = getQuestProgress();
   const currentUnlocks = getAchievementUnlocks();
+  const previousLevel = storedPlayerProgression?.level ?? 1;
   const playerProgression = updatePlayerProgression(event, storedPlayerProgression);
   const questResult = updateQuestProgress(currentQuestProgress, event, previousEvents);
   const achievementUnlocks = evaluateAchievements(currentUnlocks, event, playerProgression);
+  const previousUnlockIds = new Set(currentUnlocks.map((unlock) => unlock.achievementId));
+  const newAchievementUnlocks = achievementUnlocks.filter((unlock) => !previousUnlockIds.has(unlock.achievementId));
   const nextEvents = [event, ...previousEvents].slice(0, MAX_STORED_EVENTS);
 
   writeJson(EVENTS_KEY, nextEvents);
@@ -78,8 +81,11 @@ export function processProgressionEvent(event: ProgressionEvent): ProgressionRes
   return {
     event,
     playerProgression,
+    previousLevel,
     questProgress: questResult.progress,
     achievementUnlocks,
+    newAchievementUnlocks,
+    newlyCompletedQuests: questResult.newlyCompletedQuests,
     personalBestImproved: questResult.personalBestImproved,
   };
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { getGameConfig } from '../data/games';
 import { playNormalClickSound } from '../services/audio';
 import { getOnlineLeaderboard } from '../services/onlineLeaderboard';
@@ -12,6 +12,22 @@ type LeaderboardProps = {
 };
 
 type LeaderboardSource = 'local' | 'online';
+
+function getRankClass(index: number): string {
+  if (index === 0) {
+    return 'border-cyan-300/35 bg-cyan-300/[0.08] shadow-[0_0_22px_rgba(34,211,238,0.16)]';
+  }
+
+  if (index === 1) {
+    return 'border-violet-300/25 bg-violet-300/[0.06]';
+  }
+
+  if (index === 2) {
+    return 'border-amber-200/25 bg-amber-200/[0.05]';
+  }
+
+  return 'border-white/5 bg-black/20';
+}
 
 export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   const [metricId, setMetricId] = useState('score');
@@ -158,10 +174,10 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
         ) : (
           visibleEntries.map((entry, index) => (
             <div
-              className="grid grid-cols-[2.25rem_1fr_auto] items-center gap-3 rounded-md border border-white/5 bg-black/20 px-3 py-2"
+              className={`grid grid-cols-[2.25rem_1fr_auto] items-center gap-3 rounded-md border px-3 py-2 transition ${getRankClass(index)}`}
               key={`${entry.createdAt}-${entry.playerName}-${index}`}
             >
-              <span className="text-sm font-semibold text-teal-200">#{index + 1}</span>
+              <span className={`text-sm font-semibold ${index === 0 ? 'text-cyan-100' : 'text-teal-200'}`}>#{index + 1}</span>
               <span className="min-w-0 truncate text-sm text-slate-100">{entry.playerName}</span>
               <span className="text-sm font-semibold text-white">{formatMetricValue(entry, activeMetric)}</span>
             </div>

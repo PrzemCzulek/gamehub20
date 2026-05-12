@@ -177,6 +177,24 @@ input:focus-visible {
   animation: typingCaretPulse 900ms ease-in-out infinite;
 }
 
+.feedback-toast {
+  animation: feedbackSlideIn 220ms ease-out both;
+}
+
+.achievement-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.achievement-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 15%, rgba(255, 255, 255, 0.12), transparent 55%);
+  transform: translateX(-120%);
+  animation: achievementShine 3.4s ease-in-out infinite;
+}
+
 @keyframes softPulse {
   0%,
   100% {
@@ -211,6 +229,29 @@ input:focus-visible {
   50% {
     opacity: 1;
     box-shadow: 0 0 12px rgba(45, 212, 191, 0.65);
+  }
+}
+
+@keyframes feedbackSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-0.75rem) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes achievementShine {
+  0%,
+  45% {
+    transform: translateX(-120%);
+  }
+
+  100% {
+    transform: translateX(120%);
   }
 }
 

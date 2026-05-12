@@ -34,10 +34,11 @@ export function updateQuestProgress(
   currentProgress: QuestProgress[],
   event: ProgressionEvent,
   previousEvents: ProgressionEvent[],
-): { progress: QuestProgress[]; personalBestImproved: boolean } {
+): { progress: QuestProgress[]; personalBestImproved: boolean; newlyCompletedQuests: QuestProgress[] } {
   const now = event.createdAt;
   const personalBestImproved = isPersonalBest(event, previousEvents);
   const nextProgress = [...currentProgress];
+  const newlyCompletedQuests: QuestProgress[] = [];
 
   questDefinitions.forEach((quest) => {
     const periodId = getPeriodId(quest.type, new Date(now));
@@ -88,7 +89,11 @@ export function updateQuestProgress(
     } else {
       nextProgress.push(updated);
     }
+
+    if (!baseProgress.completed && updated.completed) {
+      newlyCompletedQuests.push(updated);
+    }
   });
 
-  return { progress: nextProgress, personalBestImproved };
+  return { progress: nextProgress, personalBestImproved, newlyCompletedQuests };
 }

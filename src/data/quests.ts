@@ -1,4 +1,4 @@
-import type { QuestDefinition } from '../progression/types';
+﻿import type { QuestDefinition } from '../progression/types';
 
 export const questDefinitions: QuestDefinition[] = [
   {
@@ -7,6 +7,7 @@ export const questDefinitions: QuestDefinition[] = [
     title: 'Zagraj 3 gry',
     description: 'Rozegraj 3 rundy dowolnych gier.',
     category: 'participation',
+    rewardXp: 250,
     target: { kind: 'games_played', amount: 3 },
   },
   {
@@ -15,6 +16,7 @@ export const questDefinitions: QuestDefinition[] = [
     title: 'Zdobądź 250 XP',
     description: 'Zdobądź 250 XP z zapisanych wyników.',
     category: 'xp',
+    rewardXp: 250,
     target: { kind: 'xp_earned', amount: 250 },
   },
   {
@@ -23,6 +25,7 @@ export const questDefinitions: QuestDefinition[] = [
     title: 'Pobij rekord osobisty',
     description: 'Popraw swój najlepszy wynik przynajmniej raz.',
     category: 'personal_best',
+    rewardXp: 300,
     target: { kind: 'personal_bests', amount: 1 },
   },
   {
@@ -31,6 +34,7 @@ export const questDefinitions: QuestDefinition[] = [
     title: 'Zagraj 15 gier',
     description: 'Rozegraj 15 rund w tym tygodniu.',
     category: 'participation',
+    rewardXp: 1000,
     target: { kind: 'games_played', amount: 15 },
   },
   {
@@ -39,6 +43,7 @@ export const questDefinitions: QuestDefinition[] = [
     title: 'Zdobądź 1500 XP',
     description: 'Zdobądź 1500 XP w tym tygodniu.',
     category: 'xp',
+    rewardXp: 1500,
     target: { kind: 'xp_earned', amount: 1500 },
   },
   {
@@ -47,6 +52,7 @@ export const questDefinitions: QuestDefinition[] = [
     title: 'Ukończ 5 różnych gier',
     description: 'Zapisz wynik w 5 różnych grach.',
     category: 'participation',
+    rewardXp: 1200,
     target: { kind: 'different_games_completed', amount: 5 },
   },
 ];

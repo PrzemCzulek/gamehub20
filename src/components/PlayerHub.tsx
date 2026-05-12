@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { achievementDefinitions } from '../data/achievements';
 import { games } from '../data/games';
 import { questDefinitions } from '../data/quests';
@@ -15,6 +15,8 @@ type PlayerHubProps = {
 
 type PlayerHubTab = 'stats' | 'achievements' | 'quests' | 'history';
 
+type Rarity = 'common' | 'rare' | 'epic';
+
 const tabs: Array<{ id: PlayerHubTab; label: string }> = [
   { id: 'stats', label: 'Statystyki' },
   { id: 'achievements', label: 'Achievementy' },
@@ -22,8 +24,51 @@ const tabs: Array<{ id: PlayerHubTab; label: string }> = [
   { id: 'history', label: 'Historia' },
 ];
 
+const rarityLabels: Record<Rarity, string> = {
+  common: 'COMMON',
+  rare: 'RARE',
+  epic: 'EPIC',
+};
+
+const rarityStyles: Record<Rarity, { unlocked: string; locked: string; badge: string }> = {
+  common: {
+    unlocked: 'border-slate-200/25 bg-slate-200/[0.07] shadow-[0_0_18px_rgba(226,232,240,0.10)]',
+    locked: 'border-white/10 bg-black/20 opacity-50 grayscale',
+    badge: 'border-slate-200/25 text-slate-100 bg-slate-200/10',
+  },
+  rare: {
+    unlocked: 'border-cyan-300/35 bg-cyan-300/[0.08] shadow-[0_0_24px_rgba(34,211,238,0.16)]',
+    locked: 'border-cyan-300/10 bg-black/20 opacity-50 grayscale',
+    badge: 'border-cyan-300/35 text-cyan-100 bg-cyan-300/10',
+  },
+  epic: {
+    unlocked: 'border-violet-300/40 bg-violet-300/[0.09] shadow-[0_0_26px_rgba(168,85,247,0.18)]',
+    locked: 'border-violet-300/10 bg-black/20 opacity-50 grayscale',
+    badge: 'border-violet-300/40 text-violet-100 bg-violet-300/10',
+  },
+};
+
 function getGameTitle(gameId: string): string {
   return games.find((game) => game.id === gameId)?.title ?? gameId;
+}
+
+function getQuestResetLabel(type: 'daily' | 'weekly'): string {
+  const now = new Date();
+  const reset = new Date(now);
+
+  if (type === 'daily') {
+    reset.setHours(24, 0, 0, 0);
+  } else {
+    const daysUntilMonday = (8 - now.getDay()) % 7 || 7;
+    reset.setDate(now.getDate() + daysUntilMonday);
+    reset.setHours(0, 0, 0, 0);
+  }
+
+  const diffMs = Math.max(0, reset.getTime() - now.getTime());
+  const hours = Math.floor(diffMs / 3_600_000);
+  const minutes = Math.floor((diffMs % 3_600_000) / 60_000);
+
+  return `${hours}h ${minutes}m`;
 }
 
 export function PlayerHub({ onRename, profile, revision }: PlayerHubProps) {
@@ -141,24 +186,26 @@ export function PlayerHub({ onRename, profile, revision }: PlayerHubProps) {
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {achievementDefinitions.map((achievement) => {
               const unlocked = unlockedIds.has(achievement.id);
+              const rarity = achievement.rarity as Rarity;
+              const styles = rarityStyles[rarity];
 
               return (
                 <div
-                  className={`rounded-lg border p-4 ${
-                    unlocked
-                      ? 'border-cyan-300/30 bg-cyan-300/[0.08] shadow-[0_0_22px_rgba(34,211,238,0.12)]'
-                      : 'border-white/10 bg-black/20 opacity-70'
+                  className={`relative overflow-hidden rounded-lg border p-4 transition duration-200 ${
+                    unlocked ? `${styles.unlocked} achievement-shine` : styles.locked
                   }`}
                   key={achievement.id}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="text-sm font-semibold text-white">{achievement.title}</h3>
-                    <span className="rounded-full border border-white/10 px-2 py-0.5 text-[0.65rem] uppercase text-slate-300">
-                      {achievement.rarity}
+                    <span className={`rounded-full border px-2 py-0.5 text-[0.65rem] font-bold uppercase ${styles.badge}`}>
+                      {rarityLabels[rarity]}
                     </span>
                   </div>
                   <p className="mt-2 text-xs leading-5 text-slate-400">{achievement.description}</p>
-                  <p className="mt-3 text-xs font-semibold text-cyan-100">{unlocked ? 'Odblokowane' : 'Zablokowane'}</p>
+                  <p className={`mt-3 text-xs font-semibold ${unlocked ? 'text-cyan-100' : 'text-slate-500'}`}>
+                    {unlocked ? 'Odblokowane' : 'Zablokowane'}
+                  </p>
                 </div>
               );
             })}
@@ -169,9 +216,12 @@ export function PlayerHub({ onRename, profile, revision }: PlayerHubProps) {
           <div className="grid gap-4 lg:grid-cols-2">
             {(['daily', 'weekly'] as const).map((type) => (
               <div className="rounded-lg border border-white/10 bg-black/15 p-4" key={type}>
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-cyan-100">
-                  {type === 'daily' ? 'Dzienne questy' : 'Tygodniowe questy'}
-                </h3>
+                <div className="flex flex-wrap items-end justify-between gap-2">
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-cyan-100">
+                    {type === 'daily' ? 'Dzienne questy' : 'Tygodniowe questy'}
+                  </h3>
+                  <span className="text-xs text-slate-400">Reset za: {getQuestResetLabel(type)}</span>
+                </div>
                 <div className="mt-3 space-y-2">
                   {questDefinitions
                     .filter((quest) => quest.type === type)
@@ -181,7 +231,7 @@ export function PlayerHub({ onRename, profile, revision }: PlayerHubProps) {
                       const percent = Math.min(100, Math.round((value / quest.target.amount) * 100));
 
                       return (
-                        <div className="rounded-md bg-black/25 px-3 py-2" key={quest.id}>
+                        <div className="rounded-md border border-white/5 bg-black/25 px-3 py-2" key={quest.id}>
                           <div className="flex items-center justify-between gap-3 text-sm">
                             <span className="font-semibold text-white">{quest.title}</span>
                             <span className="text-cyan-100">
@@ -189,8 +239,12 @@ export function PlayerHub({ onRename, profile, revision }: PlayerHubProps) {
                             </span>
                           </div>
                           <p className="mt-1 text-xs text-slate-400">{quest.description}</p>
+                          <div className="mt-2 flex items-center justify-between gap-3 text-xs">
+                            <span className="font-semibold text-amber-100">Nagroda: +{quest.rewardXp} XP</span>
+                            {progress?.completed && <span className="text-teal-200">Ukończony</span>}
+                          </div>
                           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-                            <div className="h-full rounded-full bg-cyan-300" style={{ width: `${percent}%` }} />
+                            <div className="h-full rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.45)]" style={{ width: `${percent}%` }} />
                           </div>
                         </div>
                       );

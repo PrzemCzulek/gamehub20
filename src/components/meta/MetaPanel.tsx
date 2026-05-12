@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { achievementDefinitions } from '../../data/achievements';
 import { questDefinitions } from '../../data/quests';
 import { getAchievementUnlocks, getQuestProgress } from '../../progression/progressionEngine';
@@ -23,6 +23,24 @@ export function MetaPanel({ profile, onReset, revision }: MetaPanelProps) {
   const dailyGoal = dailyQuest?.target.amount ?? 1;
   const dailyPercent = Math.min(100, Math.round((dailyValue / dailyGoal) * 100));
   const canReset = resetInput === 'RESET';
+
+  useEffect(() => {
+    if (!settingsOpen) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setSettingsOpen(false);
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [settingsOpen]);
 
   function handleAudioToggle() {
     playNormalClickSound();
@@ -110,44 +128,52 @@ export function MetaPanel({ profile, onReset, revision }: MetaPanelProps) {
       </div>
 
       {settingsOpen && (
-        <div className="absolute right-0 z-30 mt-2 w-full max-w-sm rounded-lg border border-white/10 bg-slate-950/95 p-4 shadow-[0_18px_60px_rgba(0,0,0,0.55)] backdrop-blur">
-          <h3 className="text-sm font-semibold text-white">Ustawienia</h3>
+        <>
+          <button
+            aria-label="Zamknij ustawienia"
+            className="fixed inset-0 z-20 cursor-default bg-slate-950/30 backdrop-blur-[2px]"
+            onClick={() => setSettingsOpen(false)}
+            type="button"
+          />
+          <div className="feedback-toast absolute right-0 z-30 mt-2 w-full max-w-sm rounded-lg border border-white/10 bg-slate-950/95 p-4 shadow-[0_18px_60px_rgba(0,0,0,0.55)] backdrop-blur">
+            <h3 className="text-sm font-semibold text-white">Ustawienia</h3>
 
-          <div className="mt-4 rounded-md border border-white/10 bg-black/25 p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-white">Dźwięki</p>
-                <p className="text-xs text-slate-400">Efekty UI i karuzeli</p>
+            <div className="mt-4 rounded-md border border-white/10 bg-black/25 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-white">Dźwięki</p>
+                  <p className="text-xs text-slate-400">Efekty UI i karuzeli</p>
+                </div>
+                <button
+                  className={`rounded-md px-3 py-2 text-xs font-bold ${audioEnabled ? 'bg-cyan-300 text-slate-950' : 'border border-white/15 text-slate-200'}`}
+                  onClick={handleAudioToggle}
+                  type="button"
+                >
+                  {audioEnabled ? 'ON' : 'OFF'}
+                </button>
               </div>
+            </div>
+
+            <div className="mt-3 rounded-md border border-red-300/20 bg-red-400/10 p-3">
+              <p className="text-sm font-semibold text-red-100">DEV: Reset danych lokalnych</p>
+              <p className="mt-1 text-xs text-red-100/80">Ta operacja jest nieodwracalna.</p>
+              <input
+                className="mt-3 w-full rounded-md border border-red-300/20 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-slate-500"
+                onChange={(event) => setResetInput(event.target.value)}
+                placeholder="Wpisz RESET"
+                value={resetInput}
+              />
               <button
-                className={`rounded-md px-3 py-2 text-xs font-bold ${audioEnabled ? 'bg-cyan-300 text-slate-950' : 'border border-white/15 text-slate-200'}`}
-                onClick={handleAudioToggle}
+                className="mt-3 w-full rounded-md border border-red-300/30 px-3 py-2 text-sm font-semibold text-red-100 transition enabled:hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={!canReset}
+                onClick={handleReset}
                 type="button"
               >
-                {audioEnabled ? 'ON' : 'OFF'}
+                Reset danych lokalnych
               </button>
             </div>
           </div>
-
-          <div className="mt-3 rounded-md border border-red-300/20 bg-red-400/10 p-3">
-            <p className="text-sm font-semibold text-red-100">DEV: Reset danych lokalnych</p>
-            <p className="mt-1 text-xs text-red-100/80">Ta operacja jest nieodwracalna.</p>
-            <input
-              className="mt-3 w-full rounded-md border border-red-300/20 bg-black/30 px-3 py-2 text-sm text-white placeholder:text-slate-500"
-              onChange={(event) => setResetInput(event.target.value)}
-              placeholder="Wpisz RESET"
-              value={resetInput}
-            />
-            <button
-              className="mt-3 w-full rounded-md border border-red-300/30 px-3 py-2 text-sm font-semibold text-red-100 transition enabled:hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-40"
-              disabled={!canReset}
-              onClick={handleReset}
-              type="button"
-            >
-              Reset danych lokalnych
-            </button>
-          </div>
-        </div>
+        </>
       )}
     </section>
   );

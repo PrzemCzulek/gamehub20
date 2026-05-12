@@ -2,8 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { GameCarousel } from './components/GameCarousel';
 import { Leaderboard } from './components/Leaderboard';
 import { PlayerHub } from './components/PlayerHub';
+import { LiveFeed } from './components/feedback/LiveFeed';
+import { pushFeedback } from './components/feedback/feedbackQueue';
 import { MetaPanel } from './components/meta/MetaPanel';
+import { achievementDefinitions } from './data/achievements';
 import { games } from './data/games';
+import { questDefinitions } from './data/quests';
 import { AimTestGame } from './games/AimTestGame';
 import { ColorMemoryGame } from './games/ColorMemoryGame';
 import { MemoryTestGame } from './games/MemoryTestGame';
@@ -37,6 +41,10 @@ function renderGame(gameId: GameId, onScore: (score: ScoreInput) => void) {
   }
 }
 
+function getGameTitle(gameId: GameId): string {
+  return games.find((game) => game.id === gameId)?.title ?? gameId;
+}
+
 export default function App() {
   const [activeGameId, setActiveGameId] = useState<GameId>('reaction-time');
   const [revision, setRevision] = useState(0);
@@ -66,7 +74,56 @@ export default function App() {
   function handleScore(score: ScoreInput) {
     const savedScore = saveScore(score);
     const progressionEvent = createProgressionEvent(savedScore);
-    processProgressionEvent(progressionEvent);
+    const progressionResult = processProgressionEvent(progressionEvent);
+
+    pushFeedback({
+      type: 'xp',
+      title: 'XP',
+      message: `+${progressionEvent.xpGained} XP`,
+    });
+
+    if (progressionResult.playerProgression.level > progressionResult.previousLevel) {
+      pushFeedback({
+        type: 'level-up',
+        title: 'LEVEL UP',
+        message: `Poziom ${progressionResult.playerProgression.level} osiągnięty`,
+        detail: progressionResult.newAchievementUnlocks.length > 0 ? '+ nowe achievementy' : undefined,
+      });
+    }
+
+    if (progressionResult.personalBestImproved) {
+      pushFeedback({
+        type: 'personal-best',
+        title: 'NOWY REKORD',
+        message: `${getGameTitle(savedScore.gameId)}: ${savedScore.scoreLabel}`,
+      });
+    }
+
+    progressionResult.newlyCompletedQuests.forEach((questProgress) => {
+      const quest = questDefinitions.find((item) => item.id === questProgress.questId);
+
+      if (quest) {
+        pushFeedback({
+          type: 'quest',
+          title: 'QUEST UKOŃCZONY',
+          message: quest.title,
+          detail: `Nagroda: +${quest.rewardXp} XP`,
+        });
+      }
+    });
+
+    progressionResult.newAchievementUnlocks.forEach((unlock) => {
+      const achievement = achievementDefinitions.find((item) => item.id === unlock.achievementId);
+
+      if (achievement) {
+        pushFeedback({
+          type: 'achievement',
+          title: 'OSIĄGNIĘCIE ODBLOKOWANE',
+          message: achievement.title,
+          detail: achievement.rarity.toUpperCase(),
+        });
+      }
+    });
 
     submitOnlineScore(savedScore).catch((error) => {
       console.warn('Online score submit failed', error);
@@ -86,6 +143,7 @@ export default function App() {
 
   return (
     <main className="min-h-screen px-3 py-4 text-slate-100 sm:px-5 lg:px-8">
+      <LiveFeed />
       <div className="mx-auto w-full max-w-7xl">
         <header className="grid gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 shadow-[0_0_35px_rgba(34,211,238,0.06)] md:grid-cols-[minmax(0,1fr)_minmax(20rem,34rem)] md:items-center">
           <div className="min-w-0 px-1">
