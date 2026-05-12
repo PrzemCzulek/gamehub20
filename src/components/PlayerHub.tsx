@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { achievementDefinitions } from '../data/achievements';
 import { games } from '../data/games';
 import { questDefinitions } from '../data/quests';
@@ -14,7 +14,6 @@ type PlayerHubProps = {
 };
 
 type PlayerHubTab = 'stats' | 'achievements' | 'quests' | 'history';
-
 type Rarity = 'common' | 'rare' | 'epic';
 
 const tabs: Array<{ id: PlayerHubTab; label: string }> = [
@@ -32,19 +31,19 @@ const rarityLabels: Record<Rarity, string> = {
 
 const rarityStyles: Record<Rarity, { unlocked: string; locked: string; badge: string }> = {
   common: {
-    unlocked: 'border-slate-200/25 bg-slate-200/[0.07] shadow-[0_0_18px_rgba(226,232,240,0.10)]',
-    locked: 'border-white/10 bg-black/20 opacity-50 grayscale',
-    badge: 'border-slate-200/25 text-slate-100 bg-slate-200/10',
+    unlocked: 'border-cyan-100/25 bg-cyan-100/[0.055] shadow-[0_0_18px_rgba(226,232,240,0.10)]',
+    locked: 'border-white/10 bg-black/20 opacity-65',
+    badge: 'border-cyan-100/25 text-cyan-50 bg-cyan-100/10',
   },
   rare: {
-    unlocked: 'border-cyan-300/35 bg-cyan-300/[0.08] shadow-[0_0_24px_rgba(34,211,238,0.16)]',
-    locked: 'border-cyan-300/10 bg-black/20 opacity-50 grayscale',
-    badge: 'border-cyan-300/35 text-cyan-100 bg-cyan-300/10',
+    unlocked: 'border-cyan-300/40 bg-cyan-300/[0.08] shadow-[0_0_25px_rgba(34,211,238,0.18)]',
+    locked: 'border-cyan-300/10 bg-black/20 opacity-65',
+    badge: 'border-cyan-300/40 text-cyan-100 bg-cyan-300/10',
   },
   epic: {
-    unlocked: 'border-violet-300/40 bg-violet-300/[0.09] shadow-[0_0_26px_rgba(168,85,247,0.18)]',
-    locked: 'border-violet-300/10 bg-black/20 opacity-50 grayscale',
-    badge: 'border-violet-300/40 text-violet-100 bg-violet-300/10',
+    unlocked: 'border-amber-200/40 bg-violet-300/[0.09] shadow-[0_0_30px_rgba(168,85,247,0.22)]',
+    locked: 'border-violet-300/10 bg-black/20 opacity-65',
+    badge: 'border-amber-200/45 text-amber-100 bg-amber-200/10',
   },
 };
 
@@ -71,14 +70,31 @@ function getQuestResetLabel(type: 'daily' | 'weekly'): string {
   return `${hours}h ${minutes}m`;
 }
 
+function formatUnlockDate(value?: string): string {
+  if (!value) {
+    return '';
+  }
+
+  return new Intl.DateTimeFormat('pl-PL', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(new Date(value));
+}
+
 export function PlayerHub({ onRename, profile, revision }: PlayerHubProps) {
   const [activeTab, setActiveTab] = useState<PlayerHubTab>('stats');
   const [draftName, setDraftName] = useState(profile.playerName);
   const questProgress = getQuestProgress();
   const achievementUnlocks = getAchievementUnlocks();
-  const unlockedIds = new Set(achievementUnlocks.map((unlock) => unlock.achievementId));
+  const unlockById = new Map(achievementUnlocks.map((unlock) => [unlock.achievementId, unlock]));
+  const unlockedIds = new Set(unlockById.keys());
   const mostPlayedGameTitle = profile.mostPlayedGame ? getGameTitle(profile.mostPlayedGame) : '-';
   const bestGameTitle = profile.bestGame ? getGameTitle(profile.bestGame) : '-';
+
+  useEffect(() => {
+    setDraftName(profile.playerName);
+  }, [profile.playerName]);
 
   return (
     <section
@@ -186,6 +202,7 @@ export function PlayerHub({ onRename, profile, revision }: PlayerHubProps) {
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {achievementDefinitions.map((achievement) => {
               const unlocked = unlockedIds.has(achievement.id);
+              const unlock = unlockById.get(achievement.id);
               const rarity = achievement.rarity as Rarity;
               const styles = rarityStyles[rarity];
 
@@ -196,16 +213,19 @@ export function PlayerHub({ onRename, profile, revision }: PlayerHubProps) {
                   }`}
                   key={achievement.id}
                 >
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-start justify-between gap-2">
                     <h3 className="text-sm font-semibold text-white">{achievement.title}</h3>
                     <span className={`rounded-full border px-2 py-0.5 text-[0.65rem] font-bold uppercase ${styles.badge}`}>
                       {rarityLabels[rarity]}
                     </span>
                   </div>
                   <p className="mt-2 text-xs leading-5 text-slate-400">{achievement.description}</p>
-                  <p className={`mt-3 text-xs font-semibold ${unlocked ? 'text-cyan-100' : 'text-slate-500'}`}>
-                    {unlocked ? 'Odblokowane' : 'Zablokowane'}
-                  </p>
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <span className={`font-semibold ${unlocked ? 'text-cyan-100' : 'text-slate-400'}`}>
+                      {unlocked ? 'Odblokowane' : 'Zablokowane'}
+                    </span>
+                    {unlock?.unlockedAt && <span className="text-slate-500">{formatUnlockDate(unlock.unlockedAt)}</span>}
+                  </div>
                 </div>
               );
             })}

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { achievementDefinitions } from '../../data/achievements';
 import { questDefinitions } from '../../data/quests';
 import { getAchievementUnlocks, getQuestProgress } from '../../progression/progressionEngine';

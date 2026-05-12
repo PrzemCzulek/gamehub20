@@ -6,6 +6,7 @@ export type FeedbackItem = {
   title: string;
   message: string;
   detail?: string;
+  rarity?: 'common' | 'rare' | 'epic' | 'legendary' | 'hidden';
   durationMs?: number;
 };
 
@@ -46,6 +47,6 @@ export function pushFeedback(input: Omit<FeedbackItem, 'id'>): FeedbackItem {
   items = [item, ...items].slice(0, maxItems);
   notify();
 
-  window.setTimeout(() => dismissFeedback(item.id), item.durationMs ?? (item.type === 'achievement' ? 5200 : 3600));
+  window.setTimeout(() => dismissFeedback(item.id), item.durationMs ?? (item.type === 'achievement' ? 6200 : 3600));
   return item;
 }

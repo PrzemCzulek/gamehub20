@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { FirstRunNickModal } from './components/FirstRunNickModal';
 import { GameCarousel } from './components/GameCarousel';
 import { Leaderboard } from './components/Leaderboard';
 import { PlayerHub } from './components/PlayerHub';
@@ -19,7 +20,7 @@ import { createProgressionEvent } from './progression/events';
 import { processProgressionEvent } from './progression/progressionEngine';
 import { preloadAudio } from './services/audio';
 import { submitOnlineScore } from './services/onlineLeaderboard';
-import { getLeaderboard, getProfile, resetLocalData, saveScore, setPlayerName } from './services/storage';
+import { getLeaderboard, getProfile, hasValidPlayerName, resetLocalData, saveScore, setPlayerName } from './services/storage';
 import type { GameId, ScoreInput } from './types';
 
 function renderGame(gameId: GameId, onScore: (score: ScoreInput) => void) {
@@ -48,6 +49,7 @@ function getGameTitle(gameId: GameId): string {
 export default function App() {
   const [activeGameId, setActiveGameId] = useState<GameId>('reaction-time');
   const [revision, setRevision] = useState(0);
+  const [needsNick, setNeedsNick] = useState(() => !hasValidPlayerName(getProfile().playerName));
   const profile = useMemo(() => getProfile(), [revision]);
   const leaderboard = useMemo(() => getLeaderboard(activeGameId), [activeGameId, revision]);
   const activeGame = games.find((game) => game.id === activeGameId) ?? games[0];
@@ -72,6 +74,11 @@ export default function App() {
   }
 
   function handleScore(score: ScoreInput) {
+    if (!hasValidPlayerName(profile.playerName)) {
+      setNeedsNick(true);
+      return;
+    }
+
     const savedScore = saveScore(score);
     const progressionEvent = createProgressionEvent(savedScore);
     const progressionResult = processProgressionEvent(progressionEvent);
@@ -121,6 +128,7 @@ export default function App() {
           title: 'OSIĄGNIĘCIE ODBLOKOWANE',
           message: achievement.title,
           detail: achievement.rarity.toUpperCase(),
+          rarity: achievement.rarity,
         });
       }
     });
@@ -132,18 +140,27 @@ export default function App() {
   }
 
   function handleRename(name: string) {
+    const cleanName = setPlayerName(name);
+    setNeedsNick(!hasValidPlayerName(cleanName));
+    refresh();
+  }
+
+  function handleFirstRunName(name: string) {
     setPlayerName(name);
+    setNeedsNick(false);
     refresh();
   }
 
   function handleResetLocalData() {
     resetLocalData();
+    setNeedsNick(true);
     refresh();
   }
 
   return (
     <main className="min-h-screen px-3 py-4 text-slate-100 sm:px-5 lg:px-8">
       <LiveFeed />
+      {needsNick && <FirstRunNickModal onSubmit={handleFirstRunName} />}
       <div className="mx-auto w-full max-w-7xl">
         <header className="grid gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 shadow-[0_0_35px_rgba(34,211,238,0.06)] md:grid-cols-[minmax(0,1fr)_minmax(20rem,34rem)] md:items-center">
           <div className="min-w-0 px-1">

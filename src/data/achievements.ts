@@ -1,4 +1,4 @@
-﻿import type { AchievementDefinition } from '../progression/types';
+import type { AchievementDefinition } from '../progression/types';
 
 export const achievementDefinitions: AchievementDefinition[] = [
   {

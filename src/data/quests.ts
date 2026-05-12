@@ -1,4 +1,4 @@
-﻿import type { QuestDefinition } from '../progression/types';
+import type { QuestDefinition } from '../progression/types';
 
 export const questDefinitions: QuestDefinition[] = [
   {

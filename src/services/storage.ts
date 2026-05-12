@@ -7,7 +7,6 @@ const PLAYER_KEY = 'game-hub:player-name';
 const PLAYER_ID_KEY = 'game-hub:player-id';
 const SCORES_KEY = 'game-hub:scores';
 const AUDIO_ENABLED_KEY = 'gameHubAudioEnabled';
-const DEFAULT_PLAYER_NAME = 'Gracz';
 const RECENT_LIMIT = 5;
 const validGameIds = new Set<GameId>(games.map((game) => game.id));
 
@@ -226,16 +225,22 @@ function isValidMigratedEntry(entry: LeaderboardEntry): boolean {
   return true;
 }
 
+export function hasValidPlayerName(name?: string | null): boolean {
+  const cleanName = name?.trim();
+  return Boolean(cleanName && cleanName.length >= 3 && cleanName !== 'Gracz');
+}
+
 export function getPlayerName(): string {
   try {
-    return localStorage.getItem(PLAYER_KEY) || DEFAULT_PLAYER_NAME;
+    const storedName = localStorage.getItem(PLAYER_KEY);
+    return hasValidPlayerName(storedName) ? storedName!.trim() : '';
   } catch {
-    return DEFAULT_PLAYER_NAME;
+    return '';
   }
 }
 
 export function setPlayerName(name: string): string {
-  const cleanName = name.trim() || DEFAULT_PLAYER_NAME;
+  const cleanName = name.trim().slice(0, 24);
 
   try {
     localStorage.setItem(PLAYER_KEY, cleanName);
@@ -303,10 +308,16 @@ export function getLeaderboard(gameId: GameId): LeaderboardEntry[] {
 }
 
 export function saveScore(entry: ScoreInput): LeaderboardEntry {
+  const playerName = getPlayerName();
+
+  if (!hasValidPlayerName(playerName)) {
+    throw new Error('Player name is required before saving a score.');
+  }
+
   const baseEntry: LeaderboardEntry = {
     ...entry,
     playerId: entry.playerId ?? getPlayerId(),
-    playerName: getPlayerName(),
+    playerName,
     createdAt: new Date().toISOString(),
   };
   const savedEntry = normalizeEntry(baseEntry);

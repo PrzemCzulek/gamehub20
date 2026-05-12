@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getGameConfig } from '../data/games';
 import { playNormalClickSound } from '../services/audio';
 import { getOnlineLeaderboard } from '../services/onlineLeaderboard';
