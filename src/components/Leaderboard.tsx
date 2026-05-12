@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getGameConfig } from '../data/games';
+import { readStoredTypingDuration, storeTypingDuration, typingDurationOptions } from '../data/typingDurations';
 import { playNormalClickSound } from '../services/audio';
 import { getOnlineLeaderboard } from '../services/onlineLeaderboard';
 import { sortScoresByMetric } from '../services/storage';
@@ -29,20 +30,41 @@ function getRankClass(index: number): string {
   return 'border-white/5 bg-black/20';
 }
 
+function getTypingEntryDuration(entry: LeaderboardEntry): number | undefined {
+  return (
+    entry.stats?.selectedDuration ??
+    entry.stats?.durationSeconds ??
+    (entry.stats?.durationMs !== undefined ? Math.round(entry.stats.durationMs / 1000) : undefined) ??
+    (entry.runDurationMs !== undefined ? Math.round(entry.runDurationMs / 1000) : undefined)
+  );
+}
+
 export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   const [metricId, setMetricId] = useState('score');
   const [source, setSource] = useState<LeaderboardSource>('online');
+  const [typingDuration, setTypingDuration] = useState(readStoredTypingDuration);
   const [onlineEntries, setOnlineEntries] = useState<LeaderboardEntry[]>([]);
   const [onlineError, setOnlineError] = useState<string | null>(null);
   const [onlineLoading, setOnlineLoading] = useState(false);
   const game = getGameConfig(gameId);
+  const isTypingSpeed = gameId === 'typing-speed';
   const activeMetric = game.metrics.find((metric) => metric.id === metricId) ?? game.metrics[0];
   const limit = 10;
-  const sortedEntries = useMemo(() => sortScoresByMetric(entries, gameId, activeMetric.id), [activeMetric.id, entries, gameId]);
+  const filteredEntries = useMemo(
+    () =>
+      isTypingSpeed
+        ? entries.filter((entry) => getTypingEntryDuration(entry) === typingDuration)
+        : entries,
+    [entries, isTypingSpeed, typingDuration],
+  );
+  const sortedEntries = useMemo(
+    () => sortScoresByMetric(filteredEntries, gameId, activeMetric.id),
+    [activeMetric.id, filteredEntries, gameId],
+  );
   const usingOnline = source === 'online' && !onlineError;
   const displayedEntries = usingOnline ? onlineEntries : sortedEntries;
   const visibleEntries = useMemo(() => displayedEntries.slice(0, limit), [displayedEntries]);
-  const totalEntriesLabel = usingOnline ? `${visibleEntries.length}+` : entries.length;
+  const totalEntriesLabel = usingOnline ? `${visibleEntries.length}+` : filteredEntries.length;
 
   useEffect(() => {
     setMetricId('score');
@@ -57,7 +79,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
     setOnlineLoading(true);
     setOnlineError(null);
 
-    getOnlineLeaderboard(gameId, activeMetric.id, limit)
+    getOnlineLeaderboard(gameId, activeMetric.id, limit, isTypingSpeed ? typingDuration : undefined)
       .then((results) => {
         if (!ignore) {
           setOnlineEntries(results);
@@ -78,7 +100,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
     return () => {
       ignore = true;
     };
-  }, [activeMetric.id, entries.length, gameId, source]);
+  }, [activeMetric.id, entries.length, gameId, isTypingSpeed, source, typingDuration]);
 
   function getMetricValue(entry: LeaderboardEntry, metric: LeaderboardMetric): number | undefined {
     return metric.source === 'score' ? entry.score : metric.statKey ? entry.stats?.[metric.statKey] : undefined;
@@ -104,6 +126,12 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
     }
 
     return `${value}${metric.suffix ? ` ${metric.suffix}` : ''}`;
+  }
+
+  function handleTypingDurationChange(duration: number) {
+    playNormalClickSound();
+    storeTypingDuration(duration);
+    setTypingDuration(duration);
   }
 
   return (
@@ -137,6 +165,26 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
           ))}
         </div>
       </div>
+
+      {isTypingSpeed && (
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Czas testu</p>
+          <div className="mt-2 grid grid-cols-4 gap-1 rounded-md border border-white/10 bg-black/20 p-1">
+            {typingDurationOptions.map((duration) => (
+              <button
+                className={`rounded px-2 py-2 text-xs font-bold transition ${
+                  typingDuration === duration.value ? 'bg-cyan-300 text-slate-950' : 'text-slate-300 hover:bg-white/10'
+                }`}
+                key={duration.value}
+                onClick={() => handleTypingDurationChange(duration.value)}
+                type="button"
+              >
+                {duration.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {onlineError && source === 'online' && (
         <p className="mt-3 rounded-md border border-amber-300/20 bg-amber-300/10 p-3 text-sm text-amber-100">{onlineError}</p>

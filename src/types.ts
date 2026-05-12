@@ -45,6 +45,7 @@ export type LeaderboardEntry = {
   stats?: ScoreStats;
   xpGained?: number;
   runDurationMs?: number;
+  leaderboardScope?: string;
 };
 
 export type ScoreInput = Omit<LeaderboardEntry, 'createdAt' | 'playerName'>;

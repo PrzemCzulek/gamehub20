@@ -25,30 +25,9 @@ export const games: GameConfig[] = [
     scoreName: 'runda',
     metrics: [
       { id: 'score', label: 'Główny wynik', direction: 'descending', source: 'score', suffix: 'runda' },
-      {
-        id: 'bestSimilarity',
-        label: 'Najlepsze podobieństwo',
-        direction: 'descending',
-        source: 'stats',
-        statKey: 'bestSimilarity',
-        valueType: 'percent',
-      },
-      {
-        id: 'averageSimilarity',
-        label: 'Średnia poprawność',
-        direction: 'descending',
-        source: 'stats',
-        statKey: 'averageSimilarity',
-        valueType: 'percent',
-      },
-      {
-        id: 'finalSimilarity',
-        label: 'Ostatnie podobieństwo',
-        direction: 'descending',
-        source: 'stats',
-        statKey: 'finalSimilarity',
-        valueType: 'percent',
-      },
+      { id: 'bestSimilarity', label: 'Najlepsze podobieństwo', direction: 'descending', source: 'stats', statKey: 'bestSimilarity', valueType: 'percent' },
+      { id: 'averageSimilarity', label: 'Średnia poprawność', direction: 'descending', source: 'stats', statKey: 'averageSimilarity', valueType: 'percent' },
+      { id: 'finalSimilarity', label: 'Ostatnie podobieństwo', direction: 'descending', source: 'stats', statKey: 'finalSimilarity', valueType: 'percent' },
     ],
   },
   {
@@ -60,7 +39,6 @@ export const games: GameConfig[] = [
     metrics: [
       { id: 'score', label: 'Główny wynik', direction: 'descending', source: 'score', suffix: 'WPM' },
       { id: 'accuracy', label: 'Celność', direction: 'descending', source: 'stats', statKey: 'accuracy', valueType: 'percent' },
-      { id: 'durationMs', label: 'Czas testu', direction: 'descending', source: 'stats', statKey: 'durationMs', valueType: 'ms' },
       { id: 'rounds', label: 'Ukończone zdania', direction: 'descending', source: 'stats', statKey: 'rounds' },
       { id: 'correctChars', label: 'Poprawne znaki', direction: 'descending', source: 'stats', statKey: 'correctChars' },
     ],

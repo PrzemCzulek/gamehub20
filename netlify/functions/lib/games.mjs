@@ -25,7 +25,6 @@ export const games = {
     metrics: {
       score: { source: 'score', direction: 'descending' },
       accuracy: { source: 'stats', statKey: 'accuracy', direction: 'descending' },
-      durationMs: { source: 'stats', statKey: 'durationMs', direction: 'descending' },
       rounds: { source: 'stats', statKey: 'rounds', direction: 'descending' },
       correctChars: { source: 'stats', statKey: 'correctChars', direction: 'descending' },
     },

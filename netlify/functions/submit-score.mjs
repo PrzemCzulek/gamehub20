@@ -10,6 +10,10 @@ function readNumber(value) {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
+function getTypingDurationSeconds(stats) {
+  return readNumber(stats?.selectedDuration) ?? readNumber(stats?.durationSeconds);
+}
+
 function validateScore(payload) {
   const errors = [];
   const playerId = typeof payload.playerId === 'string' ? payload.playerId.trim() : '';
@@ -54,6 +58,21 @@ function isBetterScore(game, nextScore, currentScore) {
   return game.scoreDirection === 'ascending' ? nextScore < currentScore : nextScore > currentScore;
 }
 
+function getLeaderboardScope(value) {
+  if (value.gameId !== 'typing-speed') {
+    return 'default';
+  }
+
+  const durationSeconds = getTypingDurationSeconds(value.stats);
+
+  if (!durationSeconds) {
+    console.warn('Typing Speed score missing durationSeconds/selectedDuration; falling back to 30s scope');
+    return 'duration:30';
+  }
+
+  return `duration:${durationSeconds}`;
+}
+
 export async function handler(event) {
   try {
     if (event.httpMethod === 'OPTIONS') {
@@ -91,15 +110,17 @@ export async function handler(event) {
 
     await initializeDatabase();
     const sql = getSql();
+    const leaderboardScope = getLeaderboardScope(value);
     const [existingRow] = await sql.query(
       `
         SELECT *
         FROM scores
         WHERE player_id = $1
           AND game_id = $2
+          AND leaderboard_scope = $3
         LIMIT 1
       `,
-      [value.playerId, value.gameId],
+      [value.playerId, value.gameId, leaderboardScope],
     );
 
     if (existingRow && !isBetterScore(game, value.score, Number(existingRow.score))) {
@@ -125,6 +146,7 @@ export async function handler(event) {
       value.xpGained ?? null,
       value.runDurationMs ?? null,
       value.createdAt,
+      leaderboardScope,
     ];
 
     const [row] = existingRow
@@ -139,9 +161,11 @@ export async function handler(event) {
               meta = $7::jsonb,
               xp_gained = $8,
               run_duration_ms = $9,
-              created_at = $10
+              created_at = $10,
+              leaderboard_scope = $11
             WHERE player_id = $1
               AND game_id = $3
+              AND leaderboard_scope = $11
             RETURNING *
           `,
           values,
@@ -157,8 +181,9 @@ export async function handler(event) {
             meta,
             xp_gained,
             run_duration_ms,
-            created_at
-          ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $10)
+            created_at,
+            leaderboard_scope
+          ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $10, $11)
           RETURNING *`,
           values,
         );

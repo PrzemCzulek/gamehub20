@@ -12,6 +12,11 @@ function readLimit(value) {
   return Math.min(Math.max(parsed, 1), 50);
 }
 
+function readDurationSeconds(value) {
+  const parsed = Number.parseInt(value ?? '30', 10);
+  return [15, 30, 60, 90].includes(parsed) ? parsed : 30;
+}
+
 function getMetricExpression(metric) {
   if (!metric || metric.source === 'score') {
     return 'score';
@@ -41,15 +46,18 @@ export async function handler(event) {
 
     const metric = getMetric(gameId, params.metric ?? 'score');
     const limit = readLimit(params.limit);
+    const durationSeconds = gameId === 'typing-speed' ? readDurationSeconds(params.durationSeconds) : undefined;
+    const leaderboardScope = gameId === 'typing-speed' ? `duration:${durationSeconds}` : 'default';
     const metricExpression = getMetricExpression(metric);
     const direction = metric?.direction === 'ascending' ? 'ASC' : 'DESC';
     const query = `
       SELECT *
       FROM scores
       WHERE game_id = $1
+        AND leaderboard_scope = $2
         AND ${metricExpression} IS NOT NULL
       ORDER BY ${metricExpression} ${direction}, created_at DESC
-      LIMIT $2
+      LIMIT $3
     `;
 
     if (!getDatabaseUrl()) {
@@ -57,6 +65,7 @@ export async function handler(event) {
       return json(200, {
         gameId,
         metric: params.metric ?? 'score',
+        durationSeconds,
         limit,
         entries: [],
         scores: [],
@@ -66,11 +75,12 @@ export async function handler(event) {
 
     await initializeDatabase();
     const sql = getSql();
-    const rows = await sql.query(query, [gameId, limit]);
+    const rows = await sql.query(query, [gameId, leaderboardScope, limit]);
 
     return json(200, {
       gameId,
       metric: params.metric ?? 'score',
+      durationSeconds,
       limit,
       entries: rows.map(mapScoreRow),
       scores: rows.map(mapScoreRow),

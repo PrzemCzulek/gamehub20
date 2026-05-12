@@ -34,12 +34,22 @@ export async function submitOnlineScore(scoreEntry: LeaderboardEntry): Promise<L
   return data.score;
 }
 
-export async function getOnlineLeaderboard(gameId: GameId, metric = 'score', limit = 15): Promise<LeaderboardEntry[]> {
+export async function getOnlineLeaderboard(
+  gameId: GameId,
+  metric = 'score',
+  limit = 15,
+  durationSeconds?: number,
+): Promise<LeaderboardEntry[]> {
   const params = new URLSearchParams({
     gameId,
     metric,
     limit: String(limit),
   });
+
+  if (durationSeconds !== undefined) {
+    params.set('durationSeconds', String(durationSeconds));
+  }
+
   const response = await fetch(`/.netlify/functions/get-leaderboard?${params.toString()}`);
   const data = await readJsonResponse<OnlineLeaderboardResponse>(response);
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { readStoredTypingDuration, storeTypingDuration, typingDurationOptions } from '../data/typingDurations';
 import { typingTexts } from '../data/typingTexts';
 import { playNormalClickSound } from '../services/audio';
 import type { ScoreInput } from '../types';
@@ -21,12 +22,6 @@ type TypingSnapshot = {
   status: TestStatus;
 };
 
-const durations = [
-  { label: '15s', value: 15 },
-  { label: '30s', value: 30 },
-  { label: '1 min', value: 60 },
-  { label: '1.5 min', value: 90 },
-];
 const maxCreditedWpm = 240;
 const noTypingResultMessage = 'Brak wyniku do zapisania — wpisz tekst podczas testu.';
 const tooShortResultMessage = 'Wynik za krótki do zapisu — pisz co najmniej kilka sekund.';
@@ -49,7 +44,7 @@ function calculateAccuracy(correctChars: number, incorrectChars: number): number
 }
 
 export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
-  const [selectedDuration, setSelectedDuration] = useState(30);
+  const [selectedDuration, setSelectedDuration] = useState(readStoredTypingDuration);
   const [textQueue, setTextQueue] = useState(() => shuffleTexts());
   const [queueIndex, setQueueIndex] = useState(0);
   const [typed, setTyped] = useState('');
@@ -329,6 +324,7 @@ export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
     }
 
     playNormalClickSound();
+    storeTypingDuration(duration);
     setSelectedDuration(duration);
     setRemainingSeconds(duration);
   }
@@ -340,7 +336,7 @@ export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {durations.map((duration) => (
+        {typingDurationOptions.map((duration) => (
           <button
             className={`rounded-md border px-3 py-2 text-sm font-semibold transition ${
               selectedDuration === duration.value
