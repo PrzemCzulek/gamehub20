@@ -8,15 +8,17 @@ export function getDatabaseUrl() {
 }
 
 export function getSql() {
-  const databaseUrl = getDatabaseUrl();
+  const netlifyDatabaseUrl = process.env.NETLIFY_DATABASE_URL;
+  const fallbackDatabaseUrl = process.env.DATABASE_URL;
+  const databaseUrl = netlifyDatabaseUrl || fallbackDatabaseUrl || '';
   console.log('DATABASE URL EXISTS:', Boolean(databaseUrl));
 
   if (!databaseUrl) {
-    throw new Error('Missing database connection string. Set NETLIFY_DATABASE_URL or DATABASE_URL.');
+    throw new Error('Missing database connection string. Set NETLIFY_DATABASE_URL for Netlify Functions.');
   }
 
   if (!sqlClient) {
-    sqlClient = neon(databaseUrl);
+    sqlClient = neon(netlifyDatabaseUrl || fallbackDatabaseUrl);
   }
 
   return sqlClient;
