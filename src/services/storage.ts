@@ -195,6 +195,18 @@ function deriveStats(entry: Pick<LeaderboardEntry, 'gameId' | 'score' | 'meta' |
         isPerfect: baseStats.isPerfect ?? readMetaNumber(meta, 'isPerfect') ?? (deviationMs !== undefined && deviationMs <= 100 ? 1 : undefined),
       };
       }
+    case 'stroop-test':
+      return {
+        ...baseStats,
+        durationSeconds: baseStats.durationSeconds ?? readMetaNumber(meta, 'durationSeconds'),
+        accuracy: baseStats.accuracy ?? readMetaNumber(meta, 'accuracy'),
+        averageReactionMs: baseStats.averageReactionMs ?? readMetaNumber(meta, 'avgReactionMs') ?? readMetaNumber(meta, 'averageReactionMs'),
+        bestCombo: baseStats.bestCombo ?? readMetaNumber(meta, 'bestStreak'),
+        combo: baseStats.combo ?? readMetaNumber(meta, 'bestStreak'),
+        correctAnswers: baseStats.correctAnswers ?? readMetaNumber(meta, 'correctAnswers'),
+        mistakes: baseStats.mistakes ?? readMetaNumber(meta, 'mistakes'),
+        conflictAccuracy: baseStats.conflictAccuracy ?? readMetaNumber(meta, 'conflictAccuracy'),
+      };
   }
 }
 

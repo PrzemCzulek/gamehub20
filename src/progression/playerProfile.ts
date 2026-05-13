@@ -81,6 +81,20 @@ export function getPlayerHighlights(scores: LeaderboardEntry[]): PlayerHighlight
       scores.filter((score) => score.gameId === 'time-sense'),
       'time-sense',
     )[0],
+    bestStroopScore: sortScoresByMetric(
+      scores.filter((score) => score.gameId === 'stroop-test'),
+      'stroop-test',
+    )[0],
+    bestStroopAccuracy: sortScoresByMetric(
+      scores.filter((score) => score.gameId === 'stroop-test' && score.stats?.accuracy !== undefined),
+      'stroop-test',
+      'accuracy',
+    )[0],
+    bestStroopStreak: sortScoresByMetric(
+      scores.filter((score) => score.gameId === 'stroop-test' && score.stats?.bestCombo !== undefined),
+      'stroop-test',
+      'bestCombo',
+    )[0],
   };
 }
 
@@ -122,6 +136,9 @@ export function buildPlayerProfileSummary(profile: LocalProfile): PlayerProfileS
       bestSymbolMatchMoves: highlights.bestSymbolMatchMoves ?? profile.highlights.bestSymbolMatch,
       highestMemoryLevel: highlights.highestMemoryLevel,
       bestTimeSenseScore: highlights.bestTimeSenseScore ?? profile.highlights.bestTimeSense,
+      bestStroopScore: highlights.bestStroopScore ?? profile.highlights.bestStroopScore,
+      bestStroopAccuracy: highlights.bestStroopAccuracy ?? profile.highlights.bestStroopAccuracy,
+      bestStroopStreak: highlights.bestStroopStreak ?? profile.highlights.bestStroopStreak,
     },
   };
 }

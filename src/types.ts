@@ -6,7 +6,8 @@ export type GameId =
   | 'symbol-match'
   | 'aim-test'
   | 'word-memory'
-  | 'time-sense';
+  | 'time-sense'
+  | 'stroop-test';
 
 export type ScoreDirection = 'ascending' | 'descending';
 export type MobileSupport = 'ready' | 'limited' | 'desktop-only';
@@ -21,7 +22,8 @@ export type GameTag =
   | 'desktop'
   | 'challenge'
   | 'casual'
-  | 'timing';
+  | 'timing'
+  | 'brain';
 
 export type ScoreStats = {
   accuracy?: number;
@@ -59,6 +61,8 @@ export type ScoreStats = {
   signedDeviationMs?: number;
   rating?: number | string;
   isPerfect?: number;
+  correctAnswers?: number;
+  conflictAccuracy?: number;
 };
 
 export type LeaderboardEntry = {
@@ -122,6 +126,9 @@ export type LocalProfile = {
     bestSymbolMatch?: LeaderboardEntry;
     bestWordMemory?: LeaderboardEntry;
     bestTimeSense?: LeaderboardEntry;
+    bestStroopScore?: LeaderboardEntry;
+    bestStroopAccuracy?: LeaderboardEntry;
+    bestStroopStreak?: LeaderboardEntry;
   };
 };
 
@@ -135,6 +142,9 @@ export type PlayerHighlights = {
   bestSymbolMatchMoves?: LeaderboardEntry;
   highestMemoryLevel?: LeaderboardEntry;
   bestTimeSenseScore?: LeaderboardEntry;
+  bestStroopScore?: LeaderboardEntry;
+  bestStroopAccuracy?: LeaderboardEntry;
+  bestStroopStreak?: LeaderboardEntry;
 };
 
 export type PlayerAchievementSummary = {

@@ -69,6 +69,15 @@ export const games = {
       isPerfect: { source: 'stats', statKey: 'isPerfect', direction: 'descending' },
     },
   },
+  'stroop-test': {
+    scoreDirection: 'descending',
+    metrics: {
+      score: { source: 'score', direction: 'descending' },
+      accuracy: { source: 'stats', statKey: 'accuracy', direction: 'descending' },
+      bestCombo: { source: 'stats', statKey: 'bestCombo', direction: 'descending' },
+      averageReactionMs: { source: 'stats', statKey: 'averageReactionMs', direction: 'ascending' },
+    },
+  },
 };
 
 export function getGame(gameId) {

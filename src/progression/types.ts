@@ -34,9 +34,10 @@ export type ProgressionEventType =
   | 'aim_finished'
   | 'memory_finished'
   | 'color_memory_finished'
-  | 'word_memory_finished'
-  | 'symbol_match_finished'
-  | 'time_sense_finished';
+    | 'word_memory_finished'
+    | 'symbol_match_finished'
+    | 'time_sense_finished'
+    | 'stroop_finished';
 
 export type ProgressionEvent = {
   id: string;

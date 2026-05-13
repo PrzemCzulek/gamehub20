@@ -12,6 +12,7 @@ const eventTypeByGame = {
   'aim-test': 'aim_finished',
   'word-memory': 'word_memory_finished',
   'time-sense': 'time_sense_finished',
+  'stroop-test': 'stroop_finished',
 } as const satisfies Record<LeaderboardEntry['gameId'], ProgressionEventType>;
 
 function createEventId(scoreEntry: LeaderboardEntry): string {

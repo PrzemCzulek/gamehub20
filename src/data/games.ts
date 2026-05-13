@@ -113,6 +113,21 @@ export const games: GameConfig[] = [
       { id: 'isPerfect', label: 'Perfect', direction: 'descending', source: 'stats', statKey: 'isPerfect' },
     ],
   },
+  {
+    id: 'stroop-test',
+    title: 'Stroop Test',
+    description: 'Neuro focus.',
+    scoreDirection: 'descending',
+    scoreName: 'punkty',
+    mobileSupport: 'ready',
+    tags: ['focus', 'speed', 'precision', 'brain', 'casual'],
+    metrics: [
+      { id: 'score', label: 'Punkty', direction: 'descending', source: 'score', suffix: 'pkt' },
+      { id: 'accuracy', label: 'Accuracy', direction: 'descending', source: 'stats', statKey: 'accuracy', valueType: 'percent' },
+      { id: 'bestCombo', label: 'Streak', direction: 'descending', source: 'stats', statKey: 'bestCombo' },
+      { id: 'averageReactionMs', label: 'Śr. reakcja', direction: 'ascending', source: 'stats', statKey: 'averageReactionMs', valueType: 'ms' },
+    ],
+  },
 ];
 
 export function getGameConfig(gameId: GameId): GameConfig {

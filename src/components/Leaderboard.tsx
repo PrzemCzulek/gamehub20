@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { getGameConfig } from '../data/games';
+import { readStoredStroopDuration, storeStroopDuration, stroopDurationChangedEvent, stroopDurationOptions } from '../data/stroopDurations';
 import { readStoredTimeSenseDuration, storeTimeSenseDuration, timeSenseDurationChangedEvent, timeSenseDurationOptions } from '../data/timeSenseDurations';
 import { readStoredTypingDuration, storeTypingDuration, typingDurationOptions } from '../data/typingDurations';
 import { buildPlayerProfileSummary, emptyValueLabel } from '../progression/playerProfile';
@@ -21,6 +22,13 @@ const timeSenseMetricLabels: Record<string, string> = {
   accuracy: 'Dokładność',
   deviationMs: 'Różnica',
   isPerfect: 'Perfect',
+};
+
+const stroopMetricLabels: Record<string, string> = {
+  score: 'Punkty',
+  accuracy: 'Accuracy',
+  bestCombo: 'Streak',
+  averageReactionMs: 'Śr. reakcja',
 };
 
 type LeaderboardSource = 'local' | 'online';
@@ -60,13 +68,14 @@ function getEntryDuration(entry: LeaderboardEntry): number | undefined {
 
 function formatDuration(seconds?: number, gameId?: GameId): string | undefined {
   if (!seconds) return undefined;
-  const options = gameId === 'time-sense' ? timeSenseDurationOptions : typingDurationOptions;
+  const options = gameId === 'time-sense' ? timeSenseDurationOptions : gameId === 'stroop-test' ? stroopDurationOptions : typingDurationOptions;
   return options.find((option) => option.value === seconds)?.label ?? `${seconds}s`;
 }
 
 function getMetricLabel(gameId: GameId, metric: LeaderboardMetric): string {
   if (gameId === 'typing-speed') return typingMetricLabels[metric.id] ?? metric.label;
   if (gameId === 'time-sense') return timeSenseMetricLabels[metric.id] ?? metric.label;
+  if (gameId === 'stroop-test') return stroopMetricLabels[metric.id] ?? metric.label;
   return metric.label;
 }
 
@@ -86,6 +95,13 @@ function getSecondaryInfo(entry: LeaderboardEntry, gameId: GameId, localAttempts
 
   if (gameId === 'time-sense') {
     if (stats.deviationMs !== undefined) info.push(`Diff ${(stats.deviationMs / 1000).toFixed(2)}s`);
+    const duration = formatDuration(getEntryDuration(entry), gameId);
+    if (duration) info.push(duration);
+  }
+
+  if (gameId === 'stroop-test') {
+    if (stats.accuracy !== undefined) info.push(`Accuracy ${formatPercent(stats.accuracy)}`);
+    if (stats.bestCombo !== undefined) info.push(`Streak ${stats.bestCombo}`);
     const duration = formatDuration(getEntryDuration(entry), gameId);
     if (duration) info.push(duration);
   }
@@ -310,6 +326,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   const [source, setSource] = useState<LeaderboardSource>('online');
   const [typingDuration, setTypingDuration] = useState(readStoredTypingDuration);
   const [timeSenseDuration, setTimeSenseDuration] = useState(readStoredTimeSenseDuration);
+  const [stroopDuration, setStroopDuration] = useState(readStoredStroopDuration);
   const [onlineEntries, setOnlineEntries] = useState<LeaderboardEntry[]>([]);
   const [onlineError, setOnlineError] = useState<string | null>(null);
   const [onlineLoading, setOnlineLoading] = useState(false);
@@ -323,9 +340,10 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   const profileSummary = useMemo(() => buildPlayerProfileSummary(getProfile()), [entries.length]);
   const isTypingSpeed = gameId === 'typing-speed';
   const isTimeSense = gameId === 'time-sense';
-  const hasDurationFilter = isTypingSpeed || isTimeSense;
-  const activeDuration = isTimeSense ? timeSenseDuration : typingDuration;
-  const durationOptions = isTimeSense ? timeSenseDurationOptions : typingDurationOptions;
+  const isStroop = gameId === 'stroop-test';
+  const hasDurationFilter = isTypingSpeed || isTimeSense || isStroop;
+  const activeDuration = isStroop ? stroopDuration : isTimeSense ? timeSenseDuration : typingDuration;
+  const durationOptions = isStroop ? stroopDurationOptions : isTimeSense ? timeSenseDurationOptions : typingDurationOptions;
   const activeMetric = game.metrics.find((metric) => metric.id === metricId) ?? game.metrics[0];
   const limit = 10;
   const filteredEntries = useMemo(
@@ -375,6 +393,21 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
       window.removeEventListener(timeSenseDurationChangedEvent, handleTimeSenseDurationChange);
     };
   }, [isTimeSense]);
+
+  useEffect(() => {
+    if (!isStroop) return;
+
+    function handleStroopDurationChange() {
+      setStroopDuration(readStoredStroopDuration());
+      setActiveProfileKey(null);
+    }
+
+    window.addEventListener(stroopDurationChangedEvent, handleStroopDurationChange);
+
+    return () => {
+      window.removeEventListener(stroopDurationChangedEvent, handleStroopDurationChange);
+    };
+  }, [isStroop]);
 
   useEffect(() => {
     if (source !== 'online') return;
@@ -443,7 +476,10 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
 
   function handleDurationChange(duration: number) {
     playNormalClickSound();
-    if (isTimeSense) {
+    if (isStroop) {
+      storeStroopDuration(duration);
+      setStroopDuration(duration);
+    } else if (isTimeSense) {
       storeTimeSenseDuration(duration);
       setTimeSenseDuration(duration);
     } else {

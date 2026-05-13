@@ -14,7 +14,7 @@ function readLimit(value) {
 
 function readDurationSeconds(value, gameId) {
   const fallback = gameId === 'time-sense' ? 10 : 30;
-  const allowed = gameId === 'time-sense' ? [10, 20, 30, 60] : [15, 30, 60, 90];
+  const allowed = gameId === 'time-sense' ? [10, 20, 30, 60] : gameId === 'stroop-test' ? [30, 60] : [15, 30, 60, 90];
   const parsed = Number.parseInt(value ?? String(fallback), 10);
   return allowed.includes(parsed) ? parsed : fallback;
 }
@@ -48,7 +48,7 @@ export async function handler(event) {
 
     const metric = getMetric(gameId, params.metric ?? 'score');
     const limit = readLimit(params.limit);
-    const usesDurationScope = gameId === 'typing-speed' || gameId === 'time-sense';
+    const usesDurationScope = gameId === 'typing-speed' || gameId === 'time-sense' || gameId === 'stroop-test';
     const durationSeconds = usesDurationScope ? readDurationSeconds(params.durationSeconds, gameId) : undefined;
     const leaderboardScope = usesDurationScope ? `duration:${durationSeconds}` : 'default';
     const metricExpression = getMetricExpression(metric);

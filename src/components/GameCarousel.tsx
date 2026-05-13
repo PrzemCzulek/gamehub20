@@ -19,6 +19,7 @@ const gameVisuals: Record<GameId, string> = {
   'aim-test': '◎',
   'word-memory': 'Aa',
   'time-sense': '◷',
+  'stroop-test': 'RGB',
 };
 
 const mobileSupportMeta: Record<MobileSupport, { label: string; className: string }> = {

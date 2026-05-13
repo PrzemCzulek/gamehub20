@@ -74,7 +74,7 @@ function isBetterScore(game, nextScore, currentScore) {
 }
 
 function getLeaderboardScope(value) {
-  if (value.gameId !== 'typing-speed' && value.gameId !== 'time-sense') {
+  if (value.gameId !== 'typing-speed' && value.gameId !== 'time-sense' && value.gameId !== 'stroop-test') {
     return 'default';
   }
 
@@ -159,6 +159,22 @@ function mergeHighlights(currentHighlights, value) {
 
   if (value.gameId === 'time-sense' && isBetterHighlight(value.score, highlights.bestTimeSenseScore, 'descending')) {
     highlights.bestTimeSenseScore = createHighlight(value);
+  }
+
+  if (value.gameId === 'stroop-test') {
+    const streak = readNumber(value.stats?.bestCombo) ?? readNumber(value.stats?.combo);
+
+    if (isBetterHighlight(value.score, highlights.bestStroopScore, 'descending')) {
+      highlights.bestStroopScore = createHighlight(value);
+    }
+
+    if (isBetterHighlight(accuracy, highlights.bestStroopAccuracy, 'descending')) {
+      highlights.bestStroopAccuracy = createHighlight(value, accuracy);
+    }
+
+    if (isBetterHighlight(streak, highlights.bestStroopStreak, 'descending')) {
+      highlights.bestStroopStreak = createHighlight(value, streak);
+    }
   }
 
   return highlights;

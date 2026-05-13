@@ -163,6 +163,16 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
     { label: 'Word score', value: summary.highlights.bestWordMemoryScore?.scoreLabel, accent: 'cyan' as const },
     { label: 'Memory level', value: summary.highlights.highestMemoryLevel?.scoreLabel, accent: 'teal' as const },
     { label: 'Time sense', value: summary.highlights.bestTimeSenseScore?.scoreLabel, accent: 'violet' as const },
+    { label: 'Stroop score', value: summary.highlights.bestStroopScore?.scoreLabel, accent: 'cyan' as const },
+    {
+      label: 'Stroop accuracy',
+      value:
+        summary.highlights.bestStroopAccuracy?.stats?.accuracy !== undefined
+          ? formatPercent(summary.highlights.bestStroopAccuracy.stats.accuracy)
+          : undefined,
+      accent: 'teal' as const,
+    },
+    { label: 'Stroop streak', value: summary.highlights.bestStroopStreak?.stats?.bestCombo !== undefined ? `x${summary.highlights.bestStroopStreak.stats.bestCombo}` : undefined, accent: 'violet' as const },
   ];
 
   useEffect(() => {

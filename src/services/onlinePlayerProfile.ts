@@ -30,6 +30,9 @@ export type OnlinePlayerProfile = {
     bestSymbolMatchMoves?: OnlineProfileHighlight;
     highestMemoryLevel?: OnlineProfileHighlight;
     bestTimeSenseScore?: OnlineProfileHighlight;
+    bestStroopScore?: OnlineProfileHighlight;
+    bestStroopAccuracy?: OnlineProfileHighlight;
+    bestStroopStreak?: OnlineProfileHighlight;
   };
   updatedAt?: string;
 };
