@@ -2,7 +2,7 @@ import { evaluateAchievements } from './achievements';
 import { resetGameProgressData, updateGameProgressFromScore } from './gameProgress';
 import { updateQuestProgress } from './quests';
 import type { AchievementUnlock, PlayerProgression, ProgressionEvent, ProgressionResult, QuestProgress } from './types';
-import { getPlayerProgressionNumbers, resetMainMetaRewardXp } from './xp';
+import { getMainAccountXp, getPlayerProgressionNumbers, resetMainMetaRewardXp } from './xp';
 
 const EVENTS_KEY = 'game-hub:progression-events';
 const PLAYER_PROGRESSION_KEY = 'game-hub:player-progression';
@@ -47,7 +47,7 @@ export function getAchievementUnlocks(): AchievementUnlock[] {
 }
 
 function updatePlayerProgression(event: ProgressionEvent, current: PlayerProgression | null): PlayerProgression {
-  const xp = (current?.xp ?? 0) + event.xpGained;
+  const xp = getMainAccountXp();
   const levelNumbers = getPlayerProgressionNumbers(xp);
 
   return {

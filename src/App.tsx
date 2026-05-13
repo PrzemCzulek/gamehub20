@@ -86,11 +86,20 @@ export default function App() {
 
     pushFeedback({
       type: 'xp',
-      title: 'XP',
-      message: `+${progressionEvent.xpGained} XP`,
+      title: 'XP GRY',
+      message: `+${progressionEvent.xpGained} XP gry`,
     });
 
-    if (progressionResult.playerProgression.level > progressionResult.previousLevel) {
+    if (import.meta.env.DEV) {
+      console.debug('XP audit score saved', {
+        source: 'score_saved',
+        gameId: savedScore.gameId,
+        gameXpGained: progressionEvent.xpGained,
+        mainXpGained: 0,
+      });
+    }
+
+    if (progressionResult.playerProgression.level > progressionResult.previousLevel && progressionResult.event.xpGained === 0) {
       pushFeedback({
         type: 'level-up',
         title: 'LEVEL UP',

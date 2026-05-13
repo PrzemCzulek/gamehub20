@@ -59,6 +59,10 @@ export function getMainMetaRewardXp(): number {
   return readMainMetaXp();
 }
 
+export function getMainAccountXp(): number {
+  return getMainMetaRewardXp();
+}
+
 export function addMainXpFromMetaReward(amount: number, reason: string) {
   const cleanAmount = Math.max(0, Math.round(amount));
   const previousMetaXp = readMainMetaXp();
