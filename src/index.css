@@ -50,6 +50,7 @@ input:focus-visible {
 
 .active-carousel-card {
   min-height: 21.5rem;
+  animation: activeCardFloat 4200ms ease-in-out infinite;
   background-image:
     radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.36), transparent 13rem),
     linear-gradient(145deg, rgba(15, 23, 42, 0.98), rgba(10, 18, 32, 0.96));
@@ -203,6 +204,14 @@ input:focus-visible {
   animation: questReadyPulse 1500ms ease-in-out infinite;
 }
 
+.leaderboard-row {
+  will-change: transform, filter;
+}
+
+.leaderboard-row:hover {
+  filter: brightness(1.06);
+}
+
 .quest-reward-ready {
   position: relative;
   overflow: hidden;
@@ -254,6 +263,17 @@ input:focus-visible {
   50% {
     opacity: 1;
     box-shadow: 0 0 30px rgba(251, 191, 36, 0.24);
+  }
+}
+
+@keyframes activeCardFloat {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  50% {
+    translate: 0 -4px;
   }
 }
 
@@ -652,6 +672,21 @@ input:focus-visible {
 
   100% {
     transform: translateX(120%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+
+  .active-carousel-card {
+    animation: none !important;
   }
 }
 

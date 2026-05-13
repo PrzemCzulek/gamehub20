@@ -9,6 +9,7 @@ export type GameId =
 
 export type ScoreDirection = 'ascending' | 'descending';
 export type MobileSupport = 'ready' | 'limited' | 'desktop-only';
+export type GameTag = 'reflex' | 'memory' | 'precision' | 'typing' | 'speed' | 'focus' | 'mobile' | 'desktop' | 'challenge' | 'casual';
 
 export type ScoreStats = {
   accuracy?: number;
@@ -69,6 +70,7 @@ export type GameConfig = {
   scoreName: string;
   mobileSupport: MobileSupport;
   mobileNote?: string;
+  tags?: GameTag[];
   metrics: LeaderboardMetric[];
 };
 

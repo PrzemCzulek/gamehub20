@@ -531,7 +531,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
               return (
                 <div
                   aria-expanded={selected}
-                  className={`group relative overflow-hidden rounded-xl border px-3 py-3 transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300/35 hover:bg-cyan-300/[0.06] hover:shadow-[0_0_22px_rgba(34,211,238,0.12)] focus:outline-none focus-visible:border-cyan-300/45 focus-visible:ring-1 focus-visible:ring-cyan-300/40 ${
+                  className={`leaderboard-row group relative overflow-hidden rounded-xl border px-3 py-3 transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300/35 hover:bg-cyan-300/[0.06] hover:shadow-[0_0_22px_rgba(34,211,238,0.12)] focus:outline-none focus-visible:border-cyan-300/45 focus-visible:ring-1 focus-visible:ring-cyan-300/40 ${
                     selected ? 'border-cyan-300/45 bg-cyan-300/[0.07] shadow-[0_0_24px_rgba(34,211,238,0.14)]' : getRankClass(index, ownEntry)
                   }`}
                   key={entryKey}

@@ -229,6 +229,18 @@ export function GameCarousel({ games, activeGameId, onSelectGame }: GameCarousel
               <h3 className="mt-3 text-2xl font-semibold text-white">{game.title}</h3>
               <p className="mt-2 min-h-[4.5rem] text-sm leading-5 text-slate-300">{game.description}</p>
               {game.mobileNote && <p className="mt-1.5 line-clamp-2 text-xs leading-4 text-amber-100/80">{game.mobileNote}</p>}
+              {active && game.tags && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {game.tags.slice(0, game.mobileNote ? 1 : 2).map((tag) => (
+                    <span
+                      className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[0.58rem] font-bold uppercase tracking-[0.14em] text-slate-200"
+                      key={tag}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
               <span
                 className={`mt-auto inline-flex w-fit rounded-md px-3 py-1 text-xs font-semibold uppercase tracking-wide ${
                   active ? 'bg-fuchsia-400/20 text-fuchsia-100' : 'bg-white/10 text-slate-200'

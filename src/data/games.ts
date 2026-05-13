@@ -8,6 +8,7 @@ export const games: GameConfig[] = [
     scoreDirection: 'ascending',
     scoreName: 'czas reakcji',
     mobileSupport: 'ready',
+    tags: ['reflex', 'speed', 'focus', 'mobile'],
     metrics: [{ id: 'score', label: 'Główny wynik', direction: 'ascending', source: 'score', valueType: 'ms' }],
   },
   {
@@ -17,6 +18,7 @@ export const games: GameConfig[] = [
     scoreDirection: 'descending',
     scoreName: 'poziom',
     mobileSupport: 'ready',
+    tags: ['memory', 'focus', 'mobile'],
     metrics: [{ id: 'score', label: 'Główny wynik', direction: 'descending', source: 'score', suffix: 'poziom' }],
   },
   {
@@ -26,6 +28,7 @@ export const games: GameConfig[] = [
     scoreDirection: 'descending',
     scoreName: 'runda',
     mobileSupport: 'ready',
+    tags: ['memory', 'precision', 'focus', 'mobile'],
     metrics: [
       { id: 'score', label: 'Główny wynik', direction: 'descending', source: 'score', suffix: 'runda' },
       { id: 'bestSimilarity', label: 'Najlepsze podobieństwo', direction: 'descending', source: 'stats', statKey: 'bestSimilarity', valueType: 'percent' },
@@ -41,6 +44,7 @@ export const games: GameConfig[] = [
     scoreName: 'WPM',
     mobileSupport: 'desktop-only',
     mobileNote: 'Ranking Typing Speed jest dostępny tylko na desktopie, żeby wyniki były porównywalne.',
+    tags: ['typing', 'speed', 'desktop'],
     metrics: [
       { id: 'score', label: 'Główny wynik', direction: 'descending', source: 'score', suffix: 'WPM' },
       { id: 'accuracy', label: 'Celność', direction: 'descending', source: 'stats', statKey: 'accuracy', valueType: 'percent' },
@@ -55,6 +59,7 @@ export const games: GameConfig[] = [
     scoreDirection: 'ascending',
     scoreName: 'ruchy',
     mobileSupport: 'ready',
+    tags: ['memory', 'focus', 'casual', 'mobile'],
     metrics: [
       { id: 'score', label: 'Główny wynik', direction: 'ascending', source: 'score', suffix: 'ruchów' },
       { id: 'mistakes', label: 'Pomyłki', direction: 'ascending', source: 'stats', statKey: 'mistakes' },
@@ -69,6 +74,7 @@ export const games: GameConfig[] = [
     scoreName: 'punkty',
     mobileSupport: 'limited',
     mobileNote: 'Na mobile sterowanie dotykiem może wpływać na wynik.',
+    tags: ['precision', 'reflex', 'challenge'],
     metrics: [
       { id: 'score', label: 'Główny wynik', direction: 'descending', source: 'score', suffix: 'pkt' },
       { id: 'accuracy', label: 'Celność', direction: 'descending', source: 'stats', statKey: 'accuracy', valueType: 'percent' },
@@ -85,6 +91,7 @@ export const games: GameConfig[] = [
     scoreName: 'punkty',
     mobileSupport: 'limited',
     mobileNote: 'Gra działa na mobile, ale najlepiej wypada na większym ekranie.',
+    tags: ['memory', 'focus', 'casual'],
     metrics: [
       { id: 'score', label: 'Główny wynik', direction: 'descending', source: 'score', suffix: 'pkt' },
       { id: 'bestCombo', label: 'Najlepsze combo', direction: 'descending', source: 'stats', statKey: 'bestCombo' },
