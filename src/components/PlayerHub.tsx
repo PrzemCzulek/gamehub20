@@ -155,7 +155,7 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200">PLAYER HUB</p>
           <h2 className="mt-1 text-2xl font-black text-white">Profil gracza</h2>
-          <p className="mt-1 text-sm text-slate-400">Identity, progres i historia wyników w układzie gotowym pod przyszłe mini-profile.</p>
+          <p className="mt-1 text-sm text-slate-400">Identity · progres · historia.</p>
         </div>
         <div className="grid grid-cols-3 gap-2 text-xs sm:min-w-[24rem]">
           <div className="rounded-md border border-white/10 bg-black/25 px-3 py-2">
@@ -242,7 +242,7 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
               <div className="flex flex-wrap items-end justify-between gap-2">
                 <div>
                   <h3 className="text-sm font-semibold uppercase tracking-wide text-cyan-100">Poziomy gier</h3>
-                  <p className="mt-1 text-xs text-slate-400">Osobny progres XP dla każdej gry.</p>
+                  <p className="mt-1 text-xs text-slate-400">Game XP ladder.</p>
                 </div>
                 {summary.topGameLevels.length > 0 && (
                   <span className="text-xs text-slate-400">
@@ -462,7 +462,7 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
         {activeTab === 'history' && (
           <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
             {profile.recentScores.length === 0 ? (
-              <p className="rounded-md border border-dashed border-white/10 p-4 text-sm text-slate-400">Brak zapisanej historii wyników.</p>
+              <p className="rounded-md border border-dashed border-white/10 p-4 text-sm text-slate-400">Brak historii.</p>
             ) : (
               profile.recentScores.map((score) => (
                 <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm" key={`${score.createdAt}-${score.gameId}`}>

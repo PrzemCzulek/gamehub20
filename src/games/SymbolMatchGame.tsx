@@ -303,7 +303,7 @@ export function SymbolMatchGame({ onScore }: SymbolMatchGameProps) {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm font-black uppercase tracking-wide text-cyan-100">Motyw planszy</h3>
-                <p className="mt-1 text-xs text-slate-400">Foundation pod przyszłe mapy.</p>
+                <p className="mt-1 text-xs text-slate-400">Map presets.</p>
               </div>
               <span className="rounded-full border border-violet-300/25 bg-violet-300/10 px-2 py-1 text-[0.62rem] font-black text-violet-100">
                 WKRÓTCE

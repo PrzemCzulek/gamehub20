@@ -148,7 +148,7 @@ function CategoryFoundation({ selectedCategory, onSelect }: { selectedCategory: 
           <p className="text-xs font-black uppercase tracking-[0.24em] text-cyan-200">Kategorie</p>
           <h2 className="mt-0.5 text-lg font-bold text-white">Arcade lanes</h2>
         </div>
-        <p className="text-sm text-slate-400">Foundation pod filtry, playlisty i rekomendacje.</p>
+        <p className="text-sm text-slate-400">Lanes / playlists / events.</p>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         <button
@@ -438,10 +438,8 @@ export default function App() {
                     <div className="inline-flex rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.22em] text-cyan-100">
                       Daily arcade
                     </div>
-                    <h1 className="mt-3 max-w-3xl text-3xl font-black tracking-tight text-white sm:text-4xl">Skill Arcade Network</h1>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-                      Wybierz grę, wejdź w focus mode i buduj progres bez przebijania się przez długie dashboardy.
-                    </p>
+                    <h1 className="mt-3 max-w-3xl text-3xl font-black tracking-tight text-white sm:text-4xl">Arcade Skill Lobby</h1>
+                    <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">Szybki wybór gry. Ranking. Progres. Questy.</p>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
                     <div className="rounded-xl border border-white/10 bg-black/25 px-4 py-3">
@@ -454,7 +452,7 @@ export default function App() {
                     </div>
                     <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] px-4 py-3 shadow-[0_0_20px_rgba(34,211,238,0.08)]">
                       <span className="text-xs uppercase tracking-wide text-cyan-100">Featured challenge</span>
-                      <strong className="mt-1 block truncate text-sm text-white">{dailyQuest?.title ?? 'Brak aktywnego questa'}</strong>
+                      <strong className="mt-1 block truncate text-sm text-white">{dailyQuest?.title ?? 'Quest offline'}</strong>
                       <span className="mt-1 block text-xs text-slate-400">{dailyProgress ? `${dailyProgress.progress}/${dailyQuest?.target.amount ?? 1}` : 'Czeka na progres'}</span>
                     </div>
                   </div>
@@ -474,15 +472,15 @@ export default function App() {
                   </button>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-200">Future events</p>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-200">Events</p>
                   <h3 className="mt-2 text-lg font-bold text-white">Seasonal playlists</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-400">Miejsce pod eventy, playlisty, PvP i rotujące challenge modes.</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">Rotacje, PvP, challenge modes.</p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-black/20 p-4">
                   <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-100">Quick activity</p>
                   <h3 className="mt-2 text-lg font-bold text-white">Ostatnie wyniki</h3>
                   <p className="mt-2 text-sm leading-6 text-slate-400">
-                    {profile.recentScores[0] ? `${getGameTitle(profile.recentScores[0].gameId)}: ${profile.recentScores[0].scoreLabel}` : 'Brak historii wyników.'}
+                    {profile.recentScores[0] ? `${getGameTitle(profile.recentScores[0].gameId)}: ${profile.recentScores[0].scoreLabel}` : 'Brak wyników.'}
                   </p>
                 </div>
               </section>
@@ -505,7 +503,7 @@ export default function App() {
                     ))}
                   </div>
                 </div>
-                <div className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.05] px-3 py-2 text-sm text-cyan-50">Focus mode · {activeGame.scoreName}</div>
+                <div className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.05] px-3 py-2 text-sm text-cyan-50">Focus · {activeGame.scoreName}</div>
               </section>
 
               <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_21rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
@@ -539,7 +537,7 @@ export default function App() {
                   <div className="rounded-xl border border-white/10 bg-black/20 p-3.5">
                     <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Game info</p>
                     <p className="mt-2 text-sm text-slate-300">{activeGame.mobileNote ?? 'Pełne wsparcie dla aktualnego urządzenia.'}</p>
-                    <div className="mt-3 rounded-lg border border-white/10 bg-white/[0.04] p-3 text-xs text-slate-400">Future space: modifiers, seasons, playlists, 1v1.</div>
+                    <div className="mt-3 rounded-lg border border-white/10 bg-white/[0.04] p-3 text-xs text-slate-400">Modifiers · Seasons · 1v1</div>
                   </div>
                 </aside>
               </div>
@@ -551,7 +549,7 @@ export default function App() {
               <section className="rounded-xl border border-white/10 bg-slate-950/48 p-4">
                 <p className="text-xs font-black uppercase tracking-[0.24em] text-cyan-200">Profile view</p>
                 <h1 className="mt-1.5 text-3xl font-black text-white">Profil gracza</h1>
-                <p className="mt-2 text-sm text-slate-400">Statystyki, questy, achievementy, historia i poziomy gier w jednym miejscu.</p>
+                <p className="mt-2 text-sm text-slate-400">Statystyki, questy, achievementy, poziomy gier.</p>
               </section>
               <PlayerHub onMilestoneClaim={handleMilestoneClaim} onQuestClaim={handleQuestClaim} onRename={handleRename} profile={profile} revision={revision} />
             </div>

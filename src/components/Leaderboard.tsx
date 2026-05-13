@@ -269,8 +269,7 @@ function FallbackProfileContent({ entry, gameId, metric }: { entry: LeaderboardE
         <strong className="mt-1 block text-white">{formatMetricValue(entry, metric)}</strong>
         <span className="mt-1 block text-xs text-slate-400">{getGameTitle(gameId)} / {getMetricLabel(gameId, metric)}</span>
       </div>
-      <p className="mt-3 text-sm font-semibold text-cyan-100">Profil publiczny w przygotowaniu</p>
-      <p className="mt-1 text-xs leading-5 text-slate-400">Pełne statystyki będą dostępne po dodaniu profili online.</p>
+      <p className="mt-3 text-sm font-semibold text-cyan-100">Profil publiczny: soon</p>
     </div>
   );
 }
@@ -435,10 +434,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
         <div>
           <p className="text-[0.65rem] font-black uppercase tracking-[0.25em] text-cyan-200">Leaderboard</p>
           <h2 className="mt-1 text-lg font-black uppercase tracking-wide text-white">Ranking</h2>
-          <p className="mt-1 text-xs leading-5 text-slate-400">
-            {activeMetric.direction === 'ascending' ? 'Niższy wynik jest lepszy.' : 'Wyższy wynik jest lepszy.'}
-          </p>
-          <p className="mt-1 text-xs text-slate-500">Top {limit} z {totalEntriesLabel} wyników.</p>
+          <p className="mt-1 text-xs text-slate-500">Top {limit} · {totalEntriesLabel}</p>
         </div>
 
         <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-white/10 bg-black/25 p-1">
@@ -518,7 +514,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
         <div className={`max-h-[28rem] space-y-2 overflow-y-auto pr-1 transition duration-200 ${onlineLoading ? 'opacity-45 blur-[1px]' : 'opacity-100 blur-0'}`}>
           {visibleEntries.length === 0 && !onlineLoading ? (
             <p className="rounded-md border border-dashed border-white/10 p-4 text-sm leading-6 text-slate-400">
-              {usingOnline ? 'Brak wyników online dla tej gry.' : 'Brak wyników dla tej gry. Zagraj rundę, aby dodać pierwszy wpis.'}
+              {usingOnline ? 'Brak wyników online.' : 'Brak wyników.'}
             </p>
           ) : (
             visibleEntries.map((entry, index) => {

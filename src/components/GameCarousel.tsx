@@ -162,8 +162,7 @@ export function GameCarousel({ games, activeGameId, onOpenGame, onSelectGame }: 
       <div className="mb-4 grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
         <div className="hidden md:block" />
         <div className="text-center">
-          <h2 className="text-2xl font-semibold text-white">Wybierz grę</h2>
-          <p className="mt-1 text-sm text-slate-400">Kliknij kartę, użyj strzałek albo przewiń karuzelę.</p>
+          <h2 className="text-2xl font-semibold text-white">Arcade deck</h2>
         </div>
         <div className="flex justify-center gap-2 md:justify-end">
           <button
