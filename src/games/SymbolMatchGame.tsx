@@ -8,7 +8,7 @@ type SymbolMatchGameProps = {
 };
 
 type Card = {
-  id: number;
+  id: string;
   symbol: string;
 };
 
@@ -35,8 +35,11 @@ const boardSizes = [
 ];
 
 function createDeck(): Card[] {
-  return [...symbols, ...symbols]
-    .map((symbol, index) => ({ id: index, symbol }))
+  return symbols
+    .flatMap((symbol, pairIndex) => [
+      { id: `${symbol}-${pairIndex}-a`, symbol },
+      { id: `${symbol}-${pairIndex}-b`, symbol },
+    ])
     .sort(() => Math.random() - 0.5);
 }
 
@@ -46,16 +49,16 @@ function formatDuration(durationMs: number): string {
 
 export function SymbolMatchGame({ onScore }: SymbolMatchGameProps) {
   const [deck, setDeck] = useState<Card[]>(() => createDeck());
-  const [selectedCardIds, setSelectedCardIds] = useState<number[]>([]);
-  const [resolvingPairIds, setResolvingPairIds] = useState<number[]>([]);
-  const [matchedCardIds, setMatchedCardIds] = useState<number[]>([]);
+  const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
+  const [resolvingPairIds, setResolvingPairIds] = useState<string[]>([]);
+  const [matchedCardIds, setMatchedCardIds] = useState<string[]>([]);
   const [isResolvingPair, setIsResolvingPair] = useState(false);
   const [moves, setMoves] = useState(0);
   const [mistakes, setMistakes] = useState(0);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [complete, setComplete] = useState(false);
   const [feedback, setFeedback] = useState<MatchFeedback>({ type: 'idle', text: 'Znajdź wszystkie pary' });
-  const [lastMatchedIds, setLastMatchedIds] = useState<number[]>([]);
+  const [lastMatchedIds, setLastMatchedIds] = useState<string[]>([]);
   const [finalResult, setFinalResult] = useState<FinalResult | null>(null);
   const timersRef = useRef<number[]>([]);
 
@@ -97,10 +100,13 @@ export function SymbolMatchGame({ onScore }: SymbolMatchGameProps) {
     setFeedback({ type: 'idle', text: 'Wybierz pierwszą kartę' });
   }
 
-  function handleCardClick(cardId: number) {
+  function handleCardClick(card: Card) {
+    const cardId = card.id;
+
     if (import.meta.env.DEV) {
       console.debug('SymbolMatch state', {
         clickedId: cardId,
+        clickedSymbol: card.symbol,
         selectedCardIds,
         resolvingPairIds,
         matchedCardIds,
@@ -111,8 +117,6 @@ export function SymbolMatchGame({ onScore }: SymbolMatchGameProps) {
     if (isResolvingPair || complete || !startedAt) {
       return;
     }
-
-    const card = deck.find((item) => item.id === cardId);
 
     if (!card || matchedCardIds.includes(cardId) || selectedCardIds.includes(cardId)) {
       return;
@@ -127,7 +131,7 @@ export function SymbolMatchGame({ onScore }: SymbolMatchGameProps) {
     const firstId = selectedCardIds[0];
     const secondId = cardId;
     const firstCard = deck.find((item) => item.id === firstId);
-    const secondCard = deck.find((item) => item.id === secondId);
+    const secondCard = card;
     const pairIds = [firstId, secondId];
     const nextMoves = moves + 1;
 
@@ -226,34 +230,30 @@ export function SymbolMatchGame({ onScore }: SymbolMatchGameProps) {
                   matchedCardIds.includes(card.id);
                 const mismatched = resolvingPairIds.includes(card.id) && feedback.type === 'mismatch';
                 const justMatched = lastMatchedIds.includes(card.id);
-                const faceDown = !isFaceUp;
-
                 return (
                   <button
                     aria-label={`Karta ${index + 1}${isFaceUp ? `, symbol ${card.symbol}` : ', zakryta'}`}
-                    className={`symbol-card group aspect-square rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 ${
+                    className={`symbol-card aspect-square rounded-xl border text-3xl font-black transition duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 sm:text-4xl ${
                       mismatched ? 'symbol-card-mismatch' : justMatched ? 'symbol-card-match' : ''
-                    } ${faceDown && !isResolvingPair && !complete ? 'symbol-card-face-down' : 'symbol-card-open'}`}
+                    } ${
+                      isFaceUp
+                        ? matchedCardIds.includes(card.id)
+                          ? 'symbol-card-open border-emerald-300/35 bg-emerald-300/[0.12] text-white shadow-[0_0_22px_rgba(52,211,153,0.12)]'
+                          : 'symbol-card-open border-cyan-300/28 bg-cyan-300/[0.10] text-white shadow-[0_0_22px_rgba(34,211,238,0.10)]'
+                        : 'symbol-card-face-down border-white/10 bg-white/[0.045] text-cyan-100/80 hover:scale-[1.03] hover:border-cyan-300/35 hover:bg-cyan-300/10'
+                    } disabled:cursor-not-allowed disabled:hover:scale-100`}
+                    data-debug-face-up={import.meta.env.DEV ? isFaceUp : undefined}
+                    data-debug-id={import.meta.env.DEV ? card.id : undefined}
+                    data-debug-symbol={import.meta.env.DEV ? card.symbol : undefined}
                     disabled={!started || isResolvingPair || matchedCardIds.includes(card.id) || complete}
                     key={card.id}
                     onClick={() => {
                       playNormalClickSound();
-                      handleCardClick(card.id);
+                      handleCardClick(card);
                     }}
                     type="button"
                   >
-                    <span className={`symbol-card-inner ${isFaceUp ? 'symbol-card-flipped' : ''}`}>
-                      <span className="symbol-card-face symbol-card-back">
-                        <span className="text-2xl font-black text-cyan-100/80">?</span>
-                      </span>
-                      <span
-                        className={`symbol-card-face symbol-card-front ${
-                          matchedCardIds.includes(card.id) ? 'border-emerald-300/35 bg-emerald-300/[0.12]' : 'border-cyan-300/28 bg-cyan-300/[0.10]'
-                        }`}
-                      >
-                        <span className="text-3xl font-black text-white sm:text-4xl">{card.symbol}</span>
-                      </span>
-                    </span>
+                    {isFaceUp ? card.symbol : '?'}
                   </button>
                 );
               })}
