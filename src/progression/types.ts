@@ -69,13 +69,27 @@ export type QuestTargetKind =
   | 'personal_bests'
   | 'different_games_completed'
   | 'reaction_under_ms'
+  | 'reaction_average_under_ms'
   | 'typing_accuracy_over'
+  | 'typing_wpm_over'
+  | 'typing_duration_seconds'
+  | 'typing_flawless'
   | 'aim_accuracy_over'
+  | 'aim_score_over'
+  | 'aim_average_under_ms'
+  | 'aim_misses_under'
   | 'word_combo_over'
+  | 'word_score_over'
+  | 'word_mistakes_under'
   | 'aim_flawless'
   | 'reaction_valid_runs'
   | 'symbol_under_moves'
+  | 'symbol_mistakes_under'
+  | 'symbol_duration_under_ms'
   | 'memory_level_at_least'
+  | 'color_similarity_over'
+  | 'color_average_similarity_over'
+  | 'color_completed_round'
   | 'benchmark_runs';
 
 export type QuestDefinition = {
@@ -86,6 +100,9 @@ export type QuestDefinition = {
   category: QuestCategory;
   rarity: QuestRarity;
   icon?: string;
+  skillDifficulty?: 1 | 2 | 3 | 4 | 5;
+  seasonalTags?: string[];
+  hidden?: boolean;
   rewardXp: number;
   target: {
     kind: QuestTargetKind;

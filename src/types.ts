@@ -8,6 +8,7 @@ export type GameId =
   | 'word-memory';
 
 export type ScoreDirection = 'ascending' | 'descending';
+export type MobileSupport = 'ready' | 'limited' | 'desktop-only';
 
 export type ScoreStats = {
   accuracy?: number;
@@ -66,6 +67,8 @@ export type GameConfig = {
   description: string;
   scoreDirection: ScoreDirection;
   scoreName: string;
+  mobileSupport: MobileSupport;
+  mobileNote?: string;
   metrics: LeaderboardMetric[];
 };
 

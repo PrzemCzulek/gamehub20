@@ -203,6 +203,47 @@ input:focus-visible {
   animation: questReadyPulse 1500ms ease-in-out infinite;
 }
 
+.quest-reward-ready {
+  position: relative;
+  overflow: hidden;
+  animation: questRewardBreath 1700ms ease-in-out infinite;
+}
+
+.quest-reward-ready::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent 8%, rgba(103, 232, 249, 0.62), transparent 38%);
+  opacity: 0.55;
+  transform: translateX(-120%);
+  animation: questBorderShimmer 2400ms ease-in-out infinite;
+}
+
+.quest-reward-ready::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 75% 8%, rgba(255, 255, 255, 0.14), transparent 30%);
+  opacity: 0.7;
+}
+
+.quest-claim-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.quest-claim-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.42), transparent 55%);
+  transform: translateX(-120%);
+  animation: questClaimShine 1800ms ease-in-out infinite;
+}
+
 @keyframes softPulse {
   0%,
   100% {
@@ -574,6 +615,43 @@ input:focus-visible {
 
   50% {
     box-shadow: 0 0 26px rgba(34, 211, 238, 0.28);
+  }
+}
+
+@keyframes questRewardBreath {
+  0%,
+  100% {
+    box-shadow:
+      0 0 18px rgba(34, 211, 238, 0.18),
+      inset 0 0 0 rgba(34, 211, 238, 0);
+  }
+
+  50% {
+    box-shadow:
+      0 0 34px rgba(34, 211, 238, 0.36),
+      inset 0 0 24px rgba(34, 211, 238, 0.08);
+  }
+}
+
+@keyframes questBorderShimmer {
+  0%,
+  45% {
+    transform: translateX(-120%);
+  }
+
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes questClaimShine {
+  0%,
+  40% {
+    transform: translateX(-120%);
+  }
+
+  100% {
+    transform: translateX(120%);
   }
 }
 

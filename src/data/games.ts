@@ -7,6 +7,7 @@ export const games: GameConfig[] = [
     description: 'Kliknij jak najszybciej, gdy ekran zmieni kolor.',
     scoreDirection: 'ascending',
     scoreName: 'czas reakcji',
+    mobileSupport: 'ready',
     metrics: [{ id: 'score', label: 'Główny wynik', direction: 'ascending', source: 'score', valueType: 'ms' }],
   },
   {
@@ -15,6 +16,7 @@ export const games: GameConfig[] = [
     description: 'Zapamiętaj i odtwórz coraz dłuższą sekwencję pól.',
     scoreDirection: 'descending',
     scoreName: 'poziom',
+    mobileSupport: 'ready',
     metrics: [{ id: 'score', label: 'Główny wynik', direction: 'descending', source: 'score', suffix: 'poziom' }],
   },
   {
@@ -23,6 +25,7 @@ export const games: GameConfig[] = [
     description: 'Zapamiętaj kolor docelowy i odtwórz go jak najdokładniej.',
     scoreDirection: 'descending',
     scoreName: 'runda',
+    mobileSupport: 'ready',
     metrics: [
       { id: 'score', label: 'Główny wynik', direction: 'descending', source: 'score', suffix: 'runda' },
       { id: 'bestSimilarity', label: 'Najlepsze podobieństwo', direction: 'descending', source: 'stats', statKey: 'bestSimilarity', valueType: 'percent' },
@@ -36,6 +39,8 @@ export const games: GameConfig[] = [
     description: 'Przepisz tekst i sprawdź wynik WPM oraz dokładność.',
     scoreDirection: 'descending',
     scoreName: 'WPM',
+    mobileSupport: 'desktop-only',
+    mobileNote: 'Ranking Typing Speed jest dostępny tylko na desktopie, żeby wyniki były porównywalne.',
     metrics: [
       { id: 'score', label: 'Główny wynik', direction: 'descending', source: 'score', suffix: 'WPM' },
       { id: 'accuracy', label: 'Celność', direction: 'descending', source: 'stats', statKey: 'accuracy', valueType: 'percent' },
@@ -49,6 +54,7 @@ export const games: GameConfig[] = [
     description: 'Odkrywaj po dwie karty i znajdź wszystkie pary symboli.',
     scoreDirection: 'ascending',
     scoreName: 'ruchy',
+    mobileSupport: 'ready',
     metrics: [
       { id: 'score', label: 'Główny wynik', direction: 'ascending', source: 'score', suffix: 'ruchów' },
       { id: 'mistakes', label: 'Pomyłki', direction: 'ascending', source: 'stats', statKey: 'mistakes' },
@@ -61,6 +67,8 @@ export const games: GameConfig[] = [
     description: 'Trafiaj pojawiające się cele i unikaj kliknięć poza nimi.',
     scoreDirection: 'descending',
     scoreName: 'punkty',
+    mobileSupport: 'limited',
+    mobileNote: 'Na mobile sterowanie dotykiem może wpływać na wynik.',
     metrics: [
       { id: 'score', label: 'Główny wynik', direction: 'descending', source: 'score', suffix: 'pkt' },
       { id: 'accuracy', label: 'Celność', direction: 'descending', source: 'stats', statKey: 'accuracy', valueType: 'percent' },
@@ -75,6 +83,8 @@ export const games: GameConfig[] = [
     description: 'Decyduj, czy słowo jest nowe, czy pojawiło się wcześniej.',
     scoreDirection: 'descending',
     scoreName: 'punkty',
+    mobileSupport: 'limited',
+    mobileNote: 'Gra działa na mobile, ale najlepiej wypada na większym ekranie.',
     metrics: [
       { id: 'score', label: 'Główny wynik', direction: 'descending', source: 'score', suffix: 'pkt' },
       { id: 'bestCombo', label: 'Najlepsze combo', direction: 'descending', source: 'stats', statKey: 'bestCombo' },

@@ -396,12 +396,12 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
                       return (
                         <div
                           className={`rounded-lg border px-3 py-3 transition duration-200 hover:-translate-y-0.5 ${
-                            claimed
-                              ? 'border-white/5 bg-black/20 opacity-65'
-                              : ready
-                                ? `${questRarityStyles[quest.rarity]} quest-ready-pulse`
-                                : questRarityStyles[quest.rarity]
-                          }`}
+                              claimed
+                                ? 'border-white/5 bg-black/20 opacity-65'
+                                : ready
+                                  ? `${questRarityStyles[quest.rarity]} quest-reward-ready`
+                                  : questRarityStyles[quest.rarity]
+                            }`}
                           key={quest.id}
                         >
                           <div className="flex items-start justify-between gap-3 text-sm">
@@ -438,14 +438,14 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
                           </div>
                           {ready && progress && (
                             <button
-                              className="mt-3 w-full rounded-md bg-cyan-300 px-3 py-2 text-xs font-extrabold uppercase tracking-[0.16em] text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.22)] transition hover:bg-cyan-200"
+                                className="quest-claim-button mt-3 w-full rounded-md bg-cyan-300 px-3 py-2 text-xs font-extrabold uppercase tracking-[0.16em] text-slate-950 shadow-[0_0_22px_rgba(34,211,238,0.35)] transition duration-200 hover:scale-[1.015] hover:bg-cyan-100"
                               onClick={() => {
                                 playNormalClickSound();
                                 onQuestClaim(quest.id, progress.periodId);
                               }}
                               type="button"
                             >
-                              Odbierz
+                              Odbierz nagrodę
                             </button>
                           )}
                         </div>

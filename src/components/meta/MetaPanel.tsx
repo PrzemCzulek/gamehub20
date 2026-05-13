@@ -17,11 +17,28 @@ export function MetaPanel({ profile, onReset, revision }: MetaPanelProps) {
   const [resetInput, setResetInput] = useState('');
   const summary = buildPlayerProfileSummary(profile);
   const questProgress = getQuestProgress();
-  const dailyQuest = questDefinitions.find((quest) => quest.type === 'daily');
+  const dailyQuests = questDefinitions.filter((quest) => quest.type === 'daily');
+  const dailyProgressFor = (questId: string) => questProgress.find((item) => item.questId === questId);
+  const readyDailyQuest = dailyQuests.find((quest) => {
+    const progress = dailyProgressFor(quest.id);
+    return progress?.completed && !progress.isClaimed && !progress.claimedAt;
+  });
+  const activeDailyQuest = dailyQuests.find((quest) => {
+    const progress = dailyProgressFor(quest.id);
+    return !progress?.completed && !progress?.isClaimed && !progress?.claimedAt;
+  });
+  const allDailyClaimed =
+    dailyQuests.length > 0 &&
+    dailyQuests.every((quest) => {
+      const progress = dailyProgressFor(quest.id);
+      return Boolean(progress?.isClaimed || progress?.claimedAt);
+    });
+  const dailyQuest = readyDailyQuest ?? activeDailyQuest;
   const dailyProgress = dailyQuest ? questProgress.find((item) => item.questId === dailyQuest.id) : undefined;
   const dailyValue = dailyProgress?.progress ?? 0;
   const dailyGoal = dailyQuest?.target.amount ?? 1;
   const dailyPercent = Math.min(100, Math.round((dailyValue / dailyGoal) * 100));
+  const dailyReady = Boolean(dailyProgress?.completed && !dailyProgress.isClaimed && !dailyProgress.claimedAt);
   const canReset = resetInput === 'RESET';
 
   useEffect(() => {
@@ -92,16 +109,39 @@ export function MetaPanel({ profile, onReset, revision }: MetaPanelProps) {
             </div>
           </div>
 
-          {dailyQuest && (
-            <div className="mt-2 rounded-md border border-cyan-300/10 bg-cyan-300/[0.05] px-2 py-1.5">
+          {(dailyQuest || allDailyClaimed) && (
+            <div
+              className={`mt-2 rounded-md border px-2 py-1.5 transition ${
+                allDailyClaimed
+                  ? 'border-teal-300/20 bg-teal-300/[0.07]'
+                  : dailyReady
+                    ? 'quest-ready-pulse border-cyan-200/35 bg-cyan-300/[0.08]'
+                    : 'border-cyan-300/10 bg-cyan-300/[0.05]'
+              }`}
+            >
               <div className="flex items-center justify-between gap-2 text-[0.65rem]">
-                <span className="font-semibold uppercase tracking-wide text-cyan-100">Dzienny cel</span>
-                <span className="text-cyan-100">{dailyValue}/{dailyGoal}</span>
+                <span className="font-semibold uppercase tracking-wide text-cyan-100">
+                  {dailyReady ? 'Nagroda czeka' : 'Dzienny cel'}
+                </span>
+                <span className={allDailyClaimed ? 'text-teal-100' : 'text-cyan-100'}>
+                  {allDailyClaimed ? 'Gotowe' : `${dailyValue}/${dailyGoal}`}
+                </span>
               </div>
               <div className="mt-1 flex items-center gap-2">
-                <span className="min-w-0 flex-1 truncate text-xs text-white">{dailyQuest.title}</span>
+                <span className="min-w-0 flex-1 truncate text-xs text-white">
+                  {allDailyClaimed ? 'Wszystkie questy ukończone' : dailyQuest?.title}
+                </span>
                 <div className="h-1 w-20 overflow-hidden rounded-full bg-white/10">
-                  <div className="h-full rounded-full bg-cyan-300" style={{ width: `${dailyPercent}%` }} />
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${
+                      allDailyClaimed
+                        ? 'bg-teal-300 shadow-[0_0_12px_rgba(45,212,191,0.55)]'
+                        : dailyReady
+                          ? 'bg-cyan-100 shadow-[0_0_16px_rgba(103,232,249,0.75)]'
+                          : 'bg-cyan-300'
+                    }`}
+                    style={{ width: `${allDailyClaimed ? 100 : dailyPercent}%` }}
+                  />
                 </div>
               </div>
             </div>

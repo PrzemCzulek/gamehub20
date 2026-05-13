@@ -24,6 +24,7 @@ import { preloadAudio } from './services/audio';
 import { submitOnlineScore } from './services/onlineLeaderboard';
 import { getLeaderboard, getProfile, hasValidPlayerName, resetLocalData, saveScore, setPlayerName } from './services/storage';
 import type { GameId, ScoreInput } from './types';
+import { canPlayGameOnDevice, canSubmitScoreForGame, getDeviceType, type DeviceType } from './utils/device';
 
 function renderGame(gameId: GameId, onScore: (score: ScoreInput) => void) {
   switch (gameId) {
@@ -48,13 +49,44 @@ function getGameTitle(gameId: GameId): string {
   return games.find((game) => game.id === gameId)?.title ?? gameId;
 }
 
+function DeviceBlockCard({ onChooseOther }: { onChooseOther: () => void }) {
+  return (
+    <div className="rounded-xl border border-fuchsia-300/20 bg-slate-950/70 p-6 text-center shadow-[0_0_34px_rgba(168,85,247,0.12)]">
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-fuchsia-100">Desktop wymagany</p>
+      <h3 className="mt-3 text-2xl font-bold text-white">Ta gra jest zablokowana na mobile/tablet</h3>
+      <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-300">
+        Ta gra wymaga klawiatury lub precyzyjnego sterowania. Wyniki z mobile/tablet są zablokowane dla uczciwego rankingu.
+      </p>
+      <button
+        className="mt-5 rounded-md bg-cyan-300 px-5 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-200"
+        onClick={onChooseOther}
+        type="button"
+      >
+        Wybierz inną grę
+      </button>
+    </div>
+  );
+}
+
+function LimitedDeviceWarning({ note }: { note?: string }) {
+  return (
+    <div className="mb-4 rounded-lg border border-amber-300/25 bg-amber-300/[0.08] px-4 py-3 text-sm text-amber-50">
+      <strong className="block text-xs uppercase tracking-[0.18em] text-amber-100">Tryb mobile ograniczony</strong>
+      <span className="mt-1 block text-amber-50/85">{note ?? 'Ta gra działa na mobile, ale wynik może zależeć od urządzenia.'}</span>
+    </div>
+  );
+}
+
 export default function App() {
   const [activeGameId, setActiveGameId] = useState<GameId>('reaction-time');
   const [revision, setRevision] = useState(0);
+  const [deviceType, setDeviceType] = useState<DeviceType>(() => getDeviceType());
   const [needsNick, setNeedsNick] = useState(() => !hasValidPlayerName(getProfile().playerName));
   const profile = useMemo(() => getProfile(), [revision]);
   const leaderboard = useMemo(() => getLeaderboard(activeGameId), [activeGameId, revision]);
   const activeGame = games.find((game) => game.id === activeGameId) ?? games[0];
+  const activeGamePlayable = canPlayGameOnDevice(activeGame, deviceType);
+  const firstPlayableGame = games.find((game) => canPlayGameOnDevice(game, deviceType));
 
   useEffect(() => {
     const handleFirstInteraction = () => preloadAudio();
@@ -71,6 +103,20 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    function handleDeviceChange() {
+      setDeviceType(getDeviceType());
+    }
+
+    window.addEventListener('resize', handleDeviceChange);
+    window.addEventListener('orientationchange', handleDeviceChange);
+
+    return () => {
+      window.removeEventListener('resize', handleDeviceChange);
+      window.removeEventListener('orientationchange', handleDeviceChange);
+    };
+  }, []);
+
   function refresh() {
     setRevision((current) => current + 1);
   }
@@ -78,6 +124,17 @@ export default function App() {
   function handleScore(score: ScoreInput) {
     if (!hasValidPlayerName(profile.playerName)) {
       setNeedsNick(true);
+      return;
+    }
+
+    const scoreGame = games.find((game) => game.id === score.gameId);
+
+    if (scoreGame && !canSubmitScoreForGame(scoreGame, deviceType)) {
+      pushFeedback({
+        type: 'quest',
+        title: 'Wynik niezapisany',
+        message: 'Ta gra zapisuje wyniki tylko na desktopie.',
+      });
       return;
     }
 
@@ -271,7 +328,20 @@ export default function App() {
               </div>
               <span className="text-sm text-teal-200">{activeGame.scoreName}</span>
             </div>
-            {renderGame(activeGameId, handleScore)}
+            {!activeGamePlayable ? (
+              <DeviceBlockCard
+                onChooseOther={() => {
+                  if (firstPlayableGame) {
+                    setActiveGameId(firstPlayableGame.id);
+                  }
+                }}
+              />
+            ) : (
+              <>
+                {activeGame.mobileSupport === 'limited' && deviceType !== 'desktop' && <LimitedDeviceWarning note={activeGame.mobileNote} />}
+                {renderGame(activeGameId, handleScore)}
+              </>
+            )}
           </section>
 
           <aside className="self-start">

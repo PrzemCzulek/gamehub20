@@ -123,20 +123,57 @@ function getTargetIncrement(
     }
     case 'reaction_under_ms':
       return { progress: event.gameId === 'reaction-time' && event.scoreEntry.score < quest.target.amount ? 1 : 0 };
+    case 'reaction_average_under_ms':
+      return {
+        progress:
+          event.gameId === 'reaction-time' && (event.stats.averageReactionMs ?? event.scoreEntry.score) < quest.target.amount ? 1 : 0,
+      };
     case 'typing_accuracy_over':
       return { progress: event.gameId === 'typing-speed' && (event.stats.accuracy ?? 0) >= quest.target.amount ? 1 : 0 };
+    case 'typing_wpm_over':
+      return { progress: event.gameId === 'typing-speed' && event.scoreEntry.score >= quest.target.amount ? 1 : 0 };
+    case 'typing_duration_seconds':
+      return { progress: event.gameId === 'typing-speed' && (event.stats.durationSeconds ?? 0) >= quest.target.amount ? 1 : 0 };
+    case 'typing_flawless':
+      return { progress: event.gameId === 'typing-speed' && (event.stats.incorrectChars ?? 1) === 0 ? 1 : 0 };
     case 'aim_accuracy_over':
       return { progress: event.gameId === 'aim-test' && (event.stats.accuracy ?? 0) >= quest.target.amount ? 1 : 0 };
+    case 'aim_score_over':
+      return { progress: event.gameId === 'aim-test' && event.scoreEntry.score >= quest.target.amount ? 1 : 0 };
+    case 'aim_average_under_ms':
+      return { progress: event.gameId === 'aim-test' && (event.stats.averageReactionMs ?? Infinity) <= quest.target.amount ? 1 : 0 };
+    case 'aim_misses_under':
+      return { progress: event.gameId === 'aim-test' && (event.stats.misses ?? Infinity) <= quest.target.amount ? 1 : 0 };
     case 'word_combo_over':
       return { progress: event.gameId === 'word-memory' && (event.stats.bestCombo ?? event.stats.combo ?? 0) >= quest.target.amount ? 1 : 0 };
+    case 'word_score_over':
+      return { progress: event.gameId === 'word-memory' && event.scoreEntry.score >= quest.target.amount ? 1 : 0 };
+    case 'word_mistakes_under':
+      return { progress: event.gameId === 'word-memory' && (event.stats.mistakes ?? Infinity) <= quest.target.amount ? 1 : 0 };
     case 'aim_flawless':
       return { progress: event.gameId === 'aim-test' && (event.stats.misses ?? 1) === 0 ? 1 : 0 };
     case 'reaction_valid_runs':
       return { progress: event.gameId === 'reaction-time' && event.scoreEntry.score < 9999 ? 1 : 0 };
     case 'symbol_under_moves':
       return { progress: event.gameId === 'symbol-match' && event.scoreEntry.score <= quest.target.amount ? 1 : 0 };
+    case 'symbol_mistakes_under':
+      return { progress: event.gameId === 'symbol-match' && (event.stats.mistakes ?? Infinity) <= quest.target.amount ? 1 : 0 };
+    case 'symbol_duration_under_ms':
+      return { progress: event.gameId === 'symbol-match' && (event.stats.durationMs ?? Infinity) <= quest.target.amount ? 1 : 0 };
     case 'memory_level_at_least':
       return { progress: event.gameId === 'memory-test' && event.scoreEntry.score >= quest.target.amount ? 1 : 0 };
+    case 'color_similarity_over':
+      return {
+        progress:
+          event.gameId === 'color-memory' &&
+          (event.stats.bestSimilarity ?? event.stats.finalSimilarity ?? 0) >= quest.target.amount
+            ? 1
+            : 0,
+      };
+    case 'color_average_similarity_over':
+      return { progress: event.gameId === 'color-memory' && (event.stats.averageSimilarity ?? 0) >= quest.target.amount ? 1 : 0 };
+    case 'color_completed_round':
+      return { progress: event.gameId === 'color-memory' && (event.stats.completedRound ?? event.scoreEntry.score) >= quest.target.amount ? 1 : 0 };
     case 'benchmark_runs':
       return {
         progress:
