@@ -20,11 +20,11 @@ const gameVisuals: Record<GameId, string> = {
 
 const mobileSupportMeta: Record<MobileSupport, { label: string; className: string }> = {
   ready: {
-    label: 'Mobile',
+    label: 'Mobilne',
     className: 'border-teal-300/25 bg-teal-300/10 text-teal-100',
   },
   limited: {
-    label: 'Limited',
+    label: 'Ograniczone',
     className: 'border-amber-300/30 bg-amber-300/10 text-amber-100',
   },
   'desktop-only': {
@@ -210,18 +210,20 @@ export function GameCarousel({ games, activeGameId, onSelectGame }: GameCarousel
               style={getCardStyle(offset)}
               type="button"
             >
-              <span
-                className={`absolute right-4 top-4 rounded-full border px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide ${support.className}`}
-                title={game.mobileNote}
-              >
-                {support.label}
-              </span>
+              <div className="mb-4 flex min-h-6 items-center justify-between gap-3">
+                <span
+                  className={`rounded-full border px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.14em] shadow-sm backdrop-blur ${support.className}`}
+                  title={game.mobileNote}
+                >
+                  {support.label}
+                </span>
+                <span className="rounded-md border border-cyan-300/20 bg-cyan-300/10 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-100">
+                  {game.scoreName}
+                </span>
+              </div>
               <div className="flex items-start justify-between gap-4">
                 <span className={`carousel-visual ${game.id === 'color-memory' ? 'color-wheel-visual' : ''}`}>
                   {game.id === 'color-memory' ? '' : gameVisuals[game.id]}
-                </span>
-                <span className="mt-7 rounded-md border border-cyan-300/20 bg-cyan-300/10 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-100">
-                  {game.scoreName}
                 </span>
               </div>
               <h3 className="mt-5 text-2xl font-semibold text-white">{game.title}</h3>
