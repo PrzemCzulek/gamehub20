@@ -1,5 +1,7 @@
 import type { GameId, LeaderboardEntry } from '../types';
 
+const MAIN_META_XP_KEY = 'game-hub:main-meta-xp';
+
 export function calculateScoreXp(entry: Pick<LeaderboardEntry, 'gameId' | 'score' | 'stats'>): number {
   const bonusByGame: Record<GameId, number> = {
     'reaction-time': Math.max(0, Math.min(30, Math.round((600 - Math.min(entry.score, 600)) / 20))),
@@ -34,3 +36,50 @@ export function getPlayerProgressionNumbers(totalXp: number) {
     levelProgressPercent: Math.round(((totalXp - currentLevelXp) / Math.max(nextLevelXp - currentLevelXp, 1)) * 100),
   };
 }
+
+function readMainMetaXp(): number {
+  try {
+    const raw = localStorage.getItem(MAIN_META_XP_KEY);
+    const value = raw ? Number(JSON.parse(raw)) : 0;
+    return Number.isFinite(value) ? Math.max(0, value) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeMainMetaXp(value: number): void {
+  try {
+    localStorage.setItem(MAIN_META_XP_KEY, JSON.stringify(Math.max(0, value)));
+  } catch {
+    return;
+  }
+}
+
+export function getMainMetaRewardXp(): number {
+  return readMainMetaXp();
+}
+
+export function addMainXpFromMetaReward(amount: number, reason: string) {
+  const cleanAmount = Math.max(0, Math.round(amount));
+  const previousMetaXp = readMainMetaXp();
+  const nextMetaXp = previousMetaXp + cleanAmount;
+
+  writeMainMetaXp(nextMetaXp);
+
+  return {
+    reason,
+    xpGained: cleanAmount,
+    previousMetaXp,
+    nextMetaXp,
+  };
+}
+
+export function resetMainMetaRewardXp(): void {
+  try {
+    localStorage.removeItem(MAIN_META_XP_KEY);
+  } catch {
+    return;
+  }
+}
+
+export const mainMetaXpStorageKey = MAIN_META_XP_KEY;

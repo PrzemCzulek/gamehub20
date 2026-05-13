@@ -17,6 +17,7 @@ import { SymbolMatchGame } from './games/SymbolMatchGame';
 import { TypingSpeedGame } from './games/TypingSpeedGame';
 import { WordMemoryGame } from './games/WordMemoryGame';
 import { createProgressionEvent } from './progression/events';
+import { claimGameMilestone } from './progression/gameProgress';
 import { processProgressionEvent } from './progression/progressionEngine';
 import { preloadAudio } from './services/audio';
 import { submitOnlineScore } from './services/onlineLeaderboard';
@@ -98,6 +99,15 @@ export default function App() {
       });
     }
 
+    if (progressionResult.gameLevelUp) {
+      pushFeedback({
+        type: 'level-up',
+        title: 'LEVEL GRY',
+        message: `${getGameTitle(savedScore.gameId)} osiągnął poziom ${progressionResult.gameProgress.level}`,
+        detail: `+${progressionEvent.xpGained} XP gry`,
+      });
+    }
+
     if (progressionResult.personalBestImproved) {
       pushFeedback({
         type: 'personal-best',
@@ -157,6 +167,35 @@ export default function App() {
     refresh();
   }
 
+  function handleMilestoneClaim(gameId: GameId, milestoneId: string) {
+    const previousLevel = getProfile().level;
+    const result = claimGameMilestone(gameId, milestoneId);
+
+    if (!result.ok) {
+      return;
+    }
+
+    const nextProfile = getProfile();
+
+    pushFeedback({
+      type: 'quest',
+      title: 'NAGRODA ODEBRANA',
+      message: `${getGameTitle(gameId)}: ${result.milestone.label}`,
+      detail: `+${result.mainXpGained} XP konta`,
+    });
+
+    if (nextProfile.level > previousLevel) {
+      pushFeedback({
+        type: 'level-up',
+        title: 'LEVEL UP',
+        message: `Poziom konta ${nextProfile.level} osiągnięty`,
+        detail: `Nagroda: ${result.milestone.label}`,
+      });
+    }
+
+    refresh();
+  }
+
   return (
     <main className="min-h-screen px-3 py-4 text-slate-100 sm:px-5 lg:px-8">
       <LiveFeed />
@@ -195,7 +234,7 @@ export default function App() {
           </aside>
         </div>
 
-        <PlayerHub onRename={handleRename} profile={profile} revision={revision} />
+        <PlayerHub onMilestoneClaim={handleMilestoneClaim} onRename={handleRename} profile={profile} revision={revision} />
       </div>
     </main>
   );

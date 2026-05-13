@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 import { achievementDefinitions } from '../data/achievements';
+import { gameMilestones } from '../data/gameMilestones';
 import { games } from '../data/games';
 import { questDefinitions } from '../data/quests';
 import { buildPlayerProfileSummary, emptyValueLabel } from '../progression/playerProfile';
 import { getAchievementUnlocks, getQuestProgress } from '../progression/progressionEngine';
 import { playNormalClickSound } from '../services/audio';
-import type { LocalProfile } from '../types';
+import type { GameId, LocalProfile, PlayerGameProgressSummary } from '../types';
 import { formatPercent } from '../utils/format';
 
 type PlayerHubProps = {
+  onMilestoneClaim: (gameId: GameId, milestoneId: string) => void;
   onRename: (name: string) => void;
   profile: LocalProfile;
   revision: number;
@@ -83,7 +85,15 @@ function formatUnlockDate(value?: string): string {
   }).format(new Date(value));
 }
 
-export function PlayerHub({ onRename, profile, revision }: PlayerHubProps) {
+function getMilestoneStatus(gameProgress: PlayerGameProgressSummary, milestoneId: string, levelRequired: number) {
+  if (gameProgress.milestonesClaimed.includes(milestoneId)) {
+    return 'claimed';
+  }
+
+  return gameProgress.level >= levelRequired ? 'ready' : 'locked';
+}
+
+export function PlayerHub({ onMilestoneClaim, onRename, profile, revision }: PlayerHubProps) {
   const [activeTab, setActiveTab] = useState<PlayerHubTab>('stats');
   const [draftName, setDraftName] = useState(profile.playerName);
   const summary = buildPlayerProfileSummary(profile);
@@ -213,6 +223,94 @@ export function PlayerHub({ onRename, profile, revision }: PlayerHubProps) {
                   <p className="rounded-md bg-black/20 px-3 py-2" key={item.label}>
                     {item.label}: <span className="font-semibold text-white">{item.value ?? emptyValueLabel}</span>
                   </p>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-cyan-300/10 bg-black/15 p-4 lg:col-span-2">
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-cyan-100">Poziomy gier</h3>
+                  <p className="mt-1 text-xs text-slate-400">Osobny progres XP dla każdej gry.</p>
+                </div>
+                {summary.topGameLevels.length > 0 && (
+                  <span className="text-xs text-slate-400">
+                    Top: {summary.topGameLevels[0].gameTitle} Lv. {summary.topGameLevels[0].level}
+                  </span>
+                )}
+              </div>
+              <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                {summary.gameProgressSummary.map((gameProgress) => (
+                  <div className="rounded-md border border-white/10 bg-black/25 px-3 py-3 text-sm" key={gameProgress.gameId}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="block truncate font-semibold text-white">{gameProgress.gameTitle}</span>
+                        <span className="mt-1 block text-xs text-slate-400">
+                          Próby: {gameProgress.totalPlays} · Best: {gameProgress.bestScoreLabel ?? emptyValueLabel}
+                        </span>
+                      </div>
+                      <strong className="shrink-0 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2 py-1 text-xs text-cyan-100">
+                        Lv. {gameProgress.level}
+                      </strong>
+                    </div>
+                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+                      <div
+                        className="h-full rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.45)]"
+                        style={{ width: `${gameProgress.levelProgressPercent}%` }}
+                      />
+                    </div>
+                    <div className="mt-1 flex justify-between text-[0.68rem] text-slate-500">
+                      <span>{gameProgress.xp - gameProgress.currentLevelXp} XP</span>
+                      <span>{gameProgress.nextLevelXp - gameProgress.currentLevelXp} XP</span>
+                    </div>
+                    <div className="mt-3 space-y-1.5 border-t border-white/10 pt-3">
+                      {gameMilestones
+                        .filter((milestone) => milestone.gameId === gameProgress.gameId)
+                        .slice(0, 3)
+                        .map((milestone) => {
+                          const status = getMilestoneStatus(gameProgress, milestone.id, milestone.levelRequired);
+                          const ready = status === 'ready';
+
+                          return (
+                            <div
+                              className={`rounded-md border px-2 py-2 text-xs transition ${
+                                status === 'claimed'
+                                  ? 'border-teal-300/15 bg-teal-300/[0.05] text-teal-100'
+                                  : ready
+                                    ? 'border-cyan-300/30 bg-cyan-300/[0.07] text-cyan-50 shadow-[0_0_16px_rgba(34,211,238,0.10)]'
+                                    : 'border-white/5 bg-black/20 text-slate-500'
+                              }`}
+                              key={milestone.id}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <span className="block truncate font-semibold">{milestone.label}</span>
+                                  <span className="mt-0.5 block text-[0.68rem] opacity-75">
+                                    Lv. {milestone.levelRequired} · +{milestone.mainXpReward} XP konta
+                                  </span>
+                                </div>
+                                {ready ? (
+                                  <button
+                                    className="shrink-0 rounded-md bg-cyan-300 px-2 py-1 text-[0.65rem] font-bold text-slate-950 transition hover:bg-cyan-200"
+                                    onClick={() => {
+                                      playNormalClickSound();
+                                      onMilestoneClaim(gameProgress.gameId, milestone.id);
+                                    }}
+                                    type="button"
+                                  >
+                                    Odbierz
+                                  </button>
+                                ) : (
+                                  <span className="shrink-0 text-[0.65rem] font-semibold uppercase">
+                                    {status === 'claimed' ? '✓ Odebrany' : 'Zablokowany'}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

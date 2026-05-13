@@ -1,5 +1,32 @@
 import type { GameId, LeaderboardEntry, ScoreStats } from '../types';
 
+export type GameProgressEntry = {
+  gameId: GameId;
+  xp: number;
+  level: number;
+  currentLevelXp: number;
+  nextLevelXp: number;
+  levelProgressPercent: number;
+  totalPlays: number;
+  bestScore?: number;
+  bestScoreLabel?: string;
+  lastPlayedAt?: string;
+  milestonesClaimed: string[];
+};
+
+export type GameProgressMap = Record<string, GameProgressEntry>;
+
+export type GameMilestone = {
+  id: string;
+  gameId: GameId;
+  levelRequired: number;
+  mainXpReward: number;
+  label: string;
+  description: string;
+  rewardLabel?: string;
+  cosmeticRewardId?: string;
+};
+
 export type ProgressionEventType =
   | 'game_score_saved'
   | 'typing_finished'
@@ -83,6 +110,9 @@ export type ProgressionResult = {
   event: ProgressionEvent;
   playerProgression: PlayerProgression;
   previousLevel: number;
+  gameProgress: GameProgressEntry;
+  previousGameLevel: number;
+  gameLevelUp: boolean;
   questProgress: QuestProgress[];
   achievementUnlocks: AchievementUnlock[];
   newAchievementUnlocks: AchievementUnlock[];

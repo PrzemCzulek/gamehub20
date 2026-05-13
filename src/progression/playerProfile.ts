@@ -1,5 +1,6 @@
 import { achievementDefinitions } from '../data/achievements';
 import { games } from '../data/games';
+import { buildGameProgressSummary } from './gameProgress';
 import { getAchievementUnlocks } from './progressionEngine';
 import { getScores, sortScoresByMetric } from '../services/storage';
 import type {
@@ -85,6 +86,8 @@ export function buildPlayerProfileSummary(profile: LocalProfile): PlayerProfileS
     (score) => score.playerId === profile.playerId || (!score.playerId && score.playerName === profile.playerName),
   );
   const highlights = getPlayerHighlights(playerScores);
+  const gameProgressSummary = buildGameProgressSummary();
+  const topGameLevels = [...gameProgressSummary].sort((a, b) => b.level - a.level || b.xp - a.xp).slice(0, 3);
 
   return {
     playerId: profile.playerId,
@@ -103,6 +106,8 @@ export function buildPlayerProfileSummary(profile: LocalProfile): PlayerProfileS
     achievementsUnlocked: achievements.unlocked,
     achievementsTotal: achievements.total,
     achievements,
+    gameProgressSummary,
+    topGameLevels,
     highlights: {
       bestReactionTime: highlights.bestReactionTime ?? profile.highlights.bestReactionTime,
       bestTypingWpm: highlights.bestTypingWpm ?? profile.highlights.highestWpm,

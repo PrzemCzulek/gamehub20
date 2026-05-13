@@ -1,7 +1,8 @@
 import { evaluateAchievements } from './achievements';
+import { resetGameProgressData, updateGameProgressFromScore } from './gameProgress';
 import { updateQuestProgress } from './quests';
 import type { AchievementUnlock, PlayerProgression, ProgressionEvent, ProgressionResult, QuestProgress } from './types';
-import { getPlayerProgressionNumbers } from './xp';
+import { getPlayerProgressionNumbers, resetMainMetaRewardXp } from './xp';
 
 const EVENTS_KEY = 'game-hub:progression-events';
 const PLAYER_PROGRESSION_KEY = 'game-hub:player-progression';
@@ -67,6 +68,7 @@ export function processProgressionEvent(event: ProgressionEvent): ProgressionRes
   const currentUnlocks = getAchievementUnlocks();
   const previousLevel = storedPlayerProgression?.level ?? 1;
   const playerProgression = updatePlayerProgression(event, storedPlayerProgression);
+  const gameProgressResult = updateGameProgressFromScore(event.scoreEntry);
   const questResult = updateQuestProgress(currentQuestProgress, event, previousEvents);
   const achievementUnlocks = evaluateAchievements(currentUnlocks, event, playerProgression);
   const previousUnlockIds = new Set(currentUnlocks.map((unlock) => unlock.achievementId));
@@ -82,6 +84,9 @@ export function processProgressionEvent(event: ProgressionEvent): ProgressionRes
     event,
     playerProgression,
     previousLevel,
+    gameProgress: gameProgressResult.entry,
+    previousGameLevel: gameProgressResult.previousLevel,
+    gameLevelUp: gameProgressResult.levelUp,
     questProgress: questResult.progress,
     achievementUnlocks,
     newAchievementUnlocks,
@@ -96,6 +101,8 @@ export function resetProgressionData(): void {
     localStorage.removeItem(PLAYER_PROGRESSION_KEY);
     localStorage.removeItem(QUEST_PROGRESS_KEY);
     localStorage.removeItem(ACHIEVEMENT_UNLOCKS_KEY);
+    resetGameProgressData();
+    resetMainMetaRewardXp();
   } catch {
     return;
   }

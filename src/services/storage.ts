@@ -1,6 +1,6 @@
 import { games, getGameConfig } from '../data/games';
 import { resetProgressionData } from '../progression/progressionEngine';
-import { calculateScoreXp, getLevelBaseXp, getLevelFromXp } from '../progression/xp';
+import { calculateScoreXp, getLevelBaseXp, getLevelFromXp, getMainMetaRewardXp } from '../progression/xp';
 import type { GameId, LeaderboardEntry, LocalProfile, ScoreInput, ScoreStats } from '../types';
 
 const PLAYER_KEY = 'game-hub:player-name';
@@ -367,7 +367,7 @@ export function getProfile(): LocalProfile {
       bestScores[game.id] = best;
     }
   });
-  const xp = playerScores.reduce((total, score) => total + (score.xpGained ?? 0), 0);
+  const xp = playerScores.reduce((total, score) => total + (score.xpGained ?? 0), 0) + getMainMetaRewardXp();
   const level = getLevelFromXp(xp);
   const currentLevelXp = getLevelBaseXp(level);
   const nextLevelXp = getLevelBaseXp(level + 1);

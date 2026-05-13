@@ -110,6 +110,19 @@ export type PlayerAchievementSummary = {
   total: number;
 };
 
+export type PlayerGameProgressSummary = {
+  gameId: GameId;
+  gameTitle: string;
+  level: number;
+  xp: number;
+  currentLevelXp: number;
+  nextLevelXp: number;
+  levelProgressPercent: number;
+  totalPlays: number;
+  bestScoreLabel?: string;
+  milestonesClaimed: string[];
+};
+
 export type PlayerProfileSummary = {
   playerId: string;
   playerName: string;
@@ -128,4 +141,6 @@ export type PlayerProfileSummary = {
   achievementsTotal: number;
   achievements: PlayerAchievementSummary;
   highlights: PlayerHighlights;
+  gameProgressSummary: PlayerGameProgressSummary[];
+  topGameLevels: PlayerGameProgressSummary[];
 };
