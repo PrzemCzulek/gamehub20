@@ -25,7 +25,7 @@ type FinalResult = {
 };
 
 const symbols = ['◆', '●', '▲', '■', '★', '✚'];
-const flipBackDelayMs = 700;
+const flipBackDelayMs = 850;
 
 const boardThemes = ['Classic Grid', 'Neon Grid', 'Cyber Tiles', 'Minimal Dark'];
 const boardSizes = [
@@ -69,7 +69,7 @@ export function SymbolMatchGame({ onScore }: SymbolMatchGameProps) {
     setStartedAt(null);
     setLocked(false);
     setComplete(false);
-    setFeedback({ type: 'idle', text: 'Znajdź wszystkie pary' });
+    setFeedback({ type: 'idle', text: 'Wybierz pierwsza karte' });
     setMismatchIds([]);
     setLastMatchedSymbol(null);
     setFinalResult(null);
@@ -78,7 +78,7 @@ export function SymbolMatchGame({ onScore }: SymbolMatchGameProps) {
   function start() {
     reset();
     setStartedAt(performance.now());
-    setFeedback({ type: 'idle', text: 'Znajdź wszystkie pary' });
+    setFeedback({ type: 'idle', text: 'Wybierz pierwsza karte' });
   }
 
   function handleCardClick(cardId: number) {
@@ -143,13 +143,13 @@ export function SymbolMatchGame({ onScore }: SymbolMatchGameProps) {
     const nextMistakes = mistakes + 1;
     setMistakes(nextMistakes);
     setMismatchIds(nextSelectedIds);
-    setFeedback({ type: 'mismatch', text: 'Spróbuj ponownie' });
+    setFeedback({ type: 'mismatch', text: 'Nie para - zapamietaj symbole' });
     setLocked(true);
     window.setTimeout(() => {
       setSelectedIds([]);
       setMismatchIds([]);
       setLocked(false);
-      setFeedback({ type: 'idle', text: 'Znajdź wszystkie pary' });
+      setFeedback({ type: 'idle', text: 'Wybierz pierwsza karte' });
     }, flipBackDelayMs);
   }
 
@@ -195,16 +195,17 @@ export function SymbolMatchGame({ onScore }: SymbolMatchGameProps) {
           <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-3 shadow-[0_0_35px_rgba(34,211,238,0.05)] sm:p-4">
             <div className={`grid grid-cols-3 gap-3 transition duration-200 sm:grid-cols-4 ${started ? 'opacity-100' : 'opacity-45 blur-[1px]'}`}>
               {deck.map((card, index) => {
-                const visible = card.matched || selectedIds.includes(card.id);
+                const visible = card.matched || selectedIds.includes(card.id) || mismatchIds.includes(card.id);
                 const mismatched = mismatchIds.includes(card.id);
                 const justMatched = card.matched && lastMatchedSymbol === card.symbol;
+                const faceDown = !visible;
 
                 return (
                   <button
                     aria-label={`Karta ${index + 1}${visible ? `, symbol ${card.symbol}` : ', zakryta'}`}
                     className={`symbol-card group aspect-square rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 ${
                       mismatched ? 'symbol-card-mismatch' : justMatched ? 'symbol-card-match' : ''
-                    }`}
+                    } ${faceDown && !locked && !complete ? 'symbol-card-face-down' : 'symbol-card-open'}`}
                     disabled={!started || locked || card.matched || complete}
                     key={card.id}
                     onClick={() => {
@@ -323,3 +324,4 @@ export function SymbolMatchGame({ onScore }: SymbolMatchGameProps) {
     </div>
   );
 }
+

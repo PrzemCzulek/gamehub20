@@ -305,11 +305,12 @@ input:focus-visible {
   transition: transform 260ms ease, filter 180ms ease;
 }
 
-.symbol-card:not(:disabled):hover .symbol-card-inner {
+.symbol-card-face-down:not(:disabled):hover .symbol-card-inner {
   filter: drop-shadow(0 0 16px rgba(34, 211, 238, 0.18));
   transform: translateY(-2px) rotateY(0deg);
 }
 
+.symbol-card-open:hover .symbol-card-flipped,
 .symbol-card-flipped {
   transform: rotateY(180deg);
 }
