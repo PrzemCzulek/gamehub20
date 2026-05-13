@@ -111,21 +111,21 @@ function ShowcaseStat({ label, value, accent = 'cyan' }: { label: string; value?
   }[accent];
 
   return (
-    <div className={`rounded-xl border px-3 py-3 ${accentClass}`}>
+    <div className={`min-h-[5.4rem] rounded-xl border px-3.5 py-3.5 ${accentClass}`}>
       <strong className="block truncate text-2xl font-black tracking-tight text-white">{value ?? emptyValueLabel}</strong>
-      <span className="mt-1 block text-[0.65rem] font-black uppercase tracking-[0.16em] opacity-75">{label}</span>
+      <span className="mt-1.5 block truncate text-[0.62rem] font-black uppercase tracking-[0.12em] opacity-75">{label}</span>
     </div>
   );
 }
 
 function MiniScoreTile({ title, value, metric }: { title: string; value?: string; metric: string }) {
   return (
-    <div className="rounded-lg border border-white/10 bg-black/22 px-3 py-2.5">
+    <div className="rounded-lg border border-white/10 bg-black/22 px-3.5 py-3">
       <div className="flex items-start justify-between gap-2">
         <span className="min-w-0 truncate text-xs font-bold text-slate-300">{title}</span>
         <span className="shrink-0 text-[0.58rem] font-black uppercase tracking-wide text-slate-500">{metric}</span>
       </div>
-      <strong className="mt-1 block truncate text-lg font-black text-white">{value ?? emptyValueLabel}</strong>
+      <strong className={`mt-1 block truncate text-lg font-black ${value ? 'text-white' : 'text-slate-500'}`}>{value ?? emptyValueLabel}</strong>
     </div>
   );
 }
@@ -170,21 +170,21 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
 
   return (
     <section
-      className="rounded-2xl border border-white/10 bg-slate-950/42 p-3.5 shadow-[0_0_40px_rgba(34,211,238,0.06)] sm:p-4"
+      className="rounded-2xl border border-white/10 bg-slate-950/42 p-4 shadow-[0_0_40px_rgba(34,211,238,0.06)] sm:p-5"
       data-revision={revision}
     >
-      <div className="grid gap-3 rounded-xl border border-cyan-300/10 bg-black/18 p-3.5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-violet-300/30 bg-violet-300/10 text-lg font-black text-violet-100 shadow-[0_0_22px_rgba(168,85,247,0.16)]">
+      <div className="grid gap-4 rounded-xl border border-cyan-300/10 bg-black/18 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <div className="grid h-13 min-h-13 w-13 min-w-13 shrink-0 place-items-center rounded-xl border border-violet-300/30 bg-violet-300/10 text-xl font-black text-violet-100 shadow-[0_0_22px_rgba(168,85,247,0.16)]">
             {summary.displayName.slice(0, 1).toUpperCase()}
           </div>
-          <div className="min-w-0">
-            <p className="text-[0.65rem] font-black uppercase tracking-[0.24em] text-cyan-200">Player profile</p>
-            <h2 className="truncate text-2xl font-black text-white">{summary.displayName}</h2>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-200">Player profile</p>
+            <h2 className="truncate text-2xl font-black text-white sm:text-3xl">{summary.displayName}</h2>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-5 lg:min-w-[34rem]">
+        <div className="grid min-w-0 grid-cols-2 gap-2.5 text-xs sm:grid-cols-3 xl:grid-cols-5 lg:min-w-[34rem]">
           <ShowcaseStat label="Level" value={`L${summary.level}`} accent="violet" />
           <ShowcaseStat label="XP" value={String(summary.xp)} accent="cyan" />
           <ShowcaseStat label="Streak" value={`${questStreak.currentStreak}d`} accent="teal" />
@@ -193,7 +193,7 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-1.5 rounded-xl border border-white/10 bg-black/22 p-1">
+      <div className="mt-4 flex flex-wrap gap-1.5 rounded-xl border border-white/10 bg-black/22 p-1">
         {tabs.map((tab) => (
           <button
             className={`rounded-lg border px-3 py-1.5 text-xs font-black uppercase tracking-wide transition ${
@@ -213,15 +213,15 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
         ))}
       </div>
 
-      <div className="mt-4">
+      <div className="mt-5">
         {activeTab === 'stats' && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <section>
-              <div className="mb-2 flex items-center justify-between gap-3">
+              <div className="mb-3 flex items-center justify-between gap-3">
                 <h3 className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100">Highlights</h3>
                 <span className="text-xs text-slate-500">Best game: {bestGameTitle}</span>
               </div>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {highlights.map((item) => (
                   <ShowcaseStat key={item.label} label={item.label} value={item.value} accent={item.accent} />
                 ))}
@@ -229,12 +229,12 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
             </section>
 
             <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
-              <div className="rounded-xl border border-white/10 bg-black/18 p-3.5">
+              <div className="rounded-xl border border-white/10 bg-black/18 p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <h3 className="text-xs font-black uppercase tracking-[0.22em] text-slate-300">Best scores</h3>
                   <span className="text-xs text-slate-500">{summary.totalScoreEntries} entries</span>
                 </div>
-                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {games.map((game) => (
                     <MiniScoreTile key={game.id} metric={game.scoreName} title={game.title} value={profile.bestScores[game.id]?.scoreLabel} />
                   ))}
@@ -242,7 +242,7 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
               </div>
 
               <form
-                className="rounded-xl border border-white/10 bg-black/18 p-3.5"
+                className="rounded-xl border border-white/10 bg-black/18 p-4"
                 onSubmit={(event) => {
                   event.preventDefault();
                   playNormalClickSound();
@@ -263,7 +263,7 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
               </form>
             </section>
 
-            <section className="rounded-xl border border-cyan-300/10 bg-black/18 p-3.5">
+            <section className="rounded-xl border border-cyan-300/10 bg-black/18 p-4">
               <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
                 <h3 className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100">Game levels</h3>
                 {summary.topGameLevels.length > 0 && (
@@ -272,7 +272,7 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
                   </span>
                 )}
               </div>
-              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {summary.gameProgressSummary.map((gameProgress) => (
                   <GameLevelCard
                     gameProgress={gameProgress}
@@ -444,7 +444,7 @@ function GameLevelCard({
   const milestones = gameMilestones.filter((milestone) => milestone.gameId === gameProgress.gameId).slice(0, 3);
 
   return (
-    <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-3 text-sm">
+    <div className="rounded-xl border border-white/10 bg-black/25 px-3.5 py-4 text-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <span className="block truncate font-black text-white">{gameProgress.gameTitle}</span>
@@ -455,14 +455,14 @@ function GameLevelCard({
         </strong>
       </div>
 
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+      <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/10">
         <div
           className="h-full rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.45)]"
           style={{ width: `${gameProgress.levelProgressPercent}%` }}
         />
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
+      <div className="mt-4 flex flex-wrap gap-1.5">
         {milestones.map((milestone) => {
           const status = getMilestoneStatus(gameProgress, milestone.id, milestone.levelRequired);
           const ready = status === 'ready';
