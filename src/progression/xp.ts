@@ -11,6 +11,7 @@ export function calculateScoreXp(entry: Pick<LeaderboardEntry, 'gameId' | 'score
     'symbol-match': Math.max(0, Math.min(30, 30 - Math.max(0, entry.score - 6) * 3)),
     'aim-test': Math.min(45, Math.round(entry.score / 350)),
     'word-memory': Math.min(45, Math.round(entry.score / 180)),
+    'time-sense': Math.min(45, Math.round(entry.score / 30)),
   };
 
   return 10 + Math.max(0, bonusByGame[entry.gameId] ?? 0);

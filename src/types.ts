@@ -5,20 +5,37 @@ export type GameId =
   | 'typing-speed'
   | 'symbol-match'
   | 'aim-test'
-  | 'word-memory';
+  | 'word-memory'
+  | 'time-sense';
 
 export type ScoreDirection = 'ascending' | 'descending';
 export type MobileSupport = 'ready' | 'limited' | 'desktop-only';
-export type GameTag = 'reflex' | 'memory' | 'precision' | 'typing' | 'speed' | 'focus' | 'mobile' | 'desktop' | 'challenge' | 'casual';
+export type GameTag =
+  | 'reflex'
+  | 'memory'
+  | 'precision'
+  | 'typing'
+  | 'speed'
+  | 'focus'
+  | 'mobile'
+  | 'desktop'
+  | 'challenge'
+  | 'casual'
+  | 'timing';
 
 export type ScoreStats = {
   accuracy?: number;
   averageReactionMs?: number;
   bestSimilarity?: number;
+  avgSimilarity?: number;
   worstSimilarity?: number;
   averageSimilarity?: number;
   finalSimilarity?: number;
   completedRound?: number;
+  perfectMatches?: number;
+  highPrecisionMatches?: number;
+  totalMatches?: number;
+  highestRound?: number;
   mistakes?: number;
   hits?: number;
   misses?: number;
@@ -34,6 +51,11 @@ export type ScoreStats = {
   durationSeconds?: number;
   rounds?: number;
   durationMs?: number;
+  bestAccuracy?: number;
+  avgAccuracy?: number;
+  perfectHits?: number;
+  avgDeviation?: number;
+  bestPerfectStreak?: number;
 };
 
 export type LeaderboardEntry = {
@@ -96,6 +118,7 @@ export type LocalProfile = {
     bestColorSimilarity?: LeaderboardEntry;
     bestSymbolMatch?: LeaderboardEntry;
     bestWordMemory?: LeaderboardEntry;
+    bestTimeSense?: LeaderboardEntry;
   };
 };
 
@@ -108,6 +131,7 @@ export type PlayerHighlights = {
   bestWordMemoryScore?: LeaderboardEntry;
   bestSymbolMatchMoves?: LeaderboardEntry;
   highestMemoryLevel?: LeaderboardEntry;
+  bestTimeSenseScore?: LeaderboardEntry;
 };
 
 export type PlayerAchievementSummary = {

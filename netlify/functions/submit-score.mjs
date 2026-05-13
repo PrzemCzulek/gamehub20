@@ -156,6 +156,10 @@ function mergeHighlights(currentHighlights, value) {
     highlights.highestMemoryLevel = createHighlight(value, completedRound);
   }
 
+  if (value.gameId === 'time-sense' && isBetterHighlight(value.score, highlights.bestTimeSenseScore, 'descending')) {
+    highlights.bestTimeSenseScore = createHighlight(value);
+  }
+
   return highlights;
 }
 

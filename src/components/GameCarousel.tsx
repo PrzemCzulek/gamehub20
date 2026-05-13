@@ -18,6 +18,7 @@ const gameVisuals: Record<GameId, string> = {
   'symbol-match': '★',
   'aim-test': '◎',
   'word-memory': 'Aa',
+  'time-sense': '◷',
 };
 
 const mobileSupportMeta: Record<MobileSupport, { label: string; className: string }> = {

@@ -77,6 +77,10 @@ export function getPlayerHighlights(scores: LeaderboardEntry[]): PlayerHighlight
       scores.filter((score) => score.gameId === 'memory-test'),
       'memory-test',
     )[0],
+    bestTimeSenseScore: sortScoresByMetric(
+      scores.filter((score) => score.gameId === 'time-sense'),
+      'time-sense',
+    )[0],
   };
 }
 
@@ -117,6 +121,7 @@ export function buildPlayerProfileSummary(profile: LocalProfile): PlayerProfileS
       bestWordMemoryScore: highlights.bestWordMemoryScore ?? profile.highlights.bestWordMemory,
       bestSymbolMatchMoves: highlights.bestSymbolMatchMoves ?? profile.highlights.bestSymbolMatch,
       highestMemoryLevel: highlights.highestMemoryLevel,
+      bestTimeSenseScore: highlights.bestTimeSenseScore ?? profile.highlights.bestTimeSense,
     },
   };
 }

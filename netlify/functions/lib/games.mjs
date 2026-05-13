@@ -16,8 +16,12 @@ export const games = {
     metrics: {
       score: { source: 'score', direction: 'descending' },
       bestSimilarity: { source: 'stats', statKey: 'bestSimilarity', direction: 'descending' },
+      avgSimilarity: { source: 'stats', statKey: 'avgSimilarity', direction: 'descending' },
       averageSimilarity: { source: 'stats', statKey: 'averageSimilarity', direction: 'descending' },
       finalSimilarity: { source: 'stats', statKey: 'finalSimilarity', direction: 'descending' },
+      perfectMatches: { source: 'stats', statKey: 'perfectMatches', direction: 'descending' },
+      highPrecisionMatches: { source: 'stats', statKey: 'highPrecisionMatches', direction: 'descending' },
+      highestRound: { source: 'stats', statKey: 'highestRound', direction: 'descending' },
     },
   },
   'typing-speed': {
@@ -54,6 +58,16 @@ export const games = {
       bestCombo: { source: 'stats', statKey: 'bestCombo', direction: 'descending' },
       mistakes: { source: 'stats', statKey: 'mistakes', direction: 'ascending' },
       rounds: { source: 'stats', statKey: 'rounds', direction: 'descending' },
+    },
+  },
+  'time-sense': {
+    scoreDirection: 'descending',
+    metrics: {
+      score: { source: 'score', direction: 'descending' },
+      bestAccuracy: { source: 'stats', statKey: 'bestAccuracy', direction: 'descending' },
+      perfectHits: { source: 'stats', statKey: 'perfectHits', direction: 'descending' },
+      avgDeviation: { source: 'stats', statKey: 'avgDeviation', direction: 'ascending' },
+      bestPerfectStreak: { source: 'stats', statKey: 'bestPerfectStreak', direction: 'descending' },
     },
   },
 };

@@ -162,6 +162,7 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
     },
     { label: 'Word score', value: summary.highlights.bestWordMemoryScore?.scoreLabel, accent: 'cyan' as const },
     { label: 'Memory level', value: summary.highlights.highestMemoryLevel?.scoreLabel, accent: 'teal' as const },
+    { label: 'Time sense', value: summary.highlights.bestTimeSenseScore?.scoreLabel, accent: 'violet' as const },
   ];
 
   useEffect(() => {

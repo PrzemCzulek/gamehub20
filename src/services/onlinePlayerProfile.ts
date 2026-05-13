@@ -29,6 +29,7 @@ export type OnlinePlayerProfile = {
     bestWordMemoryScore?: OnlineProfileHighlight;
     bestSymbolMatchMoves?: OnlineProfileHighlight;
     highestMemoryLevel?: OnlineProfileHighlight;
+    bestTimeSenseScore?: OnlineProfileHighlight;
   };
   updatedAt?: string;
 };

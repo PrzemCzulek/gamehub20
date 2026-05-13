@@ -14,6 +14,7 @@ import { ColorMemoryGame } from './games/ColorMemoryGame';
 import { MemoryTestGame } from './games/MemoryTestGame';
 import { ReactionTimeGame } from './games/ReactionTimeGame';
 import { SymbolMatchGame } from './games/SymbolMatchGame';
+import { TimeSenseGame } from './games/TimeSenseGame';
 import { TypingSpeedGame } from './games/TypingSpeedGame';
 import { WordMemoryGame } from './games/WordMemoryGame';
 import { createProgressionEvent } from './progression/events';
@@ -33,6 +34,7 @@ const categoryFilters: Array<{ id: GameTag | 'hardcore'; label: string; tags: Ga
   { id: 'memory', label: 'Memory', tags: ['memory'] },
   { id: 'precision', label: 'Precision', tags: ['precision'] },
   { id: 'typing', label: 'Typing', tags: ['typing'] },
+  { id: 'timing', label: 'Timing', tags: ['timing'] },
   { id: 'mobile', label: 'Mobile', tags: ['mobile'] },
   { id: 'casual', label: 'Casual', tags: ['casual'] },
   { id: 'hardcore', label: 'Hardcore', tags: ['challenge', 'desktop'] },
@@ -54,6 +56,8 @@ function renderGame(gameId: GameId, onScore: (score: ScoreInput) => void) {
       return <AimTestGame onScore={onScore} />;
     case 'word-memory':
       return <WordMemoryGame onScore={onScore} />;
+    case 'time-sense':
+      return <TimeSenseGame onScore={onScore} />;
   }
 }
 

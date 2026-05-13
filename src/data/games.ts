@@ -31,9 +31,8 @@ export const games: GameConfig[] = [
     tags: ['memory', 'precision', 'focus', 'mobile'],
     metrics: [
       { id: 'score', label: 'Runda', direction: 'descending', source: 'score', suffix: 'runda' },
-      { id: 'bestSimilarity', label: 'Best match', direction: 'descending', source: 'stats', statKey: 'bestSimilarity', valueType: 'percent' },
-      { id: 'averageSimilarity', label: 'Średnia', direction: 'descending', source: 'stats', statKey: 'averageSimilarity', valueType: 'percent' },
-      { id: 'finalSimilarity', label: 'Ostatnia', direction: 'descending', source: 'stats', statKey: 'finalSimilarity', valueType: 'percent' },
+      { id: 'bestSimilarity', label: '%', direction: 'descending', source: 'stats', statKey: 'bestSimilarity', valueType: 'percent' },
+      { id: 'perfectMatches', label: 'Perfect', direction: 'descending', source: 'stats', statKey: 'perfectMatches' },
     ],
   },
   {
@@ -97,6 +96,22 @@ export const games: GameConfig[] = [
       { id: 'bestCombo', label: 'Combo', direction: 'descending', source: 'stats', statKey: 'bestCombo' },
       { id: 'mistakes', label: 'Błędy', direction: 'ascending', source: 'stats', statKey: 'mistakes' },
       { id: 'rounds', label: 'Rundy', direction: 'descending', source: 'stats', statKey: 'rounds' },
+    ],
+  },
+  {
+    id: 'time-sense',
+    title: 'Time Sense Test',
+    description: 'Hidden timer.',
+    scoreDirection: 'descending',
+    scoreName: 'punkty',
+    mobileSupport: 'ready',
+    tags: ['focus', 'timing', 'precision', 'casual'],
+    metrics: [
+      { id: 'score', label: 'Punkty', direction: 'descending', source: 'score', suffix: 'pkt' },
+      { id: 'bestAccuracy', label: 'Best %', direction: 'descending', source: 'stats', statKey: 'bestAccuracy', valueType: 'percent' },
+      { id: 'perfectHits', label: 'Perfect', direction: 'descending', source: 'stats', statKey: 'perfectHits' },
+      { id: 'avgDeviation', label: 'Avg diff', direction: 'ascending', source: 'stats', statKey: 'avgDeviation', suffix: 's' },
+      { id: 'bestPerfectStreak', label: 'Streak', direction: 'descending', source: 'stats', statKey: 'bestPerfectStreak' },
     ],
   },
 ];

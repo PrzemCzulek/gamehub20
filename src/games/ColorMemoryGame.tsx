@@ -28,6 +28,10 @@ type ColorSummary = {
   attempts: number;
   passedRounds: number;
   failedRounds: number;
+  perfectMatches: number;
+  highPrecisionMatches: number;
+  totalMatches: number;
+  highestRound: number;
   bestMatch: RoundHistoryEntry | null;
 };
 
@@ -59,20 +63,29 @@ function createSummary(history: RoundHistoryEntry[]): ColorSummary {
   const similarities = history.map((entry) => entry.similarity);
   const passedRounds = history.filter((entry) => entry.passed).length;
   const failedRounds = attempts - passedRounds;
+  const perfectMatches = history.filter((entry) => entry.similarity >= 95).length;
+  const highPrecisionMatches = history.filter((entry) => entry.similarity >= 90).length;
   const bestMatch = history.reduce<RoundHistoryEntry | null>(
     (best, entry) => (!best || entry.similarity > best.similarity ? entry : best),
     null,
   );
+  const averageSimilarity =
+    attempts > 0
+      ? Math.round((similarities.reduce((total, value) => total + value, 0) / attempts) * 100) / 100
+      : 0;
 
   return {
     completedRound: passedRounds,
-    averageSimilarity:
-      attempts > 0 ? Math.round(similarities.reduce((total, value) => total + value, 0) / attempts) : 0,
+    averageSimilarity,
     bestSimilarity: attempts > 0 ? Math.max(...similarities) : 0,
     worstSimilarity: attempts > 0 ? Math.min(...similarities) : 0,
     attempts,
     passedRounds,
     failedRounds,
+    perfectMatches,
+    highPrecisionMatches,
+    totalMatches: attempts,
+    highestRound: passedRounds,
     bestMatch,
   };
 }
@@ -174,6 +187,19 @@ export function ColorMemoryGame({ onScore }: ColorMemoryGameProps) {
     }
 
     const nextSummary = createSummary(nextHistory);
+    const finalSimilarity = historyEntry.similarity;
+    const colorStats = {
+      completedRound: nextSummary.completedRound,
+      highestRound: nextSummary.highestRound,
+      averageSimilarity: nextSummary.averageSimilarity,
+      avgSimilarity: nextSummary.averageSimilarity,
+      bestSimilarity: nextSummary.bestSimilarity,
+      worstSimilarity: nextSummary.worstSimilarity,
+      finalSimilarity,
+      perfectMatches: nextSummary.perfectMatches,
+      highPrecisionMatches: nextSummary.highPrecisionMatches,
+      totalMatches: nextSummary.totalMatches,
+    };
 
     setSummary(nextSummary);
     setStage('failed');
@@ -181,11 +207,9 @@ export function ColorMemoryGame({ onScore }: ColorMemoryGameProps) {
       gameId: 'color-memory',
       score: nextSummary.completedRound,
       scoreLabel: `Runda ${nextSummary.completedRound}`,
+      stats: colorStats,
       meta: {
-        completedRound: nextSummary.completedRound,
-        averageSimilarity: nextSummary.averageSimilarity,
-        bestSimilarity: nextSummary.bestSimilarity,
-        worstSimilarity: nextSummary.worstSimilarity,
+        ...colorStats,
         attempts: nextSummary.attempts,
         passedRounds: nextSummary.passedRounds,
         failedRounds: nextSummary.failedRounds,
@@ -300,10 +324,17 @@ export function ColorMemoryGame({ onScore }: ColorMemoryGameProps) {
 
       {lastSimilarity !== null && (
         <div className={`feedback-toast rounded-lg border p-4 text-sm transition duration-200 ${getSimilarityFeedbackClass(lastSimilarity)}`}>
-          <p className="text-base font-bold">
-            Podobieństwo: <strong className="text-white">{formatPercent(lastSimilarity)}</strong>, wymagane:{' '}
-            <strong className="text-white">{formatPercent(lastRequired)}</strong>
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-base font-bold">
+              Match <strong className="text-white">{formatPercent(lastSimilarity)}</strong> / próg{' '}
+              <strong className="text-white">{formatPercent(lastRequired)}</strong>
+            </p>
+            {lastSimilarity >= 95 && (
+              <span className="rounded-full border border-yellow-200/45 bg-yellow-200/15 px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.18em] text-yellow-100 shadow-[0_0_18px_rgba(250,204,21,0.22)]">
+                Perfect
+              </span>
+            )}
+          </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div className="rounded-md bg-black/20 p-3">
               <span className="text-slate-400">Kolor docelowy</span>
@@ -342,8 +373,8 @@ export function ColorMemoryGame({ onScore }: ColorMemoryGameProps) {
               <strong className="mt-1 block text-white">{summary.passedRounds}</strong>
             </div>
             <div className="rounded-md bg-black/20 p-3">
-              <span className="text-slate-400">Nieudane próby</span>
-              <strong className="mt-1 block text-white">{summary.failedRounds}</strong>
+              <span className="text-slate-400">Perfect / 90%+</span>
+              <strong className="mt-1 block text-white">{summary.perfectMatches} / {summary.highPrecisionMatches}</strong>
             </div>
           </div>
 

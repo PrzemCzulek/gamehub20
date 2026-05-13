@@ -171,6 +171,17 @@ function deriveStats(entry: Pick<LeaderboardEntry, 'gameId' | 'score' | 'meta' |
         mistakes: baseStats.mistakes ?? readMetaNumber(meta, 'mistakes'),
         rounds: baseStats.rounds ?? readMetaNumber(meta, 'rounds'),
       };
+    case 'time-sense':
+      return {
+        ...baseStats,
+        accuracy: baseStats.accuracy ?? readMetaNumber(meta, 'avgAccuracy'),
+        avgAccuracy: baseStats.avgAccuracy ?? readMetaNumber(meta, 'avgAccuracy'),
+        bestAccuracy: baseStats.bestAccuracy ?? readMetaNumber(meta, 'bestAccuracy'),
+        perfectHits: baseStats.perfectHits ?? readMetaNumber(meta, 'perfectHits'),
+        avgDeviation: baseStats.avgDeviation ?? readMetaNumber(meta, 'avgDeviation'),
+        bestPerfectStreak: baseStats.bestPerfectStreak ?? readMetaNumber(meta, 'bestPerfectStreak'),
+        rounds: baseStats.rounds ?? readMetaNumber(meta, 'rounds'),
+      };
   }
 }
 
