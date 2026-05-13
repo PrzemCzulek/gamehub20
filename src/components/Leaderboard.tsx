@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { getGameConfig } from '../data/games';
+import { readStoredTimeSenseDuration, storeTimeSenseDuration, timeSenseDurationChangedEvent, timeSenseDurationOptions } from '../data/timeSenseDurations';
 import { readStoredTypingDuration, storeTypingDuration, typingDurationOptions } from '../data/typingDurations';
 import { buildPlayerProfileSummary, emptyValueLabel } from '../progression/playerProfile';
 import { playNormalClickSound } from '../services/audio';
@@ -13,6 +14,13 @@ import { formatPercent } from '../utils/format';
 type LeaderboardProps = {
   gameId: GameId;
   entries: LeaderboardEntry[];
+};
+
+const timeSenseMetricLabels: Record<string, string> = {
+  score: 'Wynik',
+  accuracy: 'Dokładność',
+  deviationMs: 'Różnica',
+  isPerfect: 'Perfect',
 };
 
 type LeaderboardSource = 'local' | 'online';
@@ -40,22 +48,26 @@ function getRankTextClass(index: number): string {
   return 'text-teal-200';
 }
 
-function getTypingEntryDuration(entry: LeaderboardEntry): number | undefined {
+function getEntryDuration(entry: LeaderboardEntry): number | undefined {
   return (
     entry.stats?.selectedDuration ??
     entry.stats?.durationSeconds ??
+    (entry.stats?.targetMs !== undefined ? Math.round(entry.stats.targetMs / 1000) : undefined) ??
     (entry.stats?.durationMs !== undefined ? Math.round(entry.stats.durationMs / 1000) : undefined) ??
     (entry.runDurationMs !== undefined ? Math.round(entry.runDurationMs / 1000) : undefined)
   );
 }
 
-function formatDuration(seconds?: number): string | undefined {
+function formatDuration(seconds?: number, gameId?: GameId): string | undefined {
   if (!seconds) return undefined;
-  return typingDurationOptions.find((option) => option.value === seconds)?.label ?? `${seconds}s`;
+  const options = gameId === 'time-sense' ? timeSenseDurationOptions : typingDurationOptions;
+  return options.find((option) => option.value === seconds)?.label ?? `${seconds}s`;
 }
 
 function getMetricLabel(gameId: GameId, metric: LeaderboardMetric): string {
-  return gameId === 'typing-speed' ? typingMetricLabels[metric.id] ?? metric.label : metric.label;
+  if (gameId === 'typing-speed') return typingMetricLabels[metric.id] ?? metric.label;
+  if (gameId === 'time-sense') return timeSenseMetricLabels[metric.id] ?? metric.label;
+  return metric.label;
 }
 
 function getGameTitle(gameId?: GameId): string {
@@ -68,7 +80,13 @@ function getSecondaryInfo(entry: LeaderboardEntry, gameId: GameId, localAttempts
 
   if (gameId === 'typing-speed') {
     if (stats.accuracy !== undefined) info.push(`Celność ${formatPercent(stats.accuracy)}`);
-    const duration = formatDuration(getTypingEntryDuration(entry));
+    const duration = formatDuration(getEntryDuration(entry), gameId);
+    if (duration) info.push(duration);
+  }
+
+  if (gameId === 'time-sense') {
+    if (stats.deviationMs !== undefined) info.push(`Diff ${(stats.deviationMs / 1000).toFixed(2)}s`);
+    const duration = formatDuration(getEntryDuration(entry), gameId);
     if (duration) info.push(duration);
   }
 
@@ -99,6 +117,8 @@ function formatMetricValue(entry: LeaderboardEntry, metric: LeaderboardMetric): 
   const value = metric.source === 'score' ? entry.score : metric.statKey ? entry.stats?.[metric.statKey] : undefined;
 
   if (value === undefined) return '-';
+  if (metric.id === 'isPerfect') return Number(value) > 0 ? 'Perfect' : '-';
+  if (typeof value !== 'number') return String(value);
   if (metric.valueType === 'percent') return formatPercent(value);
   if (metric.valueType === 'ms') return `${Math.round(value)} ms`;
   return `${value}${metric.suffix ? ` ${metric.suffix}` : ''}`;
@@ -289,6 +309,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   const [metricId, setMetricId] = useState('score');
   const [source, setSource] = useState<LeaderboardSource>('online');
   const [typingDuration, setTypingDuration] = useState(readStoredTypingDuration);
+  const [timeSenseDuration, setTimeSenseDuration] = useState(readStoredTimeSenseDuration);
   const [onlineEntries, setOnlineEntries] = useState<LeaderboardEntry[]>([]);
   const [onlineError, setOnlineError] = useState<string | null>(null);
   const [onlineLoading, setOnlineLoading] = useState(false);
@@ -301,11 +322,15 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   const currentPlayerName = getPlayerName();
   const profileSummary = useMemo(() => buildPlayerProfileSummary(getProfile()), [entries.length]);
   const isTypingSpeed = gameId === 'typing-speed';
+  const isTimeSense = gameId === 'time-sense';
+  const hasDurationFilter = isTypingSpeed || isTimeSense;
+  const activeDuration = isTimeSense ? timeSenseDuration : typingDuration;
+  const durationOptions = isTimeSense ? timeSenseDurationOptions : typingDurationOptions;
   const activeMetric = game.metrics.find((metric) => metric.id === metricId) ?? game.metrics[0];
   const limit = 10;
   const filteredEntries = useMemo(
-    () => (isTypingSpeed ? entries.filter((entry) => getTypingEntryDuration(entry) === typingDuration) : entries),
-    [entries, isTypingSpeed, typingDuration],
+    () => (hasDurationFilter ? entries.filter((entry) => getEntryDuration(entry) === activeDuration) : entries),
+    [activeDuration, entries, hasDurationFilter],
   );
   const localAttemptsByPlayer = useMemo(() => {
     return filteredEntries.reduce<Record<string, number>>((acc, entry) => {
@@ -337,13 +362,28 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   }, [gameId]);
 
   useEffect(() => {
+    if (!isTimeSense) return;
+
+    function handleTimeSenseDurationChange() {
+      setTimeSenseDuration(readStoredTimeSenseDuration());
+      setActiveProfileKey(null);
+    }
+
+    window.addEventListener(timeSenseDurationChangedEvent, handleTimeSenseDurationChange);
+
+    return () => {
+      window.removeEventListener(timeSenseDurationChangedEvent, handleTimeSenseDurationChange);
+    };
+  }, [isTimeSense]);
+
+  useEffect(() => {
     if (source !== 'online') return;
 
     let ignore = false;
     setOnlineLoading(true);
     setOnlineError(null);
 
-    getOnlineLeaderboard(gameId, activeMetric.id, limit, isTypingSpeed ? typingDuration : undefined)
+    getOnlineLeaderboard(gameId, activeMetric.id, limit, hasDurationFilter ? activeDuration : undefined)
       .then((results) => {
         if (!ignore) setOnlineEntries(results);
       })
@@ -360,7 +400,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
     return () => {
       ignore = true;
     };
-  }, [activeMetric.id, entries.length, gameId, isTypingSpeed, source, typingDuration]);
+  }, [activeDuration, activeMetric.id, entries.length, gameId, hasDurationFilter, source]);
 
   useEffect(() => {
     const activeEntry = selectedEntryData?.entry;
@@ -401,10 +441,15 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
     };
   }, []);
 
-  function handleTypingDurationChange(duration: number) {
+  function handleDurationChange(duration: number) {
     playNormalClickSound();
-    storeTypingDuration(duration);
-    setTypingDuration(duration);
+    if (isTimeSense) {
+      storeTimeSenseDuration(duration);
+      setTimeSenseDuration(duration);
+    } else {
+      storeTypingDuration(duration);
+      setTypingDuration(duration);
+    }
     setActiveProfileKey(null);
   }
 
@@ -460,20 +505,20 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
         </div>
       </div>
 
-      {isTypingSpeed && (
+      {hasDurationFilter && (
         <div className="mt-4">
-          <p className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-slate-400">Czas testu</p>
+          <p className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-slate-400">{isTimeSense ? 'Target' : 'Czas testu'}</p>
           <div className="mt-2 flex flex-wrap gap-1 rounded-lg border border-white/10 bg-black/25 p-1">
-            {typingDurationOptions.map((duration) => (
+            {durationOptions.map((duration) => (
               <button
-                aria-pressed={typingDuration === duration.value}
+                aria-pressed={activeDuration === duration.value}
                 className={`min-w-14 flex-1 rounded-md px-2 py-2 text-xs font-black transition duration-200 hover:scale-[1.02] ${
-                  typingDuration === duration.value
+                  activeDuration === duration.value
                     ? 'bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.22)]'
                     : 'text-slate-300 hover:bg-white/10 hover:text-white'
                 }`}
                 key={duration.value}
-                onClick={() => handleTypingDurationChange(duration.value)}
+                onClick={() => handleDurationChange(duration.value)}
                 type="button"
               >
                 {duration.label}

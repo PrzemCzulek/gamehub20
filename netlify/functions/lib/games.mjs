@@ -64,10 +64,9 @@ export const games = {
     scoreDirection: 'descending',
     metrics: {
       score: { source: 'score', direction: 'descending' },
-      bestAccuracy: { source: 'stats', statKey: 'bestAccuracy', direction: 'descending' },
-      perfectHits: { source: 'stats', statKey: 'perfectHits', direction: 'descending' },
-      avgDeviation: { source: 'stats', statKey: 'avgDeviation', direction: 'ascending' },
-      bestPerfectStreak: { source: 'stats', statKey: 'bestPerfectStreak', direction: 'descending' },
+      accuracy: { source: 'stats', statKey: 'accuracy', direction: 'descending' },
+      deviationMs: { source: 'stats', statKey: 'deviationMs', direction: 'ascending' },
+      isPerfect: { source: 'stats', statKey: 'isPerfect', direction: 'descending' },
     },
   },
 };

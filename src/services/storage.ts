@@ -172,16 +172,29 @@ function deriveStats(entry: Pick<LeaderboardEntry, 'gameId' | 'score' | 'meta' |
         rounds: baseStats.rounds ?? readMetaNumber(meta, 'rounds'),
       };
     case 'time-sense':
+      {
+        const durationSeconds =
+          baseStats.durationSeconds ??
+          readMetaNumber(meta, 'durationSeconds') ??
+          readMetaNumber(meta, 'targetSeconds') ??
+          (baseStats.targetMs !== undefined ? Math.round(baseStats.targetMs / 1000) : undefined) ??
+          (readMetaNumber(meta, 'targetMs') !== undefined ? Math.round((readMetaNumber(meta, 'targetMs') ?? 0) / 1000) : undefined);
+        const targetMs = baseStats.targetMs ?? readMetaNumber(meta, 'targetMs') ?? (durationSeconds !== undefined ? durationSeconds * 1000 : undefined);
+        const actualMs = baseStats.actualMs ?? readMetaNumber(meta, 'actualMs');
+        const signedDeviationMs = baseStats.signedDeviationMs ?? readMetaNumber(meta, 'signedDeviationMs');
+        const deviationMs = baseStats.deviationMs ?? readMetaNumber(meta, 'deviationMs') ?? (signedDeviationMs !== undefined ? Math.abs(signedDeviationMs) : undefined);
+
       return {
         ...baseStats,
-        accuracy: baseStats.accuracy ?? readMetaNumber(meta, 'avgAccuracy'),
-        avgAccuracy: baseStats.avgAccuracy ?? readMetaNumber(meta, 'avgAccuracy'),
-        bestAccuracy: baseStats.bestAccuracy ?? readMetaNumber(meta, 'bestAccuracy'),
-        perfectHits: baseStats.perfectHits ?? readMetaNumber(meta, 'perfectHits'),
-        avgDeviation: baseStats.avgDeviation ?? readMetaNumber(meta, 'avgDeviation'),
-        bestPerfectStreak: baseStats.bestPerfectStreak ?? readMetaNumber(meta, 'bestPerfectStreak'),
-        rounds: baseStats.rounds ?? readMetaNumber(meta, 'rounds'),
+        accuracy: baseStats.accuracy ?? readMetaNumber(meta, 'accuracy') ?? readMetaNumber(meta, 'avgAccuracy'),
+        durationSeconds,
+        targetMs,
+        actualMs,
+        deviationMs,
+        signedDeviationMs,
+        isPerfect: baseStats.isPerfect ?? readMetaNumber(meta, 'isPerfect') ?? (deviationMs !== undefined && deviationMs <= 100 ? 1 : undefined),
       };
+      }
   }
 }
 
@@ -299,6 +312,10 @@ export function sortScoresByMetric(scores: LeaderboardEntry[], gameId: GameId, m
 
     if (bValue === undefined) {
       return -1;
+    }
+
+    if (typeof aValue !== 'number' || typeof bValue !== 'number') {
+      return String(aValue).localeCompare(String(bValue));
     }
 
     const scoreCompare = metric.direction === 'ascending' ? aValue - bValue : bValue - aValue;

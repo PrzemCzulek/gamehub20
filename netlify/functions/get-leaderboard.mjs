@@ -12,9 +12,11 @@ function readLimit(value) {
   return Math.min(Math.max(parsed, 1), 50);
 }
 
-function readDurationSeconds(value) {
-  const parsed = Number.parseInt(value ?? '30', 10);
-  return [15, 30, 60, 90].includes(parsed) ? parsed : 30;
+function readDurationSeconds(value, gameId) {
+  const fallback = gameId === 'time-sense' ? 10 : 30;
+  const allowed = gameId === 'time-sense' ? [10, 20, 30, 60] : [15, 30, 60, 90];
+  const parsed = Number.parseInt(value ?? String(fallback), 10);
+  return allowed.includes(parsed) ? parsed : fallback;
 }
 
 function getMetricExpression(metric) {
@@ -46,8 +48,9 @@ export async function handler(event) {
 
     const metric = getMetric(gameId, params.metric ?? 'score');
     const limit = readLimit(params.limit);
-    const durationSeconds = gameId === 'typing-speed' ? readDurationSeconds(params.durationSeconds) : undefined;
-    const leaderboardScope = gameId === 'typing-speed' ? `duration:${durationSeconds}` : 'default';
+    const usesDurationScope = gameId === 'typing-speed' || gameId === 'time-sense';
+    const durationSeconds = usesDurationScope ? readDurationSeconds(params.durationSeconds, gameId) : undefined;
+    const leaderboardScope = usesDurationScope ? `duration:${durationSeconds}` : 'default';
     const metricExpression = getMetricExpression(metric);
     const direction = metric?.direction === 'ascending' ? 'ASC' : 'DESC';
     const query = `

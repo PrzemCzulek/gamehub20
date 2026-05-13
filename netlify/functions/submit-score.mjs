@@ -18,7 +18,7 @@ function readNumber(value) {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
-function getTypingDurationSeconds(stats) {
+function getDurationSeconds(stats) {
   return readNumber(stats?.selectedDuration) ?? readNumber(stats?.durationSeconds);
 }
 
@@ -74,15 +74,16 @@ function isBetterScore(game, nextScore, currentScore) {
 }
 
 function getLeaderboardScope(value) {
-  if (value.gameId !== 'typing-speed') {
+  if (value.gameId !== 'typing-speed' && value.gameId !== 'time-sense') {
     return 'default';
   }
 
-  const durationSeconds = getTypingDurationSeconds(value.stats);
+  const durationSeconds = getDurationSeconds(value.stats);
 
   if (!durationSeconds) {
-    console.warn('Typing Speed score missing durationSeconds/selectedDuration; falling back to 30s scope');
-    return 'duration:30';
+    const fallbackDuration = value.gameId === 'time-sense' ? 10 : 30;
+    console.warn(`${value.gameId} score missing durationSeconds/selectedDuration; falling back to ${fallbackDuration}s scope`);
+    return `duration:${fallbackDuration}`;
   }
 
   return `duration:${durationSeconds}`;

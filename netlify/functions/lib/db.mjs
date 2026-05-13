@@ -64,7 +64,23 @@ export async function initializeDatabase() {
           WHERE game_id = 'typing-speed'
         `),
       )
-      .then(() => sql.query("UPDATE scores SET leaderboard_scope = 'default' WHERE game_id <> 'typing-speed' OR leaderboard_scope IS NULL"))
+      .then(() =>
+        sql.query(`
+          UPDATE scores
+          SET leaderboard_scope = CONCAT(
+            'duration:',
+            COALESCE(
+              stats ->> 'durationSeconds',
+              CASE
+                WHEN stats ? 'targetMs' THEN CAST(ROUND(((stats ->> 'targetMs')::numeric / 1000)) AS TEXT)
+                ELSE '10'
+              END
+            )
+          )
+          WHERE game_id = 'time-sense'
+        `),
+      )
+      .then(() => sql.query("UPDATE scores SET leaderboard_scope = 'default' WHERE game_id NOT IN ('typing-speed', 'time-sense') OR leaderboard_scope IS NULL"))
       .then(() => sql.query('DROP INDEX IF EXISTS scores_player_game_unique_idx'))
       .then(() =>
         sql.query(

@@ -108,10 +108,9 @@ export const games: GameConfig[] = [
     tags: ['focus', 'timing', 'precision', 'casual'],
     metrics: [
       { id: 'score', label: 'Punkty', direction: 'descending', source: 'score', suffix: 'pkt' },
-      { id: 'bestAccuracy', label: 'Best %', direction: 'descending', source: 'stats', statKey: 'bestAccuracy', valueType: 'percent' },
-      { id: 'perfectHits', label: 'Perfect', direction: 'descending', source: 'stats', statKey: 'perfectHits' },
-      { id: 'avgDeviation', label: 'Avg diff', direction: 'ascending', source: 'stats', statKey: 'avgDeviation', suffix: 's' },
-      { id: 'bestPerfectStreak', label: 'Streak', direction: 'descending', source: 'stats', statKey: 'bestPerfectStreak' },
+      { id: 'accuracy', label: 'Dokładność', direction: 'descending', source: 'stats', statKey: 'accuracy', valueType: 'percent' },
+      { id: 'deviationMs', label: 'Różnica', direction: 'ascending', source: 'stats', statKey: 'deviationMs', valueType: 'ms' },
+      { id: 'isPerfect', label: 'Perfect', direction: 'descending', source: 'stats', statKey: 'isPerfect' },
     ],
   },
 ];

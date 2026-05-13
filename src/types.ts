@@ -53,9 +53,12 @@ export type ScoreStats = {
   durationMs?: number;
   bestAccuracy?: number;
   avgAccuracy?: number;
-  perfectHits?: number;
-  avgDeviation?: number;
-  bestPerfectStreak?: number;
+  targetMs?: number;
+  actualMs?: number;
+  deviationMs?: number;
+  signedDeviationMs?: number;
+  rating?: number | string;
+  isPerfect?: number;
 };
 
 export type LeaderboardEntry = {
