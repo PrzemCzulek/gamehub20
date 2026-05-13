@@ -260,6 +260,38 @@ input:focus-visible {
   animation: memoryTileError 360ms ease-out both;
 }
 
+.word-card-enter {
+  animation: wordCardEnter 220ms ease-out both;
+}
+
+.word-card-error {
+  animation: memoryTileError 360ms ease-out both;
+}
+
+.aim-arena {
+  background-image:
+    radial-gradient(circle at 50% 45%, rgba(34, 211, 238, 0.13), transparent 34%),
+    linear-gradient(rgba(148, 163, 184, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.055) 1px, transparent 1px);
+  background-size: auto, 38px 38px, 38px 38px;
+}
+
+.aim-arena::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at center, transparent 42%, rgba(2, 6, 23, 0.42));
+}
+
+.aim-target {
+  animation: aimTargetSpawn 180ms ease-out both, aimTargetPulse 1050ms ease-in-out infinite 180ms;
+}
+
+.aim-feedback {
+  animation: aimFeedbackFloat 520ms ease-out both;
+}
+
 @keyframes colorMemoryPulse {
   0%,
   100% {
@@ -307,6 +339,57 @@ input:focus-visible {
 
   80% {
     transform: translateX(3px);
+  }
+}
+
+@keyframes wordCardEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes aimTargetSpawn {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.72);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes aimTargetPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 24px rgba(34, 211, 238, 0.28);
+  }
+
+  50% {
+    box-shadow: 0 0 38px rgba(34, 211, 238, 0.46);
+  }
+}
+
+@keyframes aimFeedbackFloat {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -35%) scale(0.92);
+  }
+
+  18% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -92%) scale(1.04);
   }
 }
 

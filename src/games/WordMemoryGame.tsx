@@ -1,9 +1,17 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { GameStartOverlay } from '../components/game/GameStartOverlay';
 import { playNormalClickSound } from '../services/audio';
 import type { ScoreInput } from '../types';
 
 type WordMemoryGameProps = {
   onScore: (score: ScoreInput) => void;
+};
+
+type AnswerFeedback = {
+  correct: boolean;
+  text: string;
+  detail: string;
+  combo: number;
 };
 
 const wordPool = [
@@ -46,6 +54,11 @@ function pickNextWord(seenWords: string[]): string {
   return pickRandom(unusedWords);
 }
 
+function isTypingTarget(event: KeyboardEvent): boolean {
+  const target = event.target as HTMLElement | null;
+  return Boolean(target?.closest('input, textarea, select, [contenteditable="true"]'));
+}
+
 export function WordMemoryGame({ onScore }: WordMemoryGameProps) {
   const [currentWord, setCurrentWord] = useState<string | null>(null);
   const [seenWords, setSeenWords] = useState<string[]>([]);
@@ -55,9 +68,24 @@ export function WordMemoryGame({ onScore }: WordMemoryGameProps) {
   const [combo, setCombo] = useState(0);
   const [bestCombo, setBestCombo] = useState(0);
   const [finished, setFinished] = useState(false);
+  const [feedback, setFeedback] = useState<AnswerFeedback | null>(null);
+  const [wordAnimationKey, setWordAnimationKey] = useState(0);
   const answerLockedRef = useRef(false);
+  const feedbackTimerRef = useRef<number | null>(null);
+
+  function clearFeedbackTimer() {
+    if (feedbackTimerRef.current) {
+      window.clearTimeout(feedbackTimerRef.current);
+      feedbackTimerRef.current = null;
+    }
+  }
+
+  useEffect(() => {
+    return clearFeedbackTimer;
+  }, []);
 
   function start() {
+    clearFeedbackTimer();
     const firstWord = pickRandom(wordPool);
     setCurrentWord(firstWord);
     setSeenWords([]);
@@ -67,6 +95,8 @@ export function WordMemoryGame({ onScore }: WordMemoryGameProps) {
     setCombo(0);
     setBestCombo(0);
     setFinished(false);
+    setFeedback(null);
+    setWordAnimationKey((value) => value + 1);
     answerLockedRef.current = false;
   }
 
@@ -91,6 +121,7 @@ export function WordMemoryGame({ onScore }: WordMemoryGameProps) {
       return;
     }
 
+    clearFeedbackTimer();
     answerLockedRef.current = true;
     const wordWasSeen = seenWords.includes(currentWord);
     const correct = answerWasSeen === wordWasSeen;
@@ -111,6 +142,12 @@ export function WordMemoryGame({ onScore }: WordMemoryGameProps) {
       nextScore = Math.max(0, nextScore - 50);
     }
 
+    setFeedback({
+      correct,
+      text: correct ? 'Dobrze!' : 'Błąd',
+      detail: wordWasSeen ? 'To słowo już było' : 'To było nowe',
+      combo: nextCombo,
+    });
     setSeenWords(nextSeenWords);
     setRounds(nextRounds);
     setMistakes(nextMistakes);
@@ -119,76 +156,175 @@ export function WordMemoryGame({ onScore }: WordMemoryGameProps) {
     setScore(nextScore);
 
     if (nextMistakes >= maxMistakes || nextRounds >= maxRounds) {
-      finish(nextScore, nextRounds, nextMistakes, nextBestCombo);
+      feedbackTimerRef.current = window.setTimeout(() => {
+        finish(nextScore, nextRounds, nextMistakes, nextBestCombo);
+      }, 420);
       return;
     }
 
-    setCurrentWord(pickNextWord(nextSeenWords));
-    window.setTimeout(() => {
+    feedbackTimerRef.current = window.setTimeout(() => {
+      setCurrentWord(pickNextWord(nextSeenWords));
+      setWordAnimationKey((value) => value + 1);
+      setFeedback(null);
       answerLockedRef.current = false;
-    }, 80);
+      feedbackTimerRef.current = null;
+    }, 420);
   }
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (isTypingTarget(event) || !currentWord || finished) {
+        return;
+      }
+
+      if (event.key.toLowerCase() === 'n' || event.key === 'ArrowLeft') {
+        event.preventDefault();
+        playNormalClickSound();
+        answer(false);
+      }
+
+      if (event.key.toLowerCase() === 'b' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        playNormalClickSound();
+        answer(true);
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [currentWord, finished, seenWords, rounds, mistakes, score, combo, bestCombo]);
+
+  const started = Boolean(currentWord) || rounds > 0 || finished;
+  const canAnswer = Boolean(currentWord) && !finished && !answerLockedRef.current;
+  const progressPercent = Math.min(100, Math.round((rounds / maxRounds) * 100));
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="grid grid-cols-2 gap-3 text-sm sm:flex">
+        <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
           <span className="rounded-md bg-black/20 px-3 py-2 text-slate-300">
-            Runda: {rounds}/{maxRounds}
+            Runda: <strong className="text-white">{rounds}/{maxRounds}</strong>
           </span>
           <span className="rounded-md bg-black/20 px-3 py-2 text-slate-300">
-            Błędy: {mistakes}/{maxMistakes}
+            Błędy: <strong className="text-white">{mistakes}/{maxMistakes}</strong>
           </span>
           <span className={`rounded-md bg-black/20 px-3 py-2 text-slate-300 transition ${combo > 0 ? 'combo-pulse text-cyan-100' : ''}`}>
-            Combo: {combo}
+            Combo: <strong className="text-white">{combo}</strong>
           </span>
-          <span className="rounded-md bg-black/20 px-3 py-2 text-slate-300">Punkty: {score}</span>
+          <span className="rounded-md bg-black/20 px-3 py-2 text-slate-300">
+            Punkty: <strong className="text-white">{score}</strong>
+          </span>
         </div>
-        <button
-          className="rounded-lg bg-teal-300 px-5 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-teal-950/40 transition hover:scale-105 hover:bg-teal-200"
-          onClick={() => {
-            playNormalClickSound();
-            start();
-          }}
-          type="button"
-        >
-          Start
-        </button>
+        {started && (
+          <button
+            className="rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-white transition hover:scale-105 hover:bg-white/10"
+            onClick={() => {
+              playNormalClickSound();
+              start();
+            }}
+            type="button"
+          >
+            Zagraj ponownie
+          </button>
+        )}
       </div>
 
-      <div className="rounded-lg border border-white/10 bg-black/20 p-8 text-center">
-        <p className="text-sm uppercase tracking-wide text-slate-400">
-          {currentWord ? 'Czy to słowo już było?' : finished ? 'Gra zakończona' : 'Kliknij Start, aby rozpocząć'}
-        </p>
-        <strong className="mt-3 block text-4xl text-white">{currentWord ?? 'Start'}</strong>
+      <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+        <div className="h-full rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.45)] transition-all duration-200" style={{ width: `${progressPercent}%` }} />
+      </div>
+
+      <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black/20 p-5 text-center sm:p-8">
+        <div className={`transition duration-200 ${!started ? 'opacity-45 blur-[1px]' : ''}`}>
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-cyan-200">
+            {currentWord ? 'Czy to słowo już było?' : finished ? 'Gra zakończona' : 'Word Memory'}
+          </p>
+
+          {currentWord ? (
+            <strong
+              className={`word-card-enter mt-5 block rounded-2xl border px-5 py-8 text-5xl font-black uppercase tracking-wide text-white shadow-[0_0_35px_rgba(34,211,238,0.08)] sm:text-6xl ${
+                feedback
+                  ? feedback.correct
+                    ? 'border-emerald-300/35 bg-emerald-300/[0.08]'
+                    : 'word-card-error border-red-300/35 bg-red-400/[0.10]'
+                  : 'border-cyan-300/18 bg-white/[0.045]'
+              }`}
+              key={wordAnimationKey}
+            >
+              {currentWord}
+            </strong>
+          ) : (
+            <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.035] px-5 py-8">
+              <strong className="block text-4xl font-black text-white">{finished ? `${score} pkt` : 'Start'}</strong>
+              {finished && (
+                <p className="mt-3 text-sm text-slate-300">
+                  Najlepsze combo: <strong className="text-white">{bestCombo}</strong> · Błędy:{' '}
+                  <strong className="text-white">{mistakes}</strong>
+                </p>
+              )}
+            </div>
+          )}
+
+          {feedback && (
+            <div
+              className={`feedback-toast mx-auto mt-4 max-w-sm rounded-lg border px-4 py-3 text-sm font-semibold ${
+                feedback.correct
+                  ? 'border-emerald-300/35 bg-emerald-300/[0.10] text-emerald-100'
+                  : 'border-red-300/35 bg-red-400/[0.10] text-red-100'
+              }`}
+            >
+              <span className="block text-base font-black">{feedback.text}</span>
+              <span className="mt-1 block opacity-85">
+                {feedback.correct && feedback.combo > 1 ? `Combo x${feedback.combo} · ` : ''}
+                {feedback.detail}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {!started && (
+          <GameStartOverlay
+            buttonLabel="Start"
+            description="Decyduj, czy słowo pojawia się pierwszy raz, czy już było wcześniej."
+            onStart={() => {
+              playNormalClickSound();
+              start();
+            }}
+            title="Gotowy na test słów?"
+          />
+        )}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <button
-          className="rounded-lg border border-emerald-300/40 bg-emerald-300/10 px-4 py-4 text-lg font-semibold text-emerald-100 transition hover:scale-[1.03] hover:bg-emerald-300/20 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
-          disabled={!currentWord || finished}
+          aria-label="Odpowiedź: nowe słowo"
+          className="rounded-xl border border-emerald-300/40 bg-emerald-300/10 px-4 py-5 text-lg font-black text-emerald-100 shadow-[0_0_20px_rgba(16,185,129,0.08)] transition hover:scale-[1.03] hover:bg-emerald-300/20 hover:shadow-[0_0_26px_rgba(16,185,129,0.14)] active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100"
+          disabled={!canAnswer}
           onClick={() => {
             playNormalClickSound();
             answer(false);
           }}
           type="button"
         >
-          Nowe
+          <span className="block text-2xl">Nowe</span>
+          <span className="mt-1 block text-xs font-bold uppercase tracking-[0.2em] opacity-70">N / ←</span>
         </button>
         <button
-          className="rounded-lg border border-amber-300/40 bg-amber-300/10 px-4 py-4 text-lg font-semibold text-amber-100 transition hover:scale-[1.03] hover:bg-amber-300/20 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
-          disabled={!currentWord || finished}
+          aria-label="Odpowiedź: słowo już było"
+          className="rounded-xl border border-amber-300/40 bg-amber-300/10 px-4 py-5 text-lg font-black text-amber-100 shadow-[0_0_20px_rgba(251,191,36,0.08)] transition hover:scale-[1.03] hover:bg-amber-300/20 hover:shadow-[0_0_26px_rgba(251,191,36,0.14)] active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100"
+          disabled={!canAnswer}
           onClick={() => {
             playNormalClickSound();
             answer(true);
           }}
           type="button"
         >
-          Było
+          <span className="block text-2xl">Było</span>
+          <span className="mt-1 block text-xs font-bold uppercase tracking-[0.2em] opacity-70">B / →</span>
         </button>
       </div>
-
-      {finished && <p className="rounded-md bg-teal-300/10 p-3 text-sm font-semibold text-teal-100">Wynik zapisany: {score} pkt.</p>}
     </div>
   );
 }
