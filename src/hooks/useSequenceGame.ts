@@ -18,6 +18,8 @@ type UseSequenceGameOptions = {
   onScore: (score: ScoreInput) => void;
 };
 
+type SequencePhase = 'idle' | 'showing' | 'input' | 'success' | 'error';
+
 export function useSequenceGame({
   gameId,
   itemCount,
@@ -30,9 +32,12 @@ export function useSequenceGame({
   const [sequence, setSequence] = useState<number[]>([]);
   const [inputIndex, setInputIndex] = useState(0);
   const [activeItem, setActiveItem] = useState<number | null>(null);
+  const [lastTappedItem, setLastTappedItem] = useState<number | null>(null);
+  const [wrongItem, setWrongItem] = useState<number | null>(null);
   const [showing, setShowing] = useState(false);
   const [level, setLevel] = useState(0);
   const [message, setMessage] = useState(messages.initial);
+  const [phase, setPhase] = useState<SequencePhase>('idle');
   const timersRef = useRef<number[]>([]);
   const inputLockedRef = useRef(false);
 
@@ -49,12 +54,14 @@ export function useSequenceGame({
   function addStep(nextLevel: number) {
     setLevel(nextLevel);
     setMessage(messages.showing);
+    setPhase('showing');
     setSequence((current) => [...current, Math.floor(Math.random() * itemCount)]);
   }
 
   function startFirstStep() {
     setLevel(1);
     setMessage(messages.showing);
+    setPhase('showing');
     setSequence([Math.floor(Math.random() * itemCount)]);
   }
 
@@ -65,10 +72,14 @@ export function useSequenceGame({
       setShowing(false);
       setActiveItem(null);
       inputLockedRef.current = false;
+      if (level === 0) {
+        setPhase('idle');
+      }
       return;
     }
 
     setShowing(true);
+    setPhase('showing');
     inputLockedRef.current = true;
     setInputIndex(0);
     setMessage(messages.showing);
@@ -83,6 +94,7 @@ export function useSequenceGame({
       setShowing(false);
       inputLockedRef.current = false;
       setMessage(messages.input);
+      setPhase('input');
     }, sequence.length * stepMs + endDelayMs);
 
     return clearTimers;
@@ -96,9 +108,12 @@ export function useSequenceGame({
     setInputIndex(0);
     setLevel(0);
     setActiveItem(null);
+    setLastTappedItem(null);
+    setWrongItem(null);
     setShowing(false);
     inputLockedRef.current = true;
     setMessage(messages.showing);
+    setPhase('showing');
     startFirstStep();
   }
 
@@ -107,15 +122,21 @@ export function useSequenceGame({
       return;
     }
 
+    setLastTappedItem(item);
+    schedule(() => setLastTappedItem(null), 180);
+
     if (sequence[inputIndex] !== item) {
       const finalLevel = Math.max(0, level - 1);
       inputLockedRef.current = true;
       clearTimers();
+      setWrongItem(item);
+      window.setTimeout(() => setWrongItem(null), 420);
       setMessage(`Koniec gry. Wynik: poziom ${finalLevel}.`);
       setSequence([]);
       setInputIndex(0);
       setActiveItem(null);
       setShowing(false);
+      setPhase('error');
       onScore({
         gameId,
         score: finalLevel,
@@ -128,6 +149,7 @@ export function useSequenceGame({
     if (inputIndex + 1 === sequence.length) {
       inputLockedRef.current = true;
       setMessage(messages.success);
+      setPhase('success');
       schedule(() => addStep(level + 1), 450);
       return;
     }
@@ -138,9 +160,14 @@ export function useSequenceGame({
   return {
     activeItem,
     choose,
+    inputIndex,
+    lastTappedItem,
     level,
     message,
+    phase,
+    sequenceLength: sequence.length,
     showing,
     start,
+    wrongItem,
   };
 }

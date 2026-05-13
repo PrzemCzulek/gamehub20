@@ -252,6 +252,14 @@ input:focus-visible {
   animation: colorMemoryPulse 1600ms ease-in-out infinite;
 }
 
+.memory-tile-tap {
+  animation: memoryTileTap 180ms ease-out both;
+}
+
+.memory-tile-error {
+  animation: memoryTileError 360ms ease-out both;
+}
+
 @keyframes colorMemoryPulse {
   0%,
   100% {
@@ -262,6 +270,43 @@ input:focus-visible {
   50% {
     transform: scale(1.01);
     box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.10), 0 0 30px rgba(34, 211, 238, 0.16);
+  }
+}
+
+@keyframes memoryTileTap {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(0.96);
+  }
+
+  100% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes memoryTileError {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20% {
+    transform: translateX(-4px);
+  }
+
+  40% {
+    transform: translateX(4px);
+  }
+
+  60% {
+    transform: translateX(-3px);
+  }
+
+  80% {
+    transform: translateX(3px);
   }
 }
 
