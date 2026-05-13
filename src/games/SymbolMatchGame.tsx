@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { GameStartOverlay } from '../components/game/GameStartOverlay';
 import { playNormalClickSound } from '../services/audio';
 import type { ScoreInput } from '../types';
@@ -10,11 +10,10 @@ type SymbolMatchGameProps = {
 type Card = {
   id: number;
   symbol: string;
-  matched: boolean;
 };
 
 type MatchFeedback = {
-  type: 'idle' | 'selected' | 'match' | 'mismatch' | 'complete';
+  type: 'idle' | 'selected' | 'checking' | 'match' | 'mismatch' | 'complete';
   text: string;
 };
 
@@ -25,7 +24,8 @@ type FinalResult = {
 };
 
 const symbols = ['◆', '●', '▲', '■', '★', '✚'];
-const flipBackDelayMs = 850;
+const matchRevealDelayMs = 520;
+const mismatchPreviewDelayMs = 850;
 
 const boardThemes = ['Classic Grid', 'Neon Grid', 'Cyber Tiles', 'Minimal Dark'];
 const boardSizes = [
@@ -36,7 +36,7 @@ const boardSizes = [
 
 function createDeck(): Card[] {
   return [...symbols, ...symbols]
-    .map((symbol, index) => ({ id: index, symbol, matched: false }))
+    .map((symbol, index) => ({ id: index, symbol }))
     .sort(() => Math.random() - 0.5);
 }
 
@@ -46,117 +46,142 @@ function formatDuration(durationMs: number): string {
 
 export function SymbolMatchGame({ onScore }: SymbolMatchGameProps) {
   const [deck, setDeck] = useState<Card[]>(() => createDeck());
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [selectedCardIds, setSelectedCardIds] = useState<number[]>([]);
+  const [resolvingPairIds, setResolvingPairIds] = useState<number[]>([]);
+  const [matchedCardIds, setMatchedCardIds] = useState<number[]>([]);
+  const [isResolvingPair, setIsResolvingPair] = useState(false);
   const [moves, setMoves] = useState(0);
   const [mistakes, setMistakes] = useState(0);
   const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [locked, setLocked] = useState(false);
   const [complete, setComplete] = useState(false);
   const [feedback, setFeedback] = useState<MatchFeedback>({ type: 'idle', text: 'Znajdź wszystkie pary' });
-  const [mismatchIds, setMismatchIds] = useState<number[]>([]);
-  const [lastMatchedSymbol, setLastMatchedSymbol] = useState<string | null>(null);
+  const [lastMatchedIds, setLastMatchedIds] = useState<number[]>([]);
   const [finalResult, setFinalResult] = useState<FinalResult | null>(null);
+  const timersRef = useRef<number[]>([]);
 
-  const matchedPairs = useMemo(() => deck.filter((card) => card.matched).length / 2, [deck]);
+  const matchedPairs = useMemo(() => matchedCardIds.length / 2, [matchedCardIds]);
   const progressPercent = Math.round((matchedPairs / symbols.length) * 100);
   const efficiency = moves > 0 ? Math.round((symbols.length / moves) * 100) : 0;
 
+  function clearTimers() {
+    timersRef.current.forEach((timer) => window.clearTimeout(timer));
+    timersRef.current = [];
+  }
+
+  function schedule(callback: () => void, delay: number) {
+    const timer = window.setTimeout(callback, delay);
+    timersRef.current.push(timer);
+  }
+
+  useEffect(() => clearTimers, []);
+
   function reset() {
+    clearTimers();
     setDeck(createDeck());
-    setSelectedIds([]);
+    setSelectedCardIds([]);
+    setResolvingPairIds([]);
+    setMatchedCardIds([]);
+    setIsResolvingPair(false);
     setMoves(0);
     setMistakes(0);
     setStartedAt(null);
-    setLocked(false);
     setComplete(false);
-    setFeedback({ type: 'idle', text: 'Wybierz pierwsza karte' });
-    setMismatchIds([]);
-    setLastMatchedSymbol(null);
+    setFeedback({ type: 'idle', text: 'Znajdź wszystkie pary' });
+    setLastMatchedIds([]);
     setFinalResult(null);
   }
 
   function start() {
     reset();
     setStartedAt(performance.now());
-    setFeedback({ type: 'idle', text: 'Wybierz pierwsza karte' });
+    setFeedback({ type: 'idle', text: 'Wybierz pierwszą kartę' });
   }
 
   function handleCardClick(cardId: number) {
-    if (locked || complete) {
+    if (import.meta.env.DEV) {
+      console.debug('SymbolMatch state', {
+        clickedId: cardId,
+        selectedCardIds,
+        resolvingPairIds,
+        matchedCardIds,
+        isResolvingPair,
+      });
+    }
+
+    if (isResolvingPair || complete || !startedAt) {
       return;
     }
 
     const card = deck.find((item) => item.id === cardId);
 
-    if (!card || card.matched || selectedIds.includes(cardId)) {
+    if (!card || matchedCardIds.includes(cardId) || selectedCardIds.includes(cardId)) {
       return;
     }
 
-    if (!startedAt) {
+    if (selectedCardIds.length === 0) {
+      setSelectedCardIds([cardId]);
+      setFeedback({ type: 'selected', text: 'Wybierz drugą kartę' });
       return;
     }
 
-    const startTime = startedAt;
-    const nextSelectedIds = [...selectedIds, cardId];
-    setSelectedIds(nextSelectedIds);
-    setFeedback({
-      type: nextSelectedIds.length === 2 ? 'selected' : 'selected',
-      text: nextSelectedIds.length === 2 ? '2 karty odkryte' : 'Wybierz drugą kartę',
-    });
-
-    if (nextSelectedIds.length !== 2) {
-      return;
-    }
-
-    const [firstId, secondId] = nextSelectedIds;
+    const firstId = selectedCardIds[0];
+    const secondId = cardId;
     const firstCard = deck.find((item) => item.id === firstId);
     const secondCard = deck.find((item) => item.id === secondId);
+    const pairIds = [firstId, secondId];
     const nextMoves = moves + 1;
 
+    setSelectedCardIds(pairIds);
+    setResolvingPairIds(pairIds);
+    setIsResolvingPair(true);
     setMoves(nextMoves);
+    setFeedback({ type: 'checking', text: 'Sprawdzam parę...' });
 
     if (firstCard?.symbol === secondCard?.symbol) {
-      const nextDeck = deck.map((item) => (item.symbol === firstCard?.symbol ? { ...item, matched: true } : item));
-      const isComplete = nextDeck.every((item) => item.matched);
+      schedule(() => {
+        const nextMatchedCardIds = [...matchedCardIds, ...pairIds];
+        const isComplete = nextMatchedCardIds.length === deck.length;
 
-      setDeck(nextDeck);
-      setSelectedIds([]);
-      setLastMatchedSymbol(firstCard?.symbol ?? null);
-      setFeedback({ type: isComplete ? 'complete' : 'match', text: isComplete ? 'Wszystkie pary odkryte!' : 'Dobra para!' });
-      window.setTimeout(() => setLastMatchedSymbol(null), 520);
+        setMatchedCardIds(nextMatchedCardIds);
+        setSelectedCardIds([]);
+        setResolvingPairIds([]);
+        setIsResolvingPair(false);
+        setLastMatchedIds(pairIds);
+        setFeedback({ type: isComplete ? 'complete' : 'match', text: isComplete ? 'Wszystkie pary odkryte!' : 'Dobra para!' });
+        schedule(() => setLastMatchedIds([]), 520);
 
-      if (isComplete) {
-        const durationMs = Math.round(performance.now() - startTime);
-        setComplete(true);
-        setFinalResult({ moves: nextMoves, mistakes, durationMs });
-        onScore({
-          gameId: 'symbol-match',
-          score: nextMoves,
-          scoreLabel: `${nextMoves} ruchów`,
-          meta: { pairs: symbols.length, mistakes, durationMs },
-        });
-      }
+        if (isComplete) {
+          const durationMs = Math.round(performance.now() - startedAt);
+          setComplete(true);
+          setFinalResult({ moves: nextMoves, mistakes, durationMs });
+          onScore({
+            gameId: 'symbol-match',
+            score: nextMoves,
+            scoreLabel: `${nextMoves} ruchów`,
+            meta: { pairs: symbols.length, mistakes, durationMs },
+          });
+        }
+      }, matchRevealDelayMs);
 
       return;
     }
 
     const nextMistakes = mistakes + 1;
     setMistakes(nextMistakes);
-    setMismatchIds(nextSelectedIds);
-    setFeedback({ type: 'mismatch', text: 'Nie para - zapamietaj symbole' });
-    setLocked(true);
-    window.setTimeout(() => {
-      setSelectedIds([]);
-      setMismatchIds([]);
-      setLocked(false);
-      setFeedback({ type: 'idle', text: 'Wybierz pierwsza karte' });
-    }, flipBackDelayMs);
+    setFeedback({ type: 'mismatch', text: 'Nie para - zapamiętaj symbole' });
+    schedule(() => {
+      setSelectedCardIds([]);
+      setResolvingPairIds([]);
+      setIsResolvingPair(false);
+      setFeedback({ type: 'idle', text: 'Wybierz pierwszą kartę' });
+    }, mismatchPreviewDelayMs);
   }
 
   const started = Boolean(startedAt);
   const feedbackClass = {
     idle: 'border-cyan-300/15 bg-cyan-300/[0.05] text-cyan-100',
     selected: 'border-violet-300/25 bg-violet-300/[0.08] text-violet-100',
+    checking: 'border-cyan-300/25 bg-cyan-300/[0.08] text-cyan-100',
     match: 'border-emerald-300/30 bg-emerald-300/[0.10] text-emerald-100 shadow-[0_0_18px_rgba(52,211,153,0.12)]',
     mismatch: 'border-red-300/35 bg-red-400/[0.10] text-red-100 shadow-[0_0_18px_rgba(248,113,113,0.12)]',
     complete: 'border-amber-200/35 bg-amber-200/[0.10] text-amber-100 shadow-[0_0_22px_rgba(251,191,36,0.14)]',
@@ -195,18 +220,21 @@ export function SymbolMatchGame({ onScore }: SymbolMatchGameProps) {
           <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-3 shadow-[0_0_35px_rgba(34,211,238,0.05)] sm:p-4">
             <div className={`grid grid-cols-3 gap-3 transition duration-200 sm:grid-cols-4 ${started ? 'opacity-100' : 'opacity-45 blur-[1px]'}`}>
               {deck.map((card, index) => {
-                const visible = card.matched || selectedIds.includes(card.id) || mismatchIds.includes(card.id);
-                const mismatched = mismatchIds.includes(card.id);
-                const justMatched = card.matched && lastMatchedSymbol === card.symbol;
-                const faceDown = !visible;
+                const isFaceUp =
+                  selectedCardIds.includes(card.id) ||
+                  resolvingPairIds.includes(card.id) ||
+                  matchedCardIds.includes(card.id);
+                const mismatched = resolvingPairIds.includes(card.id) && feedback.type === 'mismatch';
+                const justMatched = lastMatchedIds.includes(card.id);
+                const faceDown = !isFaceUp;
 
                 return (
                   <button
-                    aria-label={`Karta ${index + 1}${visible ? `, symbol ${card.symbol}` : ', zakryta'}`}
+                    aria-label={`Karta ${index + 1}${isFaceUp ? `, symbol ${card.symbol}` : ', zakryta'}`}
                     className={`symbol-card group aspect-square rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 ${
                       mismatched ? 'symbol-card-mismatch' : justMatched ? 'symbol-card-match' : ''
-                    } ${faceDown && !locked && !complete ? 'symbol-card-face-down' : 'symbol-card-open'}`}
-                    disabled={!started || locked || card.matched || complete}
+                    } ${faceDown && !isResolvingPair && !complete ? 'symbol-card-face-down' : 'symbol-card-open'}`}
+                    disabled={!started || isResolvingPair || matchedCardIds.includes(card.id) || complete}
                     key={card.id}
                     onClick={() => {
                       playNormalClickSound();
@@ -214,13 +242,13 @@ export function SymbolMatchGame({ onScore }: SymbolMatchGameProps) {
                     }}
                     type="button"
                   >
-                    <span className={`symbol-card-inner ${visible ? 'symbol-card-flipped' : ''}`}>
+                    <span className={`symbol-card-inner ${isFaceUp ? 'symbol-card-flipped' : ''}`}>
                       <span className="symbol-card-face symbol-card-back">
                         <span className="text-2xl font-black text-cyan-100/80">?</span>
                       </span>
                       <span
                         className={`symbol-card-face symbol-card-front ${
-                          card.matched ? 'border-emerald-300/35 bg-emerald-300/[0.12]' : 'border-cyan-300/28 bg-cyan-300/[0.10]'
+                          matchedCardIds.includes(card.id) ? 'border-emerald-300/35 bg-emerald-300/[0.12]' : 'border-cyan-300/28 bg-cyan-300/[0.10]'
                         }`}
                       >
                         <span className="text-3xl font-black text-white sm:text-4xl">{card.symbol}</span>
@@ -324,4 +352,3 @@ export function SymbolMatchGame({ onScore }: SymbolMatchGameProps) {
     </div>
   );
 }
-
