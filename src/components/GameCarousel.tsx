@@ -5,6 +5,7 @@ import type { GameConfig, GameId, MobileSupport } from '../types';
 type GameCarouselProps = {
   games: GameConfig[];
   activeGameId: GameId;
+  onOpenGame?: (gameId: GameId) => void;
   onSelectGame: (gameId: GameId) => void;
 };
 
@@ -78,7 +79,7 @@ function getCardStyle(offset: number): React.CSSProperties {
   };
 }
 
-export function GameCarousel({ games, activeGameId, onSelectGame }: GameCarouselProps) {
+export function GameCarousel({ games, activeGameId, onOpenGame, onSelectGame }: GameCarouselProps) {
   const carouselRef = useRef<HTMLDivElement | null>(null);
   const wheelLockRef = useRef(false);
   const activeIndex = Math.max(
@@ -106,6 +107,11 @@ export function GameCarousel({ games, activeGameId, onSelectGame }: GameCarousel
 
   function selectGame(gameId: GameId) {
     playClickSound();
+    if (gameId === activeGameId && onOpenGame) {
+      onOpenGame(gameId);
+      return;
+    }
+
     onSelectGame(gameId);
   }
 
@@ -246,7 +252,7 @@ export function GameCarousel({ games, activeGameId, onSelectGame }: GameCarousel
                   active ? 'bg-fuchsia-400/20 text-fuchsia-100' : 'bg-white/10 text-slate-200'
                 }`}
               >
-                {active ? 'Aktywna' : 'Wybierz'}
+                {active ? 'Graj' : 'Wybierz'}
               </span>
             </button>
           );

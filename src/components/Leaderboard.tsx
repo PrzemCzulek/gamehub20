@@ -498,7 +498,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
             {game.metrics.map((metric) => (
               <button
                 aria-pressed={activeMetric.id === metric.id}
-                className={`rounded-full border px-3 py-2 text-xs font-black transition duration-200 hover:-translate-y-0.5 ${
+                className={`rounded-full border px-3 py-2 text-xs font-black transition duration-200 ${
                   activeMetric.id === metric.id
                     ? 'border-cyan-300/60 bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.24)]'
                     : 'border-white/10 bg-black/20 text-slate-300 hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-white'
@@ -531,7 +531,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
               return (
                 <div
                   aria-expanded={selected}
-                  className={`leaderboard-row group relative overflow-hidden rounded-xl border px-3 py-3 transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300/35 hover:bg-cyan-300/[0.06] hover:shadow-[0_0_22px_rgba(34,211,238,0.12)] focus:outline-none focus-visible:border-cyan-300/45 focus-visible:ring-1 focus-visible:ring-cyan-300/40 ${
+                  className={`leaderboard-row group relative overflow-hidden rounded-xl border px-3 py-3 transition duration-200 hover:border-cyan-300/35 hover:bg-cyan-300/[0.06] hover:shadow-[0_0_22px_rgba(34,211,238,0.12)] focus:outline-none focus-visible:border-cyan-300/45 focus-visible:ring-1 focus-visible:ring-cyan-300/40 ${
                     selected ? 'border-cyan-300/45 bg-cyan-300/[0.07] shadow-[0_0_24px_rgba(34,211,238,0.14)]' : getRankClass(index, ownEntry)
                   }`}
                   key={entryKey}

@@ -19,12 +19,24 @@ import { WordMemoryGame } from './games/WordMemoryGame';
 import { createProgressionEvent } from './progression/events';
 import { claimGameMilestone } from './progression/gameProgress';
 import { claimQuestReward } from './progression/quests';
-import { processProgressionEvent } from './progression/progressionEngine';
+import { getQuestProgress, processProgressionEvent } from './progression/progressionEngine';
 import { preloadAudio } from './services/audio';
 import { submitOnlineScore } from './services/onlineLeaderboard';
 import { getLeaderboard, getProfile, hasValidPlayerName, resetLocalData, saveScore, setPlayerName } from './services/storage';
-import type { GameId, ScoreInput } from './types';
+import type { GameId, GameTag, LocalProfile, ScoreInput } from './types';
 import { canPlayGameOnDevice, canSubmitScoreForGame, getDeviceType, type DeviceType } from './utils/device';
+
+type AppView = 'home' | 'game' | 'profile';
+
+const categoryFilters: Array<{ id: GameTag | 'hardcore'; label: string; tags: GameTag[] }> = [
+  { id: 'reflex', label: 'Reflex', tags: ['reflex'] },
+  { id: 'memory', label: 'Memory', tags: ['memory'] },
+  { id: 'precision', label: 'Precision', tags: ['precision'] },
+  { id: 'typing', label: 'Typing', tags: ['typing'] },
+  { id: 'mobile', label: 'Mobile', tags: ['mobile'] },
+  { id: 'casual', label: 'Casual', tags: ['casual'] },
+  { id: 'hardcore', label: 'Hardcore', tags: ['challenge', 'desktop'] },
+];
 
 function renderGame(gameId: GameId, onScore: (score: ScoreInput) => void) {
   switch (gameId) {
@@ -77,16 +89,122 @@ function LimitedDeviceWarning({ note }: { note?: string }) {
   );
 }
 
+function TopBar({
+  activeGameTitle,
+  activeView,
+  onReset,
+  onViewChange,
+  profile,
+  revision,
+}: {
+  activeGameTitle: string;
+  activeView: AppView;
+  onReset: () => void;
+  onViewChange: (view: AppView) => void;
+  profile: LocalProfile;
+  revision: number;
+}) {
+  return (
+    <header className="sticky top-0 z-30 border-b border-cyan-300/10 bg-slate-950/82 shadow-[0_10px_40px_rgba(2,6,23,0.28)] backdrop-blur-xl">
+      <div className="mx-auto grid w-full max-w-7xl gap-3 px-3 py-2.5 sm:px-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:px-8">
+        <div className="flex min-w-0 flex-wrap items-center gap-5">
+          <button className="text-left" onClick={() => onViewChange('home')} type="button">
+            <span className="block text-sm font-black uppercase tracking-[0.32em] text-teal-200">GAME HUB 2.0</span>
+            <span className="mt-1 block text-[0.65rem] font-bold uppercase tracking-[0.22em] text-slate-500">Skill Arcade Network</span>
+          </button>
+          <nav className="flex flex-wrap gap-2 rounded-full border border-white/10 bg-white/[0.025] p-1">
+            {(['home', 'profile'] as const).map((view) => (
+              <button
+                className={`relative rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition duration-200 ${
+                  activeView === view
+                    ? 'border-cyan-300/50 bg-cyan-300/15 text-cyan-100 shadow-[0_0_16px_rgba(34,211,238,0.18)] after:absolute after:inset-x-3 after:-bottom-1 after:h-px after:bg-cyan-300 after:shadow-[0_0_10px_rgba(34,211,238,0.8)]'
+                    : 'border-transparent text-slate-400 hover:border-cyan-300/20 hover:bg-cyan-300/5 hover:text-white'
+                }`}
+                key={view}
+                onClick={() => onViewChange(view)}
+                type="button"
+              >
+                {view === 'home' ? 'Home' : 'Profil'}
+              </button>
+            ))}
+            {activeView === 'game' && (
+              <span className="rounded-full border border-violet-300/25 bg-violet-300/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-violet-100 shadow-[0_0_14px_rgba(168,85,247,0.12)]">
+                {activeGameTitle}
+              </span>
+            )}
+          </nav>
+        </div>
+        <MetaPanel onReset={onReset} profile={profile} revision={revision} />
+      </div>
+    </header>
+  );
+}
+
+function CategoryFoundation({ selectedCategory, onSelect }: { selectedCategory: string | null; onSelect: (category: string | null) => void }) {
+  return (
+    <section className="rounded-xl border border-white/10 bg-white/[0.035] p-4 shadow-[0_0_28px_rgba(34,211,238,0.04)]">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.24em] text-cyan-200">Kategorie</p>
+          <h2 className="mt-1 text-xl font-bold text-white">Arcade lanes</h2>
+        </div>
+        <p className="text-sm text-slate-400">Foundation pod filtry, playlisty i rekomendacje.</p>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          className={`rounded-full border px-3 py-2 text-xs font-bold uppercase tracking-wide transition duration-200 ${
+            selectedCategory === null
+              ? 'border-cyan-300 bg-cyan-300 text-slate-950 shadow-[0_0_16px_rgba(34,211,238,0.18)]'
+              : 'border-white/10 bg-black/15 text-slate-300 hover:border-cyan-300/25 hover:bg-cyan-300/10 hover:text-white'
+          }`}
+          onClick={() => onSelect(null)}
+          type="button"
+        >
+          Wszystkie
+        </button>
+        {categoryFilters.map((category) => {
+          const count = games.filter((game) => game.tags?.some((tag) => category.tags.includes(tag))).length;
+
+          return (
+            <button
+              className={`rounded-full border px-3 py-2 text-xs font-bold uppercase tracking-wide transition duration-200 ${
+                selectedCategory === category.id
+                  ? 'border-cyan-300 bg-cyan-300 text-slate-950 shadow-[0_0_16px_rgba(34,211,238,0.2)]'
+                  : 'border-white/10 bg-black/20 text-slate-300 hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-white'
+              }`}
+              key={category.id}
+              onClick={() => onSelect(selectedCategory === category.id ? null : category.id)}
+              type="button"
+            >
+              {category.label} <span className="opacity-60">{count}</span>
+            </button>
+          );
+        })}
+      </div>
+      {selectedCategory && (
+        <p className="mt-3 text-xs text-cyan-100">
+          Aktywna grupa: {categoryFilters.find((category) => category.id === selectedCategory)?.label}. Pełne filtrowanie widoków zostanie dodane w kolejnym etapie.
+        </p>
+      )}
+    </section>
+  );
+}
+
 export default function App() {
+  const [activeView, setActiveView] = useState<AppView>('home');
   const [activeGameId, setActiveGameId] = useState<GameId>('reaction-time');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
   const [deviceType, setDeviceType] = useState<DeviceType>(() => getDeviceType());
   const [needsNick, setNeedsNick] = useState(() => !hasValidPlayerName(getProfile().playerName));
   const profile = useMemo(() => getProfile(), [revision]);
   const leaderboard = useMemo(() => getLeaderboard(activeGameId), [activeGameId, revision]);
+  const questProgress = useMemo(() => getQuestProgress(), [revision]);
   const activeGame = games.find((game) => game.id === activeGameId) ?? games[0];
   const activeGamePlayable = canPlayGameOnDevice(activeGame, deviceType);
   const firstPlayableGame = games.find((game) => canPlayGameOnDevice(game, deviceType));
+  const dailyQuest = questDefinitions.find((quest) => quest.type === 'daily');
+  const dailyProgress = dailyQuest ? questProgress.find((item) => item.questId === dailyQuest.id) : undefined;
 
   useEffect(() => {
     const handleFirstInteraction = () => preloadAudio();
@@ -119,6 +237,11 @@ export default function App() {
 
   function refresh() {
     setRevision((current) => current + 1);
+  }
+
+  function handleOpenGame(gameId: GameId) {
+    setActiveGameId(gameId);
+    setActiveView('game');
   }
 
   function handleScore(score: ScoreInput) {
@@ -183,8 +306,8 @@ export default function App() {
       });
     }
 
-    progressionResult.newlyCompletedQuests.forEach((questProgress) => {
-      const quest = questDefinitions.find((item) => item.id === questProgress.questId);
+    progressionResult.newlyCompletedQuests.forEach((questProgressItem) => {
+      const quest = questDefinitions.find((item) => item.id === questProgressItem.questId);
 
       if (quest) {
         pushFeedback({
@@ -299,57 +422,136 @@ export default function App() {
   }
 
   return (
-    <main className="min-h-screen px-3 py-4 text-slate-100 sm:px-5 lg:px-8">
+    <main className="min-h-screen bg-transparent text-slate-100">
       <LiveFeed />
       {needsNick && <FirstRunNickModal onSubmit={handleFirstRunName} />}
-      <div className="mx-auto w-full max-w-7xl">
-        <header className="grid gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 shadow-[0_0_35px_rgba(34,211,238,0.06)] md:grid-cols-[minmax(0,1fr)_minmax(20rem,34rem)] md:items-center">
-          <div className="min-w-0 px-1">
-            <p className="text-sm font-semibold uppercase tracking-[0.35em] text-teal-200">GAME HUB 2.0</p>
-            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-              <span>SKILL ARCADE NETWORK</span>
-              <span className="inline-flex items-center gap-1.5 text-cyan-200">
-                <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.8)]" />
-                Online
-              </span>
+      <TopBar activeGameTitle={activeGame.title} activeView={activeView} onReset={handleResetLocalData} onViewChange={setActiveView} profile={profile} revision={revision} />
+
+      <div className="mx-auto w-full max-w-7xl px-3 py-5 sm:px-5 lg:px-8">
+        <div className="view-fade">
+          {activeView === 'home' && (
+            <div className="space-y-5 sm:space-y-6">
+              <section className="grid gap-4 rounded-2xl border border-cyan-300/10 bg-white/[0.035] p-4 shadow-[0_0_45px_rgba(34,211,238,0.06)] sm:p-5 lg:grid-cols-[1.18fr_0.82fr] lg:items-center">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.32em] text-cyan-200">Arcade hub</p>
+                  <h1 className="mt-3 max-w-3xl text-3xl font-black tracking-tight text-white sm:text-5xl">Skill games, rankingi i progres w jednym lobby.</h1>
+                  <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-400">
+                    Wybierz grę z karuzeli, wskocz w focus mode albo przejdź do profilu, żeby odebrać questy i milestone'y.
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                  <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+                    <span className="text-xs uppercase tracking-wide text-slate-500">Rozegrane</span>
+                    <strong className="mt-1 block text-2xl text-white">{profile.totalScoreEntries}</strong>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+                    <span className="text-xs uppercase tracking-wide text-slate-500">Poziom konta</span>
+                    <strong className="mt-1 block text-2xl text-white">L{profile.level}</strong>
+                  </div>
+                  <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4 shadow-[0_0_20px_rgba(34,211,238,0.08)]">
+                    <span className="text-xs uppercase tracking-wide text-cyan-100">Daily challenge</span>
+                    <strong className="mt-1 block truncate text-sm text-white">{dailyQuest?.title ?? 'Brak aktywnego questa'}</strong>
+                    <span className="mt-1 block text-xs text-slate-400">{dailyProgress ? `${dailyProgress.progress}/${dailyQuest?.target.amount ?? 1}` : 'Czeka na progres'}</span>
+                  </div>
+                </div>
+              </section>
+
+              <GameCarousel activeGameId={activeGameId} games={games} onOpenGame={handleOpenGame} onSelectGame={setActiveGameId} />
+              <CategoryFoundation selectedCategory={selectedCategory} onSelect={setSelectedCategory} />
+
+              <section className="grid gap-4 lg:grid-cols-3">
+                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">Featured mode</p>
+                  <h3 className="mt-2 text-lg font-bold text-white">{activeGame.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">{activeGame.description}</p>
+                  <button className="mt-4 rounded-md bg-cyan-300 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-cyan-200" onClick={() => handleOpenGame(activeGame.id)} type="button">
+                    Wejdź do gry
+                  </button>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-200">Future events</p>
+                  <h3 className="mt-2 text-lg font-bold text-white">Seasonal playlists</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">Miejsce pod eventy, playlisty, PvP i rotujące challenge modes.</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-100">Quick activity</p>
+                  <h3 className="mt-2 text-lg font-bold text-white">Ostatnie wyniki</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    {profile.recentScores[0] ? `${getGameTitle(profile.recentScores[0].gameId)}: ${profile.recentScores[0].scoreLabel}` : 'Brak historii wyników.'}
+                  </p>
+                </div>
+              </section>
             </div>
-          </div>
-          <MetaPanel onReset={handleResetLocalData} profile={profile} revision={revision} />
-        </header>
+          )}
 
-        <GameCarousel activeGameId={activeGameId} games={games} onSelectGame={setActiveGameId} />
+          {activeView === 'game' && (
+            <div className="space-y-5">
+              <section className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <button className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-200 transition hover:text-cyan-100" onClick={() => setActiveView('home')} type="button">
+                    ← Powrót do hubu
+                  </button>
+                  <h1 className="mt-2 truncate text-3xl font-black text-white">{activeGame.title}</h1>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {activeGame.tags?.slice(0, 4).map((tag) => (
+                      <span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[0.65rem] font-bold uppercase text-slate-300" key={tag}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.05] px-4 py-3 text-sm text-cyan-50">Focus mode · {activeGame.scoreName}</div>
+              </section>
 
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
-          <section className="game-panel min-w-0 self-start rounded-lg border border-white/10 bg-white/[0.04] p-4 sm:p-5">
-            <div className="mb-5 flex flex-col gap-2 border-b border-white/10 pb-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h2 className="text-2xl font-semibold text-white">{activeGame.title}</h2>
-                <p className="mt-1 text-sm text-slate-400">{activeGame.description}</p>
+              <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_23rem]">
+                <section className="game-panel min-w-0 self-start rounded-lg border border-white/10 bg-white/[0.04] p-4 sm:p-5">
+                  <div className="mb-5 flex flex-col gap-2 border-b border-white/10 pb-4 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <h2 className="text-2xl font-semibold text-white">{activeGame.title}</h2>
+                      <p className="mt-1 text-sm text-slate-400">{activeGame.description}</p>
+                    </div>
+                    <span className="text-sm text-teal-200">{activeGame.scoreName}</span>
+                  </div>
+                  {!activeGamePlayable ? (
+                    <DeviceBlockCard
+                      onChooseOther={() => {
+                        if (firstPlayableGame) {
+                          setActiveGameId(firstPlayableGame.id);
+                          setActiveView('home');
+                        }
+                      }}
+                    />
+                  ) : (
+                    <>
+                      {activeGame.mobileSupport === 'limited' && deviceType !== 'desktop' && <LimitedDeviceWarning note={activeGame.mobileNote} />}
+                      {renderGame(activeGameId, handleScore)}
+                    </>
+                  )}
+                </section>
+
+                <aside className="space-y-4 self-start lg:sticky lg:top-28">
+                  <Leaderboard entries={leaderboard} gameId={activeGameId} />
+                  <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Game info</p>
+                    <p className="mt-2 text-sm text-slate-300">{activeGame.mobileNote ?? 'Pełne wsparcie dla aktualnego urządzenia.'}</p>
+                    <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.04] p-3 text-xs text-slate-400">Future space: modifiers, seasons, playlists, 1v1.</div>
+                  </div>
+                </aside>
               </div>
-              <span className="text-sm text-teal-200">{activeGame.scoreName}</span>
             </div>
-            {!activeGamePlayable ? (
-              <DeviceBlockCard
-                onChooseOther={() => {
-                  if (firstPlayableGame) {
-                    setActiveGameId(firstPlayableGame.id);
-                  }
-                }}
-              />
-            ) : (
-              <>
-                {activeGame.mobileSupport === 'limited' && deviceType !== 'desktop' && <LimitedDeviceWarning note={activeGame.mobileNote} />}
-                {renderGame(activeGameId, handleScore)}
-              </>
-            )}
-          </section>
+          )}
 
-          <aside className="self-start">
-            <Leaderboard entries={leaderboard} gameId={activeGameId} />
-          </aside>
+          {activeView === 'profile' && (
+            <div className="space-y-5">
+              <section className="rounded-xl border border-white/10 bg-white/[0.035] p-5">
+                <p className="text-xs font-black uppercase tracking-[0.24em] text-cyan-200">Profile view</p>
+                <h1 className="mt-2 text-3xl font-black text-white">Profil gracza</h1>
+                <p className="mt-2 text-sm text-slate-400">Statystyki, questy, achievementy, historia i poziomy gier w jednym miejscu.</p>
+              </section>
+              <PlayerHub onMilestoneClaim={handleMilestoneClaim} onQuestClaim={handleQuestClaim} onRename={handleRename} profile={profile} revision={revision} />
+            </div>
+          )}
         </div>
-
-        <PlayerHub onMilestoneClaim={handleMilestoneClaim} onQuestClaim={handleQuestClaim} onRename={handleRename} profile={profile} revision={revision} />
       </div>
     </main>
   );

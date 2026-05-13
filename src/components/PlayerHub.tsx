@@ -148,7 +148,7 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
 
   return (
     <section
-      className="mt-6 rounded-xl border border-white/10 bg-white/[0.035] p-4 shadow-[0_0_40px_rgba(34,211,238,0.06)] sm:p-5"
+      className="rounded-xl border border-white/10 bg-white/[0.035] p-4 shadow-[0_0_40px_rgba(34,211,238,0.06)] sm:p-5"
       data-revision={revision}
     >
       <div className="flex flex-col gap-3 border-b border-white/10 pb-4 lg:flex-row lg:items-end lg:justify-between">
