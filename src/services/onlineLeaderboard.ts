@@ -4,6 +4,16 @@ type OnlineLeaderboardResponse = {
   entries?: LeaderboardEntry[];
 };
 
+type SubmitScoreResponse = {
+  ok?: boolean;
+  updated?: boolean;
+  reason?: string;
+  mode?: string;
+  entry?: LeaderboardEntry;
+  score?: LeaderboardEntry;
+  error?: string;
+};
+
 async function readJsonResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const errorText = await response.text();
@@ -30,8 +40,13 @@ export async function submitOnlineScore(scoreEntry: LeaderboardEntry): Promise<L
     },
     body: JSON.stringify(scoreEntry),
   });
-  const data = await readJsonResponse<{ score?: LeaderboardEntry }>(response);
-  return data.score;
+  const data = await readJsonResponse<SubmitScoreResponse>(response);
+
+  if (import.meta.env.DEV) {
+    console.debug('Online score submit response', data);
+  }
+
+  return data.score ?? data.entry;
 }
 
 export async function getOnlineLeaderboard(

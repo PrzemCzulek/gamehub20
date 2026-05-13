@@ -251,8 +251,21 @@ export default function App() {
     }
 
     const scoreGame = games.find((game) => game.id === score.gameId);
+    const canSubmit = scoreGame ? canSubmitScoreForGame(scoreGame, deviceType) : false;
 
-    if (scoreGame && !canSubmitScoreForGame(scoreGame, deviceType)) {
+    if (import.meta.env.DEV) {
+      console.debug('Score submit audit: before saveScore', {
+        gameId: score.gameId,
+        score: score.score,
+        scoreDirection: scoreGame?.scoreDirection,
+        stats: score.stats,
+        meta: score.meta,
+        deviceType,
+        canSubmit,
+      });
+    }
+
+    if (scoreGame && !canSubmit) {
       pushFeedback({
         type: 'quest',
         title: 'Wynik niezapisany',
@@ -332,6 +345,19 @@ export default function App() {
         });
       }
     });
+
+    if (import.meta.env.DEV) {
+      console.debug('Score submit audit: before submitOnlineScore', {
+        gameId: savedScore.gameId,
+        playerId: savedScore.playerId,
+        score: savedScore.score,
+        scoreDirection: scoreGame?.scoreDirection,
+        stats: savedScore.stats,
+        meta: savedScore.meta,
+        deviceType,
+        canSubmit,
+      });
+    }
 
     submitOnlineScore(savedScore).catch((error) => {
       console.warn('Online score submit failed', error);

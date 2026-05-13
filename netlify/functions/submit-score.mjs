@@ -2,6 +2,14 @@ import { getDatabaseUrl, getSql, initializeDatabase, mapScoreRow } from './lib/d
 import { getGame } from './lib/games.mjs';
 import { handleOptions, json } from './lib/http.mjs';
 
+const debugSubmitEnabled = process.env.NODE_ENV !== 'production' || process.env.LEADERBOARD_DEBUG === 'true' || process.env.DEBUG_LEADERBOARD === 'true';
+
+function debugSubmit(payload) {
+  if (debugSubmitEnabled) {
+    console.log('submit-score debug', payload);
+  }
+}
+
 function isPlainObject(value) {
   return value === undefined || (value !== null && typeof value === 'object' && !Array.isArray(value));
 }
@@ -40,7 +48,7 @@ function validateScore(payload) {
 
   if (score !== undefined) {
     if (gameId === 'typing-speed' && score > 300) errors.push('typing-speed score is too high');
-    if (gameId === 'reaction-time' && score < 80) errors.push('reaction-time score is too low');
+    if (gameId === 'reaction-time' && score < 50) errors.push('reaction-time score is too low');
     if (gameId === 'aim-test' && score < 0) errors.push('aim-test score cannot be negative');
   }
 
@@ -242,6 +250,13 @@ export async function handler(event) {
     const game = getGame(value.gameId);
 
     if (errors.length > 0) {
+      debugSubmit({
+        stage: 'validation_failed',
+        game_id: value.gameId,
+        player_id: value.playerId,
+        score: value.score,
+        errors,
+      });
       return json(400, { error: 'Validation failed', details: errors });
     }
 
@@ -266,8 +281,22 @@ export async function handler(event) {
       `,
       [value.playerId, value.gameId, leaderboardScope],
     );
+    const existingScore = existingRow ? Number(existingRow.score) : undefined;
+    const shouldUpdate = !existingRow || isBetterScore(game, value.score, existingScore);
 
-    if (existingRow && !isBetterScore(game, value.score, Number(existingRow.score))) {
+    debugSubmit({
+      stage: 'upsert_decision',
+      game_id: value.gameId,
+      player_id: value.playerId,
+      score: value.score,
+      scoreDirection: game.scoreDirection,
+      leaderboard_scope: leaderboardScope,
+      existingScore,
+      shouldUpdate,
+      reason: existingRow ? (shouldUpdate ? 'better_score' : 'not_best') : 'new_best',
+    });
+
+    if (existingRow && !shouldUpdate) {
       const entry = mapScoreRow(existingRow);
 
       return json(200, {
