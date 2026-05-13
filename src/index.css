@@ -199,6 +199,10 @@ input:focus-visible {
   animation: achievementShine 3.4s ease-in-out infinite;
 }
 
+.quest-ready-pulse {
+  animation: questReadyPulse 1500ms ease-in-out infinite;
+}
+
 @keyframes softPulse {
   0%,
   100% {
@@ -559,6 +563,17 @@ input:focus-visible {
 
   100% {
     transform: translateX(120%);
+  }
+}
+
+@keyframes questReadyPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 14px rgba(34, 211, 238, 0.12);
+  }
+
+  50% {
+    box-shadow: 0 0 26px rgba(34, 211, 238, 0.28);
   }
 }
 

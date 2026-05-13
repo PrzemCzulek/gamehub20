@@ -18,6 +18,7 @@ import { TypingSpeedGame } from './games/TypingSpeedGame';
 import { WordMemoryGame } from './games/WordMemoryGame';
 import { createProgressionEvent } from './progression/events';
 import { claimGameMilestone } from './progression/gameProgress';
+import { claimQuestReward } from './progression/quests';
 import { processProgressionEvent } from './progression/progressionEngine';
 import { preloadAudio } from './services/audio';
 import { submitOnlineScore } from './services/onlineLeaderboard';
@@ -131,9 +132,9 @@ export default function App() {
       if (quest) {
         pushFeedback({
           type: 'quest',
-          title: 'QUEST UKOŃCZONY',
+          title: 'QUEST GOTOWY',
           message: quest.title,
-          detail: `Nagroda: +${quest.rewardXp} XP`,
+          detail: 'Odbierz nagrodę w Player Hub',
         });
       }
     });
@@ -205,6 +206,41 @@ export default function App() {
     refresh();
   }
 
+  function handleQuestClaim(questId: string, periodId: string) {
+    const previousLevel = getProfile().level;
+    const result = claimQuestReward(questId, periodId);
+
+    if (!result.ok) {
+      return;
+    }
+
+    const nextProfile = getProfile();
+
+    pushFeedback({
+      type: 'quest',
+      title: 'QUEST UKOŃCZONY',
+      message: result.quest.title,
+      detail: `+${result.mainXpGained} XP konta`,
+    });
+
+    pushFeedback({
+      type: 'xp',
+      title: '+XP KONTA',
+      message: `+${result.mainXpGained} XP konta`,
+    });
+
+    if (nextProfile.level > previousLevel) {
+      pushFeedback({
+        type: 'level-up',
+        title: 'LEVEL UP',
+        message: `Poziom konta ${nextProfile.level} osiągnięty`,
+        detail: `Quest: ${result.quest.title}`,
+      });
+    }
+
+    refresh();
+  }
+
   return (
     <main className="min-h-screen px-3 py-4 text-slate-100 sm:px-5 lg:px-8">
       <LiveFeed />
@@ -243,7 +279,7 @@ export default function App() {
           </aside>
         </div>
 
-        <PlayerHub onMilestoneClaim={handleMilestoneClaim} onRename={handleRename} profile={profile} revision={revision} />
+        <PlayerHub onMilestoneClaim={handleMilestoneClaim} onQuestClaim={handleQuestClaim} onRename={handleRename} profile={profile} revision={revision} />
       </div>
     </main>
   );

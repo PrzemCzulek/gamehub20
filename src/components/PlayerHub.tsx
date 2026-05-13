@@ -4,6 +4,7 @@ import { gameMilestones } from '../data/gameMilestones';
 import { games } from '../data/games';
 import { questDefinitions } from '../data/quests';
 import { buildPlayerProfileSummary, emptyValueLabel } from '../progression/playerProfile';
+import { getQuestStreak } from '../progression/quests';
 import { getAchievementUnlocks, getQuestProgress } from '../progression/progressionEngine';
 import { playNormalClickSound } from '../services/audio';
 import type { GameId, LocalProfile, PlayerGameProgressSummary } from '../types';
@@ -11,6 +12,7 @@ import { formatPercent } from '../utils/format';
 
 type PlayerHubProps = {
   onMilestoneClaim: (gameId: GameId, milestoneId: string) => void;
+  onQuestClaim: (questId: string, periodId: string) => void;
   onRename: (name: string) => void;
   profile: LocalProfile;
   revision: number;
@@ -48,6 +50,13 @@ const rarityStyles: Record<Rarity, { unlocked: string; locked: string; badge: st
     locked: 'border-violet-300/10 bg-black/20 opacity-65',
     badge: 'border-amber-200/45 text-amber-100 bg-amber-200/10',
   },
+};
+
+const questRarityStyles = {
+  common: 'border-slate-300/20 bg-slate-300/[0.05] text-slate-100',
+  rare: 'border-cyan-300/30 bg-cyan-300/[0.07] text-cyan-100 shadow-[0_0_16px_rgba(34,211,238,0.10)]',
+  epic: 'border-violet-300/35 bg-violet-300/[0.08] text-violet-100 shadow-[0_0_18px_rgba(168,85,247,0.12)]',
+  legendary: 'border-amber-200/40 bg-amber-200/[0.09] text-amber-100 shadow-[0_0_22px_rgba(251,191,36,0.14)]',
 };
 
 function getGameTitle(gameId?: string): string {
@@ -93,11 +102,12 @@ function getMilestoneStatus(gameProgress: PlayerGameProgressSummary, milestoneId
   return gameProgress.level >= levelRequired ? 'ready' : 'locked';
 }
 
-export function PlayerHub({ onMilestoneClaim, onRename, profile, revision }: PlayerHubProps) {
+export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, revision }: PlayerHubProps) {
   const [activeTab, setActiveTab] = useState<PlayerHubTab>('stats');
   const [draftName, setDraftName] = useState(profile.playerName);
   const summary = buildPlayerProfileSummary(profile);
   const questProgress = getQuestProgress();
+  const questStreak = getQuestStreak();
   const achievementUnlocks = getAchievementUnlocks();
   const unlockById = new Map(achievementUnlocks.map((unlock) => [unlock.achievementId, unlock]));
   const unlockedIds = new Set(unlockById.keys());
@@ -352,7 +362,18 @@ export function PlayerHub({ onMilestoneClaim, onRename, profile, revision }: Pla
         )}
 
         {activeTab === 'quests' && (
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="space-y-4">
+            <div className="grid gap-2 text-sm sm:grid-cols-2">
+              <div className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.04] px-4 py-3">
+                <span className="block text-xs uppercase tracking-[0.18em] text-cyan-100">Seria dzienna</span>
+                <strong className="mt-1 block text-white">{questStreak.currentStreak} dni</strong>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-black/20 px-4 py-3">
+                <span className="block text-xs uppercase tracking-[0.18em] text-slate-400">Najlepsza seria</span>
+                <strong className="mt-1 block text-white">{questStreak.bestStreak} dni</strong>
+              </div>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
             {(['daily', 'weekly'] as const).map((type) => (
               <div className="rounded-lg border border-white/10 bg-black/15 p-4" key={type}>
                 <div className="flex flex-wrap items-end justify-between gap-2">
@@ -368,29 +389,72 @@ export function PlayerHub({ onMilestoneClaim, onRename, profile, revision }: Pla
                       const progress = questProgress.find((item) => item.questId === quest.id);
                       const value = progress?.progress ?? 0;
                       const percent = Math.min(100, Math.round((value / quest.target.amount) * 100));
+                      const claimed = Boolean(progress?.isClaimed || progress?.claimedAt);
+                      const ready = Boolean(progress?.completed && !claimed);
+                      const statusLabel = claimed ? 'ODEBRANE' : ready ? 'GOTOWE DO ODBIORU' : 'W TRAKCIE';
 
                       return (
-                        <div className="rounded-md border border-white/5 bg-black/25 px-3 py-2" key={quest.id}>
-                          <div className="flex items-center justify-between gap-3 text-sm">
-                            <span className="font-semibold text-white">{quest.title}</span>
-                            <span className="text-cyan-100">
+                        <div
+                          className={`rounded-lg border px-3 py-3 transition duration-200 hover:-translate-y-0.5 ${
+                            claimed
+                              ? 'border-white/5 bg-black/20 opacity-65'
+                              : ready
+                                ? `${questRarityStyles[quest.rarity]} quest-ready-pulse`
+                                : questRarityStyles[quest.rarity]
+                          }`}
+                          key={quest.id}
+                        >
+                          <div className="flex items-start justify-between gap-3 text-sm">
+                            <span className="flex min-w-0 items-center gap-2 font-semibold text-white">
+                              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-white/10 bg-black/25 text-xs">
+                                {quest.icon ?? 'Q'}
+                              </span>
+                              <span className="min-w-0 truncate">{quest.title}</span>
+                            </span>
+                            <span className="shrink-0 text-cyan-100">
                               {value}/{quest.target.amount}
                             </span>
                           </div>
-                          <p className="mt-1 text-xs text-slate-400">{quest.description}</p>
-                          <div className="mt-2 flex items-center justify-between gap-3 text-xs">
-                            <span className="font-semibold text-amber-100">Nagroda: +{quest.rewardXp} XP</span>
-                            {progress?.completed && <span className="text-teal-200">Ukończony</span>}
+                          <p className="mt-2 text-xs leading-5 text-slate-400">{quest.description}</p>
+                          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <span className="rounded-full border border-amber-200/25 bg-amber-200/10 px-2 py-0.5 font-semibold uppercase text-amber-100">
+                              {quest.rarity} · +{quest.rewardXp} XP konta
+                            </span>
+                            <span className={`font-bold uppercase ${claimed ? 'text-slate-400' : ready ? 'text-cyan-100' : 'text-slate-500'}`}>
+                              {claimed ? '✓ Odebrano' : statusLabel}
+                            </span>
                           </div>
-                          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-                            <div className="h-full rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.45)]" style={{ width: `${percent}%` }} />
+                          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+                            <div
+                              className={`h-full rounded-full transition-all duration-300 ${
+                                ready
+                                  ? 'bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,0.65)]'
+                                  : claimed
+                                    ? 'bg-teal-300/50'
+                                    : 'bg-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.45)]'
+                              }`}
+                              style={{ width: `${percent}%` }}
+                            />
                           </div>
+                          {ready && progress && (
+                            <button
+                              className="mt-3 w-full rounded-md bg-cyan-300 px-3 py-2 text-xs font-extrabold uppercase tracking-[0.16em] text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.22)] transition hover:bg-cyan-200"
+                              onClick={() => {
+                                playNormalClickSound();
+                                onQuestClaim(quest.id, progress.periodId);
+                              }}
+                              type="button"
+                            >
+                              Odbierz
+                            </button>
+                          )}
                         </div>
                       );
                     })}
                 </div>
               </div>
             ))}
+          </div>
           </div>
         )}
 

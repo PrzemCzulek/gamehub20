@@ -50,8 +50,33 @@ export type ProgressionEvent = {
 };
 
 export type QuestType = 'daily' | 'weekly';
-export type QuestCategory = 'accuracy' | 'streak' | 'combo' | 'consistency' | 'flawless' | 'personal_best' | 'participation' | 'xp';
-export type QuestTargetKind = 'games_played' | 'xp_earned' | 'personal_bests' | 'different_games_completed';
+export type QuestRarity = 'common' | 'rare' | 'epic' | 'legendary';
+export type QuestCategory =
+  | 'accuracy'
+  | 'streak'
+  | 'combo'
+  | 'consistency'
+  | 'flawless'
+  | 'personal_best'
+  | 'participation'
+  | 'xp'
+  | 'skill'
+  | 'challenge'
+  | 'exploration';
+export type QuestTargetKind =
+  | 'games_played'
+  | 'xp_earned'
+  | 'personal_bests'
+  | 'different_games_completed'
+  | 'reaction_under_ms'
+  | 'typing_accuracy_over'
+  | 'aim_accuracy_over'
+  | 'word_combo_over'
+  | 'aim_flawless'
+  | 'reaction_valid_runs'
+  | 'symbol_under_moves'
+  | 'memory_level_at_least'
+  | 'benchmark_runs';
 
 export type QuestDefinition = {
   id: string;
@@ -59,6 +84,8 @@ export type QuestDefinition = {
   title: string;
   description: string;
   category: QuestCategory;
+  rarity: QuestRarity;
+  icon?: string;
   rewardXp: number;
   target: {
     kind: QuestTargetKind;
@@ -72,8 +99,16 @@ export type QuestProgress = {
   progress: number;
   completed: boolean;
   completedAt?: string;
+  claimedAt?: string;
+  isClaimed?: boolean;
   updatedAt: string;
   gameIds?: GameId[];
+};
+
+export type QuestStreak = {
+  currentStreak: number;
+  bestStreak: number;
+  lastActiveDay?: string;
 };
 
 export type AchievementRarity = 'common' | 'rare' | 'epic' | 'legendary' | 'hidden';

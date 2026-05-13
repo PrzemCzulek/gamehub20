@@ -1,6 +1,6 @@
 import { evaluateAchievements } from './achievements';
 import { resetGameProgressData, updateGameProgressFromScore } from './gameProgress';
-import { updateQuestProgress } from './quests';
+import { getQuestProgressStorage, questStorageKeys, updateQuestProgress } from './quests';
 import type { AchievementUnlock, PlayerProgression, ProgressionEvent, ProgressionResult, QuestProgress } from './types';
 import { getMainAccountXp, getPlayerProgressionNumbers, resetMainMetaRewardXp } from './xp';
 
@@ -37,8 +37,7 @@ export function getStoredPlayerProgression(): PlayerProgression | null {
 }
 
 export function getQuestProgress(): QuestProgress[] {
-  const progress = readJson<unknown>(QUEST_PROGRESS_KEY, []);
-  return Array.isArray(progress) ? (progress as QuestProgress[]) : [];
+  return getQuestProgressStorage();
 }
 
 export function getAchievementUnlocks(): AchievementUnlock[] {
@@ -100,6 +99,7 @@ export function resetProgressionData(): void {
     localStorage.removeItem(EVENTS_KEY);
     localStorage.removeItem(PLAYER_PROGRESSION_KEY);
     localStorage.removeItem(QUEST_PROGRESS_KEY);
+    localStorage.removeItem(questStorageKeys.streak);
     localStorage.removeItem(ACHIEVEMENT_UNLOCKS_KEY);
     resetGameProgressData();
     resetMainMetaRewardXp();
