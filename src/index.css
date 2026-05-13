@@ -40,8 +40,8 @@ input:focus-visible {
   transform-style: preserve-3d;
   will-change: transform, opacity, filter;
   margin-left: -10rem;
-  margin-top: -9.25rem;
-  min-height: 18.5rem;
+  margin-top: -9.75rem;
+  min-height: 19.5rem;
   background-image:
     linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.92)),
     radial-gradient(circle at 50% 0%, rgba(45, 212, 191, 0.18), transparent 12rem);
@@ -49,7 +49,7 @@ input:focus-visible {
 }
 
 .active-carousel-card {
-  min-height: 20.5rem;
+  min-height: 21.5rem;
   background-image:
     radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.36), transparent 13rem),
     linear-gradient(145deg, rgba(15, 23, 42, 0.98), rgba(10, 18, 32, 0.96));
@@ -657,19 +657,19 @@ input:focus-visible {
 
 @media (max-width: 640px) {
   .game-carousel {
-    height: 24rem;
+    height: 25rem;
   }
 
   .game-carousel-card {
     width: 16.5rem;
-    min-height: 18rem;
+    min-height: 18.75rem;
     margin-left: -8.25rem;
-    margin-top: -9rem;
+    margin-top: -9.375rem;
     padding: 0.9rem;
   }
 
   .active-carousel-card {
-    min-height: 18.5rem;
+    min-height: 19.25rem;
   }
 
   .carousel-visual {
