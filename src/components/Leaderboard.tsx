@@ -531,7 +531,9 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
               return (
                 <div
                   aria-expanded={selected}
-                  className={`group relative overflow-hidden rounded-xl border px-3 py-3 transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300/35 hover:bg-cyan-300/[0.06] hover:shadow-[0_0_22px_rgba(34,211,238,0.12)] focus:outline-none focus-visible:border-cyan-300/45 focus-visible:ring-1 focus-visible:ring-cyan-300/40 ${getRankClass(index, ownEntry)}`}
+                  className={`group relative overflow-hidden rounded-xl border px-3 py-3 transition duration-200 hover:-translate-y-0.5 hover:border-cyan-300/35 hover:bg-cyan-300/[0.06] hover:shadow-[0_0_22px_rgba(34,211,238,0.12)] focus:outline-none focus-visible:border-cyan-300/45 focus-visible:ring-1 focus-visible:ring-cyan-300/40 ${
+                    selected ? 'border-cyan-300/45 bg-cyan-300/[0.07] shadow-[0_0_24px_rgba(34,211,238,0.14)]' : getRankClass(index, ownEntry)
+                  }`}
                   key={entryKey}
                   onClick={() => setActiveProfileKey((current) => (current === entryKey ? null : entryKey))}
                   onKeyDown={(event) => handleRowKeyDown(event, entryKey)}
@@ -543,11 +545,16 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
                     <div className="min-w-0">
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="truncate text-sm font-bold leading-5 text-slate-100">{entry.playerName}</span>
-                        {ownEntry && (
-                          <span className="shrink-0 rounded-full border border-cyan-300/35 bg-cyan-300/10 px-2 py-0.5 text-[0.6rem] font-black uppercase tracking-wide text-cyan-100">
-                            Ty
-                          </span>
-                        )}
+                      {ownEntry && (
+                        <span className="shrink-0 rounded-full border border-cyan-300/35 bg-cyan-300/10 px-2 py-0.5 text-[0.6rem] font-black uppercase tracking-wide text-cyan-100">
+                          Ty
+                        </span>
+                      )}
+                      {selected && (
+                        <span className="shrink-0 rounded-full border border-violet-300/30 bg-violet-300/10 px-2 py-0.5 text-[0.6rem] font-black uppercase tracking-wide text-violet-100">
+                          Profil otwarty
+                        </span>
+                      )}
                       </div>
                       {secondaryInfo.length > 0 && (
                         <p className="mt-1 truncate text-[0.7rem] font-medium leading-4 text-slate-400">{secondaryInfo.join(' • ')}</p>
@@ -559,11 +566,13 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
                     </div>
                   </div>
 
-                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-950/55 opacity-0 backdrop-blur-[1px] transition duration-150 group-hover:opacity-100 group-focus:opacity-100">
-                    <span className="rounded-full border border-cyan-300/35 bg-cyan-300/10 px-3 py-1.5 text-[0.65rem] font-black uppercase tracking-[0.18em] text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.16)]">
-                      Pokaż profil
-                    </span>
-                  </div>
+                  {!selected && (
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-950/55 opacity-0 backdrop-blur-[1px] transition duration-150 group-hover:opacity-100 group-focus:opacity-100">
+                      <span className="rounded-full border border-cyan-300/35 bg-cyan-300/10 px-3 py-1.5 text-[0.65rem] font-black uppercase tracking-[0.18em] text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.16)]">
+                        Pokaż profil
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })
