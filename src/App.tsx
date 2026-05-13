@@ -489,21 +489,32 @@ export default function App() {
 
           {activeView === 'game' && (
             <div className="space-y-4">
-              <section className="flex flex-col gap-3 rounded-xl border border-white/10 bg-slate-950/48 p-3.5 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <button className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-200 transition hover:text-cyan-100" onClick={() => setActiveView('home')} type="button">
-                    ← Powrót do hubu
+              <section className="flex flex-col gap-2 rounded-xl border border-white/10 bg-slate-950/48 px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+                  <button
+                    className="inline-flex w-fit items-center rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:border-cyan-200/50 hover:bg-cyan-300/16"
+                    onClick={() => setActiveView('home')}
+                    type="button"
+                  >
+                    ← Lobby
                   </button>
-                  <h1 className="mt-1.5 truncate text-3xl font-black text-white">{activeGame.title}</h1>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {activeGame.tags?.slice(0, 4).map((tag) => (
-                      <span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[0.65rem] font-bold uppercase text-slate-300" key={tag}>
-                        {tag}
-                      </span>
-                    ))}
+                  <div className="min-w-0">
+                    <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-slate-500">
+                      Hub / <span className="text-cyan-200">{activeGame.title}</span>
+                    </p>
+                    <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2">
+                      <h1 className="truncate text-2xl font-black text-white sm:text-3xl">{activeGame.title}</h1>
+                      {activeGame.tags?.slice(0, 4).map((tag) => (
+                        <span className="rounded-full border border-white/10 bg-white/[0.045] px-2 py-0.5 text-[0.58rem] font-bold uppercase tracking-wide text-slate-400" key={tag}>
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                <div className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.05] px-3 py-2 text-sm text-cyan-50">Focus · {activeGame.scoreName}</div>
+                <div className="w-fit rounded-full border border-cyan-300/15 bg-cyan-300/[0.06] px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-cyan-50">
+                  {activeGame.scoreName}
+                </div>
               </section>
 
               <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_21rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
