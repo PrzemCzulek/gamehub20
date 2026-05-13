@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { GameStartOverlay } from '../components/game/GameStartOverlay';
 import { playNormalClickSound } from '../services/audio';
 import type { ScoreInput } from '../types';
 import { getColorSimilarity } from '../utils/colorSimilarity';
@@ -86,6 +87,10 @@ function getSimilarityFeedbackClass(similarity: number): string {
   }
 
   return 'border-red-300/45 bg-red-400/10 text-red-100 shadow-[0_0_20px_rgba(248,113,113,0.12)]';
+}
+
+function isSameColor(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
 }
 
 export function ColorMemoryGame({ onScore }: ColorMemoryGameProps) {
@@ -206,32 +211,59 @@ export function ColorMemoryGame({ onScore }: ColorMemoryGameProps) {
           <span className="rounded-md bg-black/20 px-3 py-2 text-slate-300">Próg: {formatPercent(lastRequired)}</span>
           <span className="rounded-md bg-black/20 px-3 py-2 text-slate-300">Podgląd: {showDurationSeconds}s</span>
         </div>
-        <button
-          className="rounded-lg bg-teal-300 px-5 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-teal-950/40 transition hover:scale-105 hover:bg-teal-200"
-          onClick={() => {
-            playNormalClickSound();
-            startRound(1);
-          }}
-          type="button"
-        >
-          Start
-        </button>
+        {stage !== 'idle' && (
+          <button
+            className="rounded-lg border border-white/15 px-4 py-2 text-sm font-semibold text-white transition hover:scale-105 hover:bg-white/10"
+            onClick={() => {
+              playNormalClickSound();
+              startRound(1);
+            }}
+            type="button"
+          >
+            Restart
+          </button>
+        )}
       </div>
 
-      <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+      <div className="relative overflow-hidden rounded-lg border border-white/10 bg-black/20 p-4">
         <div
-          className="flex h-48 items-center justify-center rounded-lg border border-white/10 text-center text-sm font-semibold text-white sm:h-64"
+          className={`flex h-48 items-center justify-center rounded-lg border border-white/10 text-center text-sm font-semibold text-white transition duration-200 sm:h-64 ${
+            stage === 'idle' ? 'scale-[0.99] opacity-50 blur-[1px]' : stage === 'showing' ? 'color-memory-pulse' : ''
+          }`}
           style={{ backgroundColor: stage === 'showing' ? targetColor : '#111827' }}
         >
-          <span className="rounded-md bg-black/30 px-4 py-2 text-lg">{stageLabel}</span>
+          <span
+            className={`rounded-md px-4 py-2 text-lg shadow-[0_0_18px_rgba(0,0,0,0.25)] ${
+              stage === 'showing' ? 'bg-black/40 text-white' : stage === 'choosing' ? 'bg-cyan-300/10 text-cyan-100' : 'bg-black/35'
+            }`}
+          >
+            {stageLabel}
+          </span>
         </div>
+        {stage === 'idle' && (
+          <GameStartOverlay
+            buttonLabel="Start"
+            description="Zapamiętaj kolor, a potem odtwórz go jak najdokładniej."
+            onStart={() => {
+              playNormalClickSound();
+              startRound(1);
+            }}
+            title="Gotowy na próbę koloru?"
+          />
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[14rem_1fr]">
-        <label className="rounded-lg border border-white/10 bg-black/20 p-4">
+        <label
+          className={`rounded-lg border bg-black/20 p-4 transition ${
+            stage === 'choosing'
+              ? 'border-cyan-300/30 shadow-[0_0_24px_rgba(34,211,238,0.10)]'
+              : 'border-white/10 opacity-65'
+          }`}
+        >
           <span className="text-sm font-semibold text-white">Twój kolor</span>
           <input
-            className="mt-3 h-16 w-full cursor-pointer rounded-md border border-white/10 bg-transparent"
+            className="mt-3 h-16 w-full cursor-pointer rounded-md border border-white/10 bg-transparent transition disabled:cursor-not-allowed disabled:opacity-45"
             disabled={stage !== 'choosing'}
             onChange={(event) => setSelectedColor(event.target.value)}
             type="color"
@@ -240,13 +272,17 @@ export function ColorMemoryGame({ onScore }: ColorMemoryGameProps) {
           <span className="mt-3 block text-sm text-slate-400">{selectedColor.toUpperCase()}</span>
         </label>
 
-        <div className="rounded-lg border border-white/10 bg-black/20 p-4">
+        <div className={`rounded-lg border bg-black/20 p-4 transition ${stage === 'choosing' ? 'border-white/15' : 'border-white/10 opacity-65'}`}>
           <p className="text-sm font-semibold text-white">Szybkie presety</p>
           <div className="mt-3 grid grid-cols-4 gap-3 sm:grid-cols-8">
             {presets.map((color) => (
               <button
                 aria-label={`Wybierz ${color}`}
-                className="h-12 rounded-md border border-white/20 transition hover:scale-105 disabled:opacity-50"
+                className={`h-12 rounded-md border transition hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 ${
+                  isSameColor(color, selectedColor)
+                    ? 'border-white ring-2 ring-cyan-200 shadow-[0_0_22px_rgba(34,211,238,0.28)]'
+                    : 'border-white/20 hover:border-white/60'
+                }`}
                 disabled={stage !== 'choosing'}
                 key={color}
                 onClick={() => {
@@ -254,6 +290,7 @@ export function ColorMemoryGame({ onScore }: ColorMemoryGameProps) {
                   setSelectedColor(color);
                 }}
                 style={{ backgroundColor: color }}
+                title={color.toUpperCase()}
                 type="button"
               />
             ))}
@@ -262,8 +299,8 @@ export function ColorMemoryGame({ onScore }: ColorMemoryGameProps) {
       </div>
 
       {lastSimilarity !== null && (
-        <div className={`rounded-lg border p-4 text-sm transition duration-200 ${getSimilarityFeedbackClass(lastSimilarity)}`}>
-          <p>
+        <div className={`feedback-toast rounded-lg border p-4 text-sm transition duration-200 ${getSimilarityFeedbackClass(lastSimilarity)}`}>
+          <p className="text-base font-bold">
             Podobieństwo: <strong className="text-white">{formatPercent(lastSimilarity)}</strong>, wymagane:{' '}
             <strong className="text-white">{formatPercent(lastRequired)}</strong>
           </p>
