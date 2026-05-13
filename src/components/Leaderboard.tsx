@@ -430,8 +430,8 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   }
 
   return (
-    <section ref={panelRef} className="rounded-xl border border-cyan-300/15 bg-white/[0.04] p-4 shadow-[0_0_32px_rgba(34,211,238,0.06)]">
-      <div className="flex flex-col gap-3">
+    <section ref={panelRef} className="rounded-xl border border-cyan-300/15 bg-slate-950/45 p-3.5 shadow-[0_0_28px_rgba(34,211,238,0.055)]">
+      <div className="flex flex-col gap-2.5">
         <div>
           <p className="text-[0.65rem] font-black uppercase tracking-[0.25em] text-cyan-200">Leaderboard</p>
           <h2 className="mt-1 text-lg font-black uppercase tracking-wide text-white">Ranking</h2>
@@ -514,8 +514,8 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
         </div>
       )}
 
-      <div className="relative mt-4 min-h-[13rem]">
-        <div className={`max-h-[31rem] space-y-2 overflow-y-auto pr-1 transition duration-200 ${onlineLoading ? 'opacity-45 blur-[1px]' : 'opacity-100 blur-0'}`}>
+      <div className="relative mt-3 min-h-[12rem]">
+        <div className={`max-h-[28rem] space-y-2 overflow-y-auto pr-1 transition duration-200 ${onlineLoading ? 'opacity-45 blur-[1px]' : 'opacity-100 blur-0'}`}>
           {visibleEntries.length === 0 && !onlineLoading ? (
             <p className="rounded-md border border-dashed border-white/10 p-4 text-sm leading-6 text-slate-400">
               {usingOnline ? 'Brak wyników online dla tej gry.' : 'Brak wyników dla tej gry. Zagraj rundę, aby dodać pierwszy wpis.'}
@@ -531,7 +531,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
               return (
                 <div
                   aria-expanded={selected}
-                  className={`leaderboard-row group relative overflow-hidden rounded-xl border px-3 py-3 transition duration-200 hover:border-cyan-300/35 hover:bg-cyan-300/[0.06] hover:shadow-[0_0_22px_rgba(34,211,238,0.12)] focus:outline-none focus-visible:border-cyan-300/45 focus-visible:ring-1 focus-visible:ring-cyan-300/40 ${
+                  className={`leaderboard-row group relative overflow-hidden rounded-xl border px-3 py-2.5 transition duration-200 hover:border-cyan-300/35 hover:bg-cyan-300/[0.06] hover:shadow-[0_0_18px_rgba(34,211,238,0.10)] focus:outline-none focus-visible:border-cyan-300/45 focus-visible:ring-1 focus-visible:ring-cyan-300/40 ${
                     selected ? 'border-cyan-300/45 bg-cyan-300/[0.07] shadow-[0_0_24px_rgba(34,211,238,0.14)]' : getRankClass(index, ownEntry)
                   }`}
                   key={entryKey}

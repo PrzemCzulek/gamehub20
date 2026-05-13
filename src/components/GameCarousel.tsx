@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
+import type { CSSProperties, KeyboardEvent } from 'react';
 import { playClickSound, playHoverSound } from '../services/audio';
 import type { GameConfig, GameId, MobileSupport } from '../types';
 
@@ -12,7 +13,7 @@ type GameCarouselProps = {
 const gameVisuals: Record<GameId, string> = {
   'reaction-time': '⚡',
   'memory-test': '▦',
-  'color-memory': '◉',
+  'color-memory': '◎',
   'typing-speed': '⌨',
   'symbol-match': '★',
   'aim-test': '◎',
@@ -68,7 +69,7 @@ function getTransform(offset: number): string {
   return `translateX(${direction * 430}px) scale(0.68) rotateY(${direction * -32}deg)`;
 }
 
-function getCardStyle(offset: number): React.CSSProperties {
+function getCardStyle(offset: number): CSSProperties {
   const absOffset = Math.abs(offset);
 
   return {
@@ -144,7 +145,7 @@ export function GameCarousel({ games, activeGameId, onOpenGame, onSelectGame }: 
     };
   });
 
-  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === 'ArrowLeft') {
       event.preventDefault();
       selectByDelta(-1);
@@ -157,8 +158,8 @@ export function GameCarousel({ games, activeGameId, onOpenGame, onSelectGame }: 
   }
 
   return (
-    <section className="pb-4 pt-6" aria-label="Wybór gry">
-      <div className="mb-5 grid gap-4 md:grid-cols-[1fr_auto_1fr] md:items-center">
+    <section className="pb-3 pt-4" aria-label="Wybór gry">
+      <div className="mb-4 grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
         <div className="hidden md:block" />
         <div className="text-center">
           <h2 className="text-2xl font-semibold text-white">Wybierz grę</h2>
@@ -167,7 +168,7 @@ export function GameCarousel({ games, activeGameId, onOpenGame, onSelectGame }: 
         <div className="flex justify-center gap-2 md:justify-end">
           <button
             aria-label="Poprzednia gra"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-cyan-300/30 bg-cyan-300/10 text-2xl text-cyan-100 shadow-lg shadow-cyan-950/30 hover:bg-cyan-300/20"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-cyan-300/30 bg-cyan-300/10 text-2xl text-cyan-100 shadow-lg shadow-cyan-950/30 transition hover:bg-cyan-300/20"
             onClick={() => selectByDelta(-1)}
             onMouseEnter={playHoverSound}
             type="button"
@@ -176,7 +177,7 @@ export function GameCarousel({ games, activeGameId, onOpenGame, onSelectGame }: 
           </button>
           <button
             aria-label="Następna gra"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-cyan-300/30 bg-cyan-300/10 text-2xl text-cyan-100 shadow-lg shadow-cyan-950/30 hover:bg-cyan-300/20"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-cyan-300/30 bg-cyan-300/10 text-2xl text-cyan-100 shadow-lg shadow-cyan-950/30 transition hover:bg-cyan-300/20"
             onClick={() => selectByDelta(1)}
             onMouseEnter={playHoverSound}
             type="button"
@@ -188,7 +189,7 @@ export function GameCarousel({ games, activeGameId, onOpenGame, onSelectGame }: 
 
       <div
         ref={carouselRef}
-        className="game-carousel relative h-[29rem] overflow-hidden rounded-xl border border-cyan-300/10 bg-slate-950/70 outline-none"
+        className="game-carousel relative h-[28.5rem] overflow-hidden rounded-xl border border-cyan-300/10 bg-slate-950/70 outline-none"
         onKeyDown={handleKeyDown}
         tabIndex={0}
       >

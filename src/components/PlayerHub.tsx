@@ -148,13 +148,14 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
 
   return (
     <section
-      className="rounded-xl border border-white/10 bg-white/[0.035] p-4 shadow-[0_0_40px_rgba(34,211,238,0.06)] sm:p-5"
+      className="rounded-2xl border border-white/10 bg-slate-950/42 p-4 shadow-[0_0_40px_rgba(34,211,238,0.06)] sm:p-5"
       data-revision={revision}
     >
-      <div className="flex flex-col gap-3 border-b border-white/10 pb-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex flex-col gap-3 border-b border-white/10 pb-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200">PLAYER HUB</p>
-          <h2 className="mt-1 text-2xl font-bold text-white">Profil gracza</h2>
+          <h2 className="mt-1 text-2xl font-black text-white">Profil gracza</h2>
+          <p className="mt-1 text-sm text-slate-400">Identity, progres i historia wyników w układzie gotowym pod przyszłe mini-profile.</p>
         </div>
         <div className="grid grid-cols-3 gap-2 text-xs sm:min-w-[24rem]">
           <div className="rounded-md border border-white/10 bg-black/25 px-3 py-2">
@@ -172,10 +173,10 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap gap-2 rounded-xl border border-white/10 bg-black/20 p-1.5">
         {tabs.map((tab) => (
           <button
-            className={`rounded-md border px-4 py-2 text-sm font-semibold transition ${
+            className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
               activeTab === tab.id
                 ? 'border-cyan-300 bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.22)]'
                 : 'border-white/10 text-slate-300 hover:bg-white/10'
@@ -195,7 +196,7 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
       <div className="mt-5">
         {activeTab === 'stats' && (
           <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
-            <div>
+            <div className="rounded-xl border border-white/10 bg-black/18 p-4">
               <form
                 className="mb-4 flex gap-2"
                 onSubmit={(event) => {
@@ -226,7 +227,7 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
               </div>
             </div>
 
-            <div>
+            <div className="rounded-xl border border-white/10 bg-black/18 p-4">
               <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-300">Highlighty</h3>
               <div className="mt-3 space-y-2 text-sm">
                 {highlights.map((item) => (
@@ -237,7 +238,7 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
               </div>
             </div>
 
-            <div className="rounded-lg border border-cyan-300/10 bg-black/15 p-4 lg:col-span-2">
+            <div className="rounded-xl border border-cyan-300/10 bg-black/18 p-4 lg:col-span-2">
               <div className="flex flex-wrap items-end justify-between gap-2">
                 <div>
                   <h3 className="text-sm font-semibold uppercase tracking-wide text-cyan-100">Poziomy gier</h3>

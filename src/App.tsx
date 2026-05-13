@@ -63,7 +63,7 @@ function getGameTitle(gameId: GameId): string {
 
 function DeviceBlockCard({ onChooseOther }: { onChooseOther: () => void }) {
   return (
-    <div className="rounded-xl border border-fuchsia-300/20 bg-slate-950/70 p-6 text-center shadow-[0_0_34px_rgba(168,85,247,0.12)]">
+    <div className="rounded-xl border border-fuchsia-300/20 bg-slate-950/70 p-5 text-center shadow-[0_0_34px_rgba(168,85,247,0.12)]">
       <p className="text-xs font-bold uppercase tracking-[0.22em] text-fuchsia-100">Desktop wymagany</p>
       <h3 className="mt-3 text-2xl font-bold text-white">Ta gra jest zablokowana na mobile/tablet</h3>
       <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-300">
@@ -105,17 +105,17 @@ function TopBar({
   revision: number;
 }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-cyan-300/10 bg-slate-950/82 shadow-[0_10px_40px_rgba(2,6,23,0.28)] backdrop-blur-xl">
-      <div className="mx-auto grid w-full max-w-7xl gap-3 px-3 py-2.5 sm:px-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:px-8">
-        <div className="flex min-w-0 flex-wrap items-center gap-5">
+    <header className="sticky top-0 z-30 border-b border-cyan-300/10 bg-slate-950/86 shadow-[0_10px_34px_rgba(2,6,23,0.26)] backdrop-blur-xl">
+      <div className="mx-auto grid w-full max-w-7xl gap-2 px-3 py-1.5 sm:px-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:px-8">
+        <div className="flex min-w-0 flex-wrap items-center gap-4">
           <button className="text-left" onClick={() => onViewChange('home')} type="button">
-            <span className="block text-sm font-black uppercase tracking-[0.32em] text-teal-200">GAME HUB 2.0</span>
-            <span className="mt-1 block text-[0.65rem] font-bold uppercase tracking-[0.22em] text-slate-500">Skill Arcade Network</span>
+            <span className="block text-sm font-black uppercase tracking-[0.28em] text-teal-200">GAME HUB 2.0</span>
+            <span className="mt-0.5 block text-[0.6rem] font-bold uppercase tracking-[0.2em] text-slate-500">Skill Arcade Network</span>
           </button>
-          <nav className="flex flex-wrap gap-2 rounded-full border border-white/10 bg-white/[0.025] p-1">
+          <nav className="flex flex-wrap gap-1.5 rounded-full border border-white/10 bg-white/[0.025] p-1">
             {(['home', 'profile'] as const).map((view) => (
               <button
-                className={`relative rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition duration-200 ${
+                className={`relative rounded-full border px-3 py-1.5 text-[0.68rem] font-bold uppercase tracking-wide transition duration-200 ${
                   activeView === view
                     ? 'border-cyan-300/50 bg-cyan-300/15 text-cyan-100 shadow-[0_0_16px_rgba(34,211,238,0.18)] after:absolute after:inset-x-3 after:-bottom-1 after:h-px after:bg-cyan-300 after:shadow-[0_0_10px_rgba(34,211,238,0.8)]'
                     : 'border-transparent text-slate-400 hover:border-cyan-300/20 hover:bg-cyan-300/5 hover:text-white'
@@ -128,7 +128,7 @@ function TopBar({
               </button>
             ))}
             {activeView === 'game' && (
-              <span className="rounded-full border border-violet-300/25 bg-violet-300/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-violet-100 shadow-[0_0_14px_rgba(168,85,247,0.12)]">
+              <span className="rounded-full border border-violet-300/25 bg-violet-300/10 px-3 py-1.5 text-[0.68rem] font-bold uppercase tracking-wide text-violet-100 shadow-[0_0_14px_rgba(168,85,247,0.12)]">
                 {activeGameTitle}
               </span>
             )}
@@ -142,19 +142,19 @@ function TopBar({
 
 function CategoryFoundation({ selectedCategory, onSelect }: { selectedCategory: string | null; onSelect: (category: string | null) => void }) {
   return (
-    <section className="rounded-xl border border-white/10 bg-white/[0.035] p-4 shadow-[0_0_28px_rgba(34,211,238,0.04)]">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <section className="rounded-xl border border-white/10 bg-slate-950/45 p-3.5 shadow-[0_0_28px_rgba(34,211,238,0.04)]">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.24em] text-cyan-200">Kategorie</p>
-          <h2 className="mt-1 text-xl font-bold text-white">Arcade lanes</h2>
+          <h2 className="mt-0.5 text-lg font-bold text-white">Arcade lanes</h2>
         </div>
         <p className="text-sm text-slate-400">Foundation pod filtry, playlisty i rekomendacje.</p>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
         <button
-          className={`rounded-full border px-3 py-2 text-xs font-bold uppercase tracking-wide transition duration-200 ${
+          className={`relative rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition duration-200 ${
             selectedCategory === null
-              ? 'border-cyan-300 bg-cyan-300 text-slate-950 shadow-[0_0_16px_rgba(34,211,238,0.18)]'
+              ? 'border-cyan-300 bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.24)] after:absolute after:inset-x-3 after:-bottom-1 after:h-px after:bg-white/80'
               : 'border-white/10 bg-black/15 text-slate-300 hover:border-cyan-300/25 hover:bg-cyan-300/10 hover:text-white'
           }`}
           onClick={() => onSelect(null)}
@@ -167,9 +167,9 @@ function CategoryFoundation({ selectedCategory, onSelect }: { selectedCategory: 
 
           return (
             <button
-              className={`rounded-full border px-3 py-2 text-xs font-bold uppercase tracking-wide transition duration-200 ${
+              className={`relative rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition duration-200 ${
                 selectedCategory === category.id
-                  ? 'border-cyan-300 bg-cyan-300 text-slate-950 shadow-[0_0_16px_rgba(34,211,238,0.2)]'
+                  ? 'border-cyan-300 bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.24)] after:absolute after:inset-x-3 after:-bottom-1 after:h-px after:bg-white/80'
                   : 'border-white/10 bg-black/20 text-slate-300 hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-white'
               }`}
               key={category.id}
@@ -427,31 +427,36 @@ export default function App() {
       {needsNick && <FirstRunNickModal onSubmit={handleFirstRunName} />}
       <TopBar activeGameTitle={activeGame.title} activeView={activeView} onReset={handleResetLocalData} onViewChange={setActiveView} profile={profile} revision={revision} />
 
-      <div className="mx-auto w-full max-w-7xl px-3 py-5 sm:px-5 lg:px-8">
+      <div className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-5 lg:px-8">
         <div className="view-fade">
           {activeView === 'home' && (
-            <div className="space-y-5 sm:space-y-6">
-              <section className="grid gap-4 rounded-2xl border border-cyan-300/10 bg-white/[0.035] p-4 shadow-[0_0_45px_rgba(34,211,238,0.06)] sm:p-5 lg:grid-cols-[1.18fr_0.82fr] lg:items-center">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.32em] text-cyan-200">Arcade hub</p>
-                  <h1 className="mt-3 max-w-3xl text-3xl font-black tracking-tight text-white sm:text-5xl">Skill games, rankingi i progres w jednym lobby.</h1>
-                  <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-400">
-                    Wybierz grę z karuzeli, wskocz w focus mode albo przejdź do profilu, żeby odebrać questy i milestone'y.
-                  </p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-                  <div className="rounded-xl border border-white/10 bg-black/25 p-4">
-                    <span className="text-xs uppercase tracking-wide text-slate-500">Rozegrane</span>
-                    <strong className="mt-1 block text-2xl text-white">{profile.totalScoreEntries}</strong>
+            <div className="space-y-4 sm:space-y-5">
+              <section className="relative overflow-hidden rounded-2xl border border-cyan-300/10 bg-slate-950/50 p-4 shadow-[0_0_45px_rgba(34,211,238,0.06)] sm:p-5">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.18),transparent_22rem),radial-gradient(circle_at_92%_20%,rgba(168,85,247,0.16),transparent_20rem)]" />
+                <div className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-center">
+                  <div>
+                    <div className="inline-flex rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.22em] text-cyan-100">
+                      Daily arcade
+                    </div>
+                    <h1 className="mt-3 max-w-3xl text-3xl font-black tracking-tight text-white sm:text-4xl">Skill Arcade Network</h1>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+                      Wybierz grę, wejdź w focus mode i buduj progres bez przebijania się przez długie dashboardy.
+                    </p>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-black/25 p-4">
-                    <span className="text-xs uppercase tracking-wide text-slate-500">Poziom konta</span>
-                    <strong className="mt-1 block text-2xl text-white">L{profile.level}</strong>
-                  </div>
-                  <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4 shadow-[0_0_20px_rgba(34,211,238,0.08)]">
-                    <span className="text-xs uppercase tracking-wide text-cyan-100">Daily challenge</span>
-                    <strong className="mt-1 block truncate text-sm text-white">{dailyQuest?.title ?? 'Brak aktywnego questa'}</strong>
-                    <span className="mt-1 block text-xs text-slate-400">{dailyProgress ? `${dailyProgress.progress}/${dailyQuest?.target.amount ?? 1}` : 'Czeka na progres'}</span>
+                  <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
+                    <div className="rounded-xl border border-white/10 bg-black/25 px-4 py-3">
+                      <span className="text-xs uppercase tracking-wide text-slate-500">Rozegrane</span>
+                      <strong className="mt-1 block text-2xl text-white">{profile.totalScoreEntries}</strong>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-black/25 px-4 py-3">
+                      <span className="text-xs uppercase tracking-wide text-slate-500">Poziom konta</span>
+                      <strong className="mt-1 block text-2xl text-white">L{profile.level}</strong>
+                    </div>
+                    <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] px-4 py-3 shadow-[0_0_20px_rgba(34,211,238,0.08)]">
+                      <span className="text-xs uppercase tracking-wide text-cyan-100">Featured challenge</span>
+                      <strong className="mt-1 block truncate text-sm text-white">{dailyQuest?.title ?? 'Brak aktywnego questa'}</strong>
+                      <span className="mt-1 block text-xs text-slate-400">{dailyProgress ? `${dailyProgress.progress}/${dailyQuest?.target.amount ?? 1}` : 'Czeka na progres'}</span>
+                    </div>
                   </div>
                 </div>
               </section>
@@ -459,7 +464,7 @@ export default function App() {
               <GameCarousel activeGameId={activeGameId} games={games} onOpenGame={handleOpenGame} onSelectGame={setActiveGameId} />
               <CategoryFoundation selectedCategory={selectedCategory} onSelect={setSelectedCategory} />
 
-              <section className="grid gap-4 lg:grid-cols-3">
+              <section className="grid gap-3 lg:grid-cols-3">
                 <div className="rounded-xl border border-white/10 bg-black/20 p-4">
                   <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">Featured mode</p>
                   <h3 className="mt-2 text-lg font-bold text-white">{activeGame.title}</h3>
@@ -485,13 +490,13 @@ export default function App() {
           )}
 
           {activeView === 'game' && (
-            <div className="space-y-5">
-              <section className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-4">
+              <section className="flex flex-col gap-3 rounded-xl border border-white/10 bg-slate-950/48 p-3.5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <button className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-200 transition hover:text-cyan-100" onClick={() => setActiveView('home')} type="button">
                     ← Powrót do hubu
                   </button>
-                  <h1 className="mt-2 truncate text-3xl font-black text-white">{activeGame.title}</h1>
+                  <h1 className="mt-1.5 truncate text-3xl font-black text-white">{activeGame.title}</h1>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {activeGame.tags?.slice(0, 4).map((tag) => (
                       <span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[0.65rem] font-bold uppercase text-slate-300" key={tag}>
@@ -500,12 +505,12 @@ export default function App() {
                     ))}
                   </div>
                 </div>
-                <div className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.05] px-4 py-3 text-sm text-cyan-50">Focus mode · {activeGame.scoreName}</div>
+                <div className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.05] px-3 py-2 text-sm text-cyan-50">Focus mode · {activeGame.scoreName}</div>
               </section>
 
-              <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_23rem]">
+              <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_21rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
                 <section className="game-panel min-w-0 self-start rounded-lg border border-white/10 bg-white/[0.04] p-4 sm:p-5">
-                  <div className="mb-5 flex flex-col gap-2 border-b border-white/10 pb-4 sm:flex-row sm:items-end sm:justify-between">
+                  <div className="mb-4 flex flex-col gap-2 border-b border-white/10 pb-4 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                       <h2 className="text-2xl font-semibold text-white">{activeGame.title}</h2>
                       <p className="mt-1 text-sm text-slate-400">{activeGame.description}</p>
@@ -529,12 +534,12 @@ export default function App() {
                   )}
                 </section>
 
-                <aside className="space-y-4 self-start lg:sticky lg:top-28">
+                <aside className="space-y-3 self-start lg:sticky lg:top-24">
                   <Leaderboard entries={leaderboard} gameId={activeGameId} />
-                  <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                  <div className="rounded-xl border border-white/10 bg-black/20 p-3.5">
                     <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Game info</p>
                     <p className="mt-2 text-sm text-slate-300">{activeGame.mobileNote ?? 'Pełne wsparcie dla aktualnego urządzenia.'}</p>
-                    <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.04] p-3 text-xs text-slate-400">Future space: modifiers, seasons, playlists, 1v1.</div>
+                    <div className="mt-3 rounded-lg border border-white/10 bg-white/[0.04] p-3 text-xs text-slate-400">Future space: modifiers, seasons, playlists, 1v1.</div>
                   </div>
                 </aside>
               </div>
@@ -542,10 +547,10 @@ export default function App() {
           )}
 
           {activeView === 'profile' && (
-            <div className="space-y-5">
-              <section className="rounded-xl border border-white/10 bg-white/[0.035] p-5">
+            <div className="space-y-4">
+              <section className="rounded-xl border border-white/10 bg-slate-950/48 p-4">
                 <p className="text-xs font-black uppercase tracking-[0.24em] text-cyan-200">Profile view</p>
-                <h1 className="mt-2 text-3xl font-black text-white">Profil gracza</h1>
+                <h1 className="mt-1.5 text-3xl font-black text-white">Profil gracza</h1>
                 <p className="mt-2 text-sm text-slate-400">Statystyki, questy, achievementy, historia i poziomy gier w jednym miejscu.</p>
               </section>
               <PlayerHub onMilestoneClaim={handleMilestoneClaim} onQuestClaim={handleQuestClaim} onRename={handleRename} profile={profile} revision={revision} />
