@@ -182,7 +182,7 @@ export function GameCarousel({ games, activeGameId, onSelectGame }: GameCarousel
 
       <div
         ref={carouselRef}
-        className="game-carousel relative h-96 overflow-hidden rounded-xl border border-cyan-300/10 bg-slate-950/70 outline-none"
+        className="game-carousel relative h-[27.5rem] overflow-hidden rounded-xl border border-cyan-300/10 bg-slate-950/70 outline-none"
         onKeyDown={handleKeyDown}
         tabIndex={0}
       >
@@ -198,7 +198,7 @@ export function GameCarousel({ games, activeGameId, onSelectGame }: GameCarousel
           return (
             <button
               aria-current={active ? 'true' : undefined}
-              className={`game-carousel-card absolute left-1/2 top-1/2 w-80 rounded-xl border p-5 text-left shadow-xl transition-all duration-300 ${
+              className={`game-carousel-card absolute left-1/2 top-1/2 w-80 rounded-xl border p-4 text-left shadow-xl transition-all duration-300 ${
                 active
                   ? 'active-carousel-card border-cyan-200 bg-slate-900 shadow-cyan-950/60'
                   : 'border-white/15 bg-slate-900/90 shadow-black/40 hover:border-cyan-200/50'
@@ -210,7 +210,7 @@ export function GameCarousel({ games, activeGameId, onSelectGame }: GameCarousel
               style={getCardStyle(offset)}
               type="button"
             >
-              <div className="mb-4 flex min-h-6 items-center justify-between gap-3">
+              <div className="mb-3 flex min-h-6 items-center justify-between gap-3">
                 <span
                   className={`rounded-full border px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.14em] shadow-sm backdrop-blur ${support.className}`}
                   title={game.mobileNote}
@@ -226,11 +226,11 @@ export function GameCarousel({ games, activeGameId, onSelectGame }: GameCarousel
                   {game.id === 'color-memory' ? '' : gameVisuals[game.id]}
                 </span>
               </div>
-              <h3 className="mt-5 text-2xl font-semibold text-white">{game.title}</h3>
-              <p className="mt-3 min-h-20 text-sm leading-6 text-slate-300">{game.description}</p>
+              <h3 className="mt-4 text-2xl font-semibold text-white">{game.title}</h3>
+              <p className="mt-2 min-h-20 text-sm leading-6 text-slate-300">{game.description}</p>
               {game.mobileNote && <p className="mt-2 line-clamp-2 text-xs leading-5 text-amber-100/80">{game.mobileNote}</p>}
               <span
-                className={`mt-4 inline-flex rounded-md px-3 py-1 text-xs font-semibold uppercase tracking-wide ${
+                className={`mt-3 inline-flex rounded-md px-3 py-1 text-xs font-semibold uppercase tracking-wide ${
                   active ? 'bg-fuchsia-400/20 text-fuchsia-100' : 'bg-white/10 text-slate-200'
                 }`}
               >
