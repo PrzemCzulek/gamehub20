@@ -137,7 +137,7 @@ function MiniScoreTile({ title, value, metric }: { title: string; value?: string
 
 function RewardCard({ onUpdate, reward }: { onUpdate: () => void; reward: RewardDefinition }) {
   const status = getRewardStatus(reward);
-  const cosmetic = getCosmetic(reward.reward.id);
+  const cosmetic = getCosmetic(reward.reward.id, reward.reward.type);
   const equippedCosmetics = getEquippedCosmetics();
   const isEquipped = equippedCosmetics[reward.reward.type] === reward.reward.id;
   const ready = status === 'ready';
@@ -243,9 +243,9 @@ function RewardSection({ onUpdate, rewards, title }: { onUpdate: () => void; rew
 function ActiveCosmeticsSection() {
   const equippedCosmetics = getEquippedCosmetics();
   const activeCosmetics = [
-    { label: 'Title', cosmetic: getCosmetic(equippedCosmetics.title) },
-    { label: 'Frame', cosmetic: getCosmetic(equippedCosmetics.frame) },
-    { label: 'Badge', cosmetic: getCosmetic(equippedCosmetics.badge) },
+    { label: 'Title', cosmetic: getCosmetic(equippedCosmetics.title, 'title') },
+    { label: 'Frame', cosmetic: getCosmetic(equippedCosmetics.frame, 'frame') },
+    { label: 'Badge', cosmetic: getCosmetic(equippedCosmetics.badge, 'badge') },
   ];
   const hasActiveCosmetics = activeCosmetics.some((item) => item.cosmetic);
 
@@ -287,9 +287,9 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
   const claimedRewards = rewardDefinitions.filter((reward) => getRewardStatus(reward) === 'claimed');
   const lockedRewards = rewardDefinitions.filter((reward) => getRewardStatus(reward) === 'locked');
   const equippedCosmetics = getEquippedCosmetics();
-  const equippedTitle = getCosmetic(equippedCosmetics.title);
-  const equippedBadge = getCosmetic(equippedCosmetics.badge);
-  const equippedFrame = getCosmetic(equippedCosmetics.frame);
+  const equippedTitle = getCosmetic(equippedCosmetics.title, 'title');
+  const equippedBadge = getCosmetic(equippedCosmetics.badge, 'badge');
+  const equippedFrame = getCosmetic(equippedCosmetics.frame, 'frame');
   const mostPlayedGameTitle = getGameTitle(summary.favoriteGame);
   const bestGameTitle = getGameTitle(summary.bestGame);
   const highlights = [

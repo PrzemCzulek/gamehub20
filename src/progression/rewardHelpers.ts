@@ -82,11 +82,11 @@ export function claimReward(rewardId: string) {
 }
 
 export function equipCosmetic(cosmeticId: string) {
-  const cosmetic = getCosmetic(cosmeticId);
-  if (!cosmetic) return { ok: false as const, reason: 'not_found' as const };
-
   const claimedReward = rewardDefinitions.find((reward) => reward.reward.id === cosmeticId && getClaimedRewards().includes(reward.id));
   if (!claimedReward) return { ok: false as const, reason: 'not_claimed' as const };
+
+  const cosmetic = getCosmetic(cosmeticId, claimedReward.reward.type);
+  if (!cosmetic) return { ok: false as const, reason: 'not_found' as const };
 
   const equipped = getEquippedCosmetics();
   const nextEquipped = {

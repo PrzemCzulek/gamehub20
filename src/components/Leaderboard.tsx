@@ -252,8 +252,8 @@ function ProfilePanel({
 
 function OwnProfileContent({ summary }: { summary: PlayerProfileSummary }) {
   const equippedCosmetics = getEquippedCosmetics();
-  const equippedTitle = getCosmetic(equippedCosmetics.title);
-  const equippedBadge = getCosmetic(equippedCosmetics.badge);
+  const equippedTitle = getCosmetic(equippedCosmetics.title, 'title');
+  const equippedBadge = getCosmetic(equippedCosmetics.badge, 'badge');
   const highlights = [
     { label: 'Reaction', value: summary.highlights.bestReactionTime?.scoreLabel },
     { label: 'WPM', value: summary.highlights.bestTypingWpm?.scoreLabel },
@@ -384,9 +384,9 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   const currentPlayerId = getPlayerId();
   const currentPlayerName = getPlayerName();
   const equippedCosmetics = getEquippedCosmetics();
-  const equippedTitle = getCosmetic(equippedCosmetics.title);
-  const equippedBadge = getCosmetic(equippedCosmetics.badge);
-  const equippedFrame = getCosmetic(equippedCosmetics.frame);
+  const equippedTitle = getCosmetic(equippedCosmetics.title, 'title');
+  const equippedBadge = getCosmetic(equippedCosmetics.badge, 'badge');
+  const equippedFrame = getCosmetic(equippedCosmetics.frame, 'frame');
   const profileSummary = useMemo(() => buildPlayerProfileSummary(getProfile()), [entries.length]);
   const isTypingSpeed = gameId === 'typing-speed';
   const isTimeSense = gameId === 'time-sense';
