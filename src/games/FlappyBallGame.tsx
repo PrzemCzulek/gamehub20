@@ -46,7 +46,7 @@ const pipeWidth = 72;
 const spawnInterval = 1350;
 const minGapY = 86;
 const maxGapY = arenaHeight - 92;
-const trailLimit = 7;
+const trailLimit = 6;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -295,7 +295,6 @@ export function FlappyBallGame({ onScore }: FlappyBallGameProps) {
   const elapsedSeconds = Math.round((elapsedMs / 1000) * 10) / 10;
   const reducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const gridOffset = stage === 'playing' ? -(elapsedMs / 70) % 36 : 0;
-  const starOffset = stage === 'playing' ? -(elapsedMs / 28) % 120 : 0;
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
@@ -308,7 +307,7 @@ export function FlappyBallGame({ onScore }: FlappyBallGameProps) {
 
       <div
         aria-label="Flappy Ball arena"
-        className="relative h-[22rem] touch-none select-none overflow-hidden rounded-3xl border border-cyan-300/15 bg-[radial-gradient(circle_at_35%_30%,rgba(34,211,238,0.14),transparent_34%),radial-gradient(circle_at_80%_72%,rgba(168,85,247,0.12),transparent_30%),linear-gradient(180deg,rgba(15,23,42,0.78),rgba(2,6,23,0.95))] shadow-[0_0_46px_rgba(34,211,238,0.10)] sm:h-[26rem]"
+        className="relative h-[22rem] touch-none select-none overflow-hidden rounded-3xl border border-cyan-300/18 bg-[linear-gradient(180deg,rgba(15,23,42,0.82),rgba(2,6,23,0.97))] shadow-[0_0_34px_rgba(34,211,238,0.08),inset_0_0_60px_rgba(2,6,23,0.42)] sm:h-[26rem]"
         onKeyDown={handleArenaKeyDown}
         onPointerDown={handleArenaPointerDown}
         role="button"
@@ -316,13 +315,12 @@ export function FlappyBallGame({ onScore }: FlappyBallGameProps) {
         tabIndex={0}
       >
         <div
-          className="pointer-events-none absolute inset-0 opacity-22 [background-image:linear-gradient(rgba(34,211,238,0.16)_1px,transparent_1px),linear-gradient(90deg,rgba(34,211,238,0.12)_1px,transparent_1px)] [background-size:36px_36px]"
+          className="pointer-events-none absolute inset-0 opacity-[0.12] [background-image:linear-gradient(rgba(34,211,238,0.20)_1px,transparent_1px),linear-gradient(90deg,rgba(34,211,238,0.16)_1px,transparent_1px)] [background-size:38px_38px]"
           style={{ backgroundPosition: `${gridOffset}px 0px` }}
         />
         {!reducedMotion && (
           <div
-            className="pointer-events-none absolute inset-0 opacity-35 [background-image:linear-gradient(90deg,transparent_0%,rgba(34,211,238,0.18)_48%,transparent_58%)] [background-size:120px_1px]"
-            style={{ backgroundPosition: `${starOffset}px 18%, ${starOffset * 0.7}px 46%, ${starOffset * 1.2}px 72%` }}
+            className="pointer-events-none absolute inset-0 opacity-[0.09] [background:radial-gradient(circle_at_50%_50%,transparent_42%,rgba(2,6,23,0.76)_100%)]"
           />
         )}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 border-t border-cyan-300/10 bg-cyan-300/[0.045]" />
@@ -337,11 +335,11 @@ export function FlappyBallGame({ onScore }: FlappyBallGameProps) {
           return (
             <div key={pipe.id}>
               <div
-                className="absolute top-0 rounded-b-2xl border border-cyan-200/25 bg-gradient-to-b from-cyan-200/18 via-cyan-300/10 to-slate-950/35 shadow-[0_0_24px_rgba(34,211,238,0.13),inset_0_0_18px_rgba(34,211,238,0.08)]"
+                className="absolute top-0 rounded-b-2xl border border-cyan-200/35 bg-gradient-to-b from-cyan-200/26 via-cyan-400/18 to-cyan-950/55 shadow-[0_0_18px_rgba(34,211,238,0.16),inset_0_0_16px_rgba(34,211,238,0.10)]"
                 style={{ height: `${(topHeight / arenaHeight) * 100}%`, left: `${(pipe.x / arenaWidth) * 100}%`, width: `${(pipeWidth / arenaWidth) * 100}%` }}
               />
               <div
-                className="absolute bottom-0 rounded-t-2xl border border-violet-200/25 bg-gradient-to-t from-violet-200/18 via-violet-300/10 to-slate-950/35 shadow-[0_0_24px_rgba(168,85,247,0.13),inset_0_0_18px_rgba(168,85,247,0.08)]"
+                className="absolute bottom-0 rounded-t-2xl border border-cyan-200/35 bg-gradient-to-t from-cyan-200/26 via-cyan-400/18 to-cyan-950/55 shadow-[0_0_18px_rgba(34,211,238,0.16),inset_0_0_16px_rgba(34,211,238,0.10)]"
                 style={{ height: `${((arenaHeight - bottomY) / arenaHeight) * 100}%`, left: `${(pipe.x / arenaWidth) * 100}%`, width: `${(pipeWidth / arenaWidth) * 100}%` }}
               />
             </div>
@@ -349,7 +347,7 @@ export function FlappyBallGame({ onScore }: FlappyBallGameProps) {
         })}
 
         {stage === 'playing' && !reducedMotion && trail.map((point) => {
-          const opacity = Math.max(0.1, 0.42 - point.age * 0.052);
+          const opacity = Math.max(0.06, 0.26 - point.age * 0.036);
           const scale = Math.max(0.45, 1 - point.age * 0.09);
           return (
             <span
