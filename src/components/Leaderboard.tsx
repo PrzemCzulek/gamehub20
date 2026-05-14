@@ -207,8 +207,8 @@ function getSecondaryInfo(entry: LeaderboardEntry, gameId: GameId, localAttempts
     if (stats.flaps !== undefined) info.push(`${stats.flaps} flaps`);
   }
 
-  if (gameId === 'reaction-time' && localAttempts && localAttempts > 1) info.push(`PrĂłby lokalnie ${localAttempts}`);
-  if (gameId === 'aim-test' && stats.accuracy !== undefined) info.push(`CelnoĹ›Ä‡ ${formatPercent(stats.accuracy)}`);
+  if (gameId === 'reaction-time' && localAttempts && localAttempts > 1) info.push(`Próby lokalnie ${localAttempts}`);
+  if (gameId === 'aim-test' && stats.accuracy !== undefined) info.push(`Celność ${formatPercent(stats.accuracy)}`);
   if (gameId === 'aim-test' && stats.bestCombo !== undefined) info.push(`Combo ${stats.bestCombo}`);
   if (gameId === 'aim-test' && stats.mode === 'infinity') {
     if (stats.hpRecovered !== undefined) info.push(`HP +${stats.hpRecovered}`);
@@ -306,7 +306,7 @@ function ProfilePanel({
           onClick={onClose}
           type="button"
         >
-          Ă—
+          Close
         </button>
       </div>
 
@@ -448,9 +448,9 @@ function FallbackProfileContent({ entry, gameId, metric, profileError }: { entry
         <span className="mt-1 block text-xs text-slate-400">{getGameTitle(gameId)} / {getMetricLabel(gameId, metric)}</span>
       </div>
       <div className="mt-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-        <p className="text-sm font-semibold text-cyan-100">{profileError ?? 'Profil publiczny niedostÄ™pny'}</p>
+        <p className="text-sm font-semibold text-cyan-100">{profileError ?? 'Profil publiczny niedostępny'}</p>
         <p className="mt-1 text-xs leading-5 text-slate-400">
-          {profileError ? 'SprĂłbuj ponownie pĂłĹşniej.' : 'Dane pojawiÄ… siÄ™ po kolejnym wyniku online.'}
+          {profileError ? 'Spróbuj ponownie później.' : 'Dane pojawią się po kolejnym wyniku online.'}
         </p>
       </div>
     </div>
@@ -462,7 +462,7 @@ function LeaderboardLoadingOverlay() {
     <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-slate-950/35 opacity-100 backdrop-blur-[2px] transition-opacity duration-200">
       <div className="flex items-center gap-3 rounded-full border border-cyan-300/20 bg-slate-950/85 px-4 py-2 shadow-[0_0_24px_rgba(34,211,238,0.14)]">
         <span className="h-5 w-5 animate-spin rounded-full border-2 border-cyan-300/20 border-t-cyan-300" />
-        <span className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Ĺadowanie</span>
+        <span className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Ładowanie</span>
       </div>
     </div>
   );
@@ -632,7 +632,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
       .catch(() => {
         if (!ignore) {
           setOnlineEntries([]);
-          setOnlineError('Online leaderboard niedostÄ™pny - pokazujÄ™ lokalne wyniki.');
+          setOnlineError('Online leaderboard niedostępny - pokazuję lokalne wyniki.');
         }
       })
       .finally(() => {
@@ -669,7 +669,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
       })
       .catch(() => {
         setOnlineProfiles((current) => ({ ...current, [playerId]: null }));
-        setProfileErrors((current) => ({ ...current, [playerId]: 'Nie udaĹ‚o siÄ™ wczytaÄ‡ profilu' }));
+        setProfileErrors((current) => ({ ...current, [playerId]: 'Nie udało się wczytać profilu' }));
       })
       .finally(() => {
         setLoadingProfiles((current) => ({ ...current, [playerId]: false }));
@@ -882,7 +882,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
         <div className={`max-h-[28rem] space-y-2 overflow-y-auto pr-1 transition duration-200 ${onlineLoading ? 'opacity-45 blur-[1px]' : 'opacity-100 blur-0'}`}>
           {visibleEntries.length === 0 && !onlineLoading ? (
             <p className="rounded-md border border-dashed border-white/10 p-4 text-sm leading-6 text-slate-400">
-              {usingOnline ? 'Brak wynikĂłw online.' : 'Brak wynikĂłw.'}
+              {usingOnline ? 'Brak wyników online.' : 'Brak wyników.'}
             </p>
           ) : (
             visibleEntries.map((entry, index) => {
