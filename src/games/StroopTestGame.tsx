@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { GameStartOverlay } from '../components/game/GameStartOverlay';
+import { ShareResultButton } from '../components/game/ShareResultButton';
 import { readStoredStroopDuration, storeStroopDuration, stroopDurationOptions } from '../data/stroopDurations';
 import { playNormalClickSound } from '../services/audio';
 import type { ScoreInput } from '../types';
@@ -384,13 +385,21 @@ export function StroopTestGame({ onScore }: StroopTestGameProps) {
                 <Stat label="Mistakes" value={String(mistakes)} />
                 <Stat label="Conflict" value={formatPercent(conflictAccuracy)} />
               </div>
-              <button
-                className="mt-6 rounded-xl bg-cyan-300 px-7 py-3 text-sm font-black uppercase tracking-wide text-slate-950 transition hover:bg-cyan-200"
-                onClick={startRun}
-                type="button"
-              >
-                Jeszcze raz
-              </button>
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                <button
+                  className="rounded-xl bg-cyan-300 px-7 py-3 text-sm font-black uppercase tracking-wide text-slate-950 transition hover:bg-cyan-200"
+                  onClick={startRun}
+                  type="button"
+                >
+                  Jeszcze raz
+                </button>
+                <ShareResultButton
+                  gameId="stroop-test"
+                  metricLabel="Punkty"
+                  modeLabel={`${selectedDurationSeconds}s`}
+                  scoreLabel={`${currentScore} pkt`}
+                />
+              </div>
             </div>
           ) : (
             <>

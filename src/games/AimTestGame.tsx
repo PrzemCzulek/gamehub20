@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
 import { GameStartOverlay } from '../components/game/GameStartOverlay';
+import { ShareResultButton } from '../components/game/ShareResultButton';
 import { aimModeOptions, readStoredAimMode, storeAimMode, type AimMode } from '../data/aimModes';
 import { playNormalClickSound } from '../services/audio';
 import type { ScoreInput } from '../types';
@@ -461,18 +462,28 @@ export function AimTestGame({ onScore }: AimTestGameProps) {
                   </>
                 )}
               </div>
-              <button
-                className="mt-5 rounded-xl bg-cyan-300 px-7 py-3 text-sm font-black uppercase tracking-wide text-slate-950 shadow-[0_0_26px_rgba(34,211,238,0.28)] transition hover:scale-[1.03] hover:bg-cyan-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100"
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  playNormalClickSound();
-                  start(finalResult.mode);
-                }}
-                type="button"
-              >
-                Zagraj ponownie
-              </button>
+              <div className="mt-5 flex flex-wrap justify-center gap-3">
+                <button
+                  className="rounded-xl bg-cyan-300 px-7 py-3 text-sm font-black uppercase tracking-wide text-slate-950 shadow-[0_0_26px_rgba(34,211,238,0.28)] transition hover:scale-[1.03] hover:bg-cyan-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    playNormalClickSound();
+                    start(finalResult.mode);
+                  }}
+                  type="button"
+                >
+                  Zagraj ponownie
+                </button>
+                <div onPointerDown={(event) => event.stopPropagation()}>
+                  <ShareResultButton
+                    gameId="aim-test"
+                    metricLabel="Punkty"
+                    modeLabel={getModeLabel(finalResult.mode)}
+                    scoreLabel={`${finalResult.score} pkt`}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         )}

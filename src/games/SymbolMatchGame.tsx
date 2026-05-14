@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { GameStartOverlay } from '../components/game/GameStartOverlay';
+import { ShareResultButton } from '../components/game/ShareResultButton';
 import { playNormalClickSound } from '../services/audio';
 import type { ScoreInput } from '../types';
 
@@ -282,16 +283,19 @@ export function SymbolMatchGame({ onScore }: SymbolMatchGameProps) {
                     <span className="rounded-md bg-black/25 px-3 py-2 text-slate-300">Pary: {symbols.length}/{symbols.length}</span>
                     <span className="rounded-md bg-black/25 px-3 py-2 text-slate-300">Skuteczność: {efficiency}%</span>
                   </div>
-                  <button
-                    className="mt-5 rounded-xl bg-cyan-300 px-7 py-3 text-sm font-black uppercase tracking-wide text-slate-950 shadow-[0_0_26px_rgba(34,211,238,0.28)] transition hover:scale-[1.03] hover:bg-cyan-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100"
-                    onClick={() => {
-                      playNormalClickSound();
-                      start();
-                    }}
-                    type="button"
-                  >
-                    Jeszcze raz
-                  </button>
+                  <div className="mt-5 flex flex-wrap justify-center gap-3">
+                    <button
+                      className="rounded-xl bg-cyan-300 px-7 py-3 text-sm font-black uppercase tracking-wide text-slate-950 shadow-[0_0_26px_rgba(34,211,238,0.28)] transition hover:scale-[1.03] hover:bg-cyan-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100"
+                      onClick={() => {
+                        playNormalClickSound();
+                        start();
+                      }}
+                      type="button"
+                    >
+                      Jeszcze raz
+                    </button>
+                    <ShareResultButton gameId="symbol-match" metricLabel="Ruchy" scoreLabel={`${finalResult.moves} ruchów`} />
+                  </div>
                 </div>
               </div>
             )}

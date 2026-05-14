@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent } from 'react';
+import { ShareResultButton } from '../components/game/ShareResultButton';
 import { playNormalClickSound } from '../services/audio';
 import { getScores, sortScoresByMetric } from '../services/storage';
 import type { ScoreInput } from '../types';
@@ -290,6 +291,12 @@ export function ReactionTimeGame({ onScore }: ReactionTimeGameProps) {
         )}
       </button>
 
+      {state === 'done' && lastResult !== null && !overlayOpen && (
+        <div className="flex justify-center">
+          <ShareResultButton gameId="reaction-time" metricLabel="Czas" scoreLabel={`${lastResult} ms`} />
+        </div>
+      )}
+
       <p className="text-sm text-slate-400">Poprawny klik zapisuje czas. Falstart zapisuje karę na końcu rankingu.</p>
 
       <div className="grid grid-cols-3 gap-2 text-xs">
@@ -352,6 +359,11 @@ export function ReactionTimeGame({ onScore }: ReactionTimeGameProps) {
                 >
                   Zamknij
                 </button>
+                {state === 'done' && lastResult !== null && (
+                  <div onPointerDown={(event) => event.stopPropagation()}>
+                    <ShareResultButton gameId="reaction-time" metricLabel="Czas" scoreLabel={`${lastResult} ms`} />
+                  </div>
+                )}
               </div>
             )}
           </div>

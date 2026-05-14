@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { ShareResultButton } from '../components/game/ShareResultButton';
 import { readStoredTimeSenseDuration, storeTimeSenseDuration, timeSenseDurationOptions } from '../data/timeSenseDurations';
 import { playNormalClickSound } from '../services/audio';
 import type { ScoreInput } from '../types';
@@ -208,6 +209,14 @@ export function TimeSenseGame({ onScore }: TimeSenseGameProps) {
             <button className="rounded-xl border border-white/15 px-7 py-3 text-sm font-black uppercase tracking-wide text-white transition hover:bg-white/10" onClick={reset} type="button">
               Zmień czas
             </button>
+            {result && (
+              <ShareResultButton
+                gameId="time-sense"
+                metricLabel="Wynik"
+                modeLabel={`${result.targetSeconds}s`}
+                scoreLabel={`${result.score} pkt`}
+              />
+            )}
           </>
         )}
       </div>

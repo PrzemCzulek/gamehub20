@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
 import { GameStartOverlay } from '../components/game/GameStartOverlay';
+import { ShareResultButton } from '../components/game/ShareResultButton';
 import {
   type CpsInputMode,
   cpsDurationOptions,
@@ -423,16 +424,24 @@ export function CpsTestGame({ onScore }: CpsTestGameProps) {
                 <Stat label="Consistency" value={formatPercent(result.consistency)} />
                 <Stat label="Heat peak" value={`${result.heatPeak}%`} />
               </div>
-              <button
-                className="mt-6 rounded-xl bg-cyan-300 px-7 py-3 text-sm font-black uppercase tracking-wide text-slate-950 transition hover:bg-cyan-200"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  startCountdown();
-                }}
-                type="button"
-              >
-                Jeszcze raz
-              </button>
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                <button
+                  className="rounded-xl bg-cyan-300 px-7 py-3 text-sm font-black uppercase tracking-wide text-slate-950 transition hover:bg-cyan-200"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    startCountdown();
+                  }}
+                  type="button"
+                >
+                  Jeszcze raz
+                </button>
+                <ShareResultButton
+                  gameId="cps-test"
+                  metricLabel="CPS"
+                  modeLabel={`${durationSeconds}s · ${modeLabel}`}
+                  scoreLabel={`${result.score.toFixed(2)} CPS`}
+                />
+              </div>
             </>
           ) : (
             <>
