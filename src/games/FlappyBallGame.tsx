@@ -27,6 +27,12 @@ type RunResult = {
   efficiency: number;
 };
 
+type TrailPoint = {
+  id: number;
+  y: number;
+  age: number;
+};
+
 const arenaWidth = 720;
 const arenaHeight = 420;
 const ballX = 168;
@@ -40,6 +46,7 @@ const pipeWidth = 72;
 const spawnInterval = 1350;
 const minGapY = 86;
 const maxGapY = arenaHeight - 92;
+const trailLimit = 7;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -77,6 +84,7 @@ export function FlappyBallGame({ onScore }: FlappyBallGameProps) {
   const [flaps, setFlaps] = useState(0);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [result, setResult] = useState<RunResult | null>(null);
+  const [trail, setTrail] = useState<TrailPoint[]>([]);
   const rafRef = useRef<number | null>(null);
   const lastFrameRef = useRef<number | null>(null);
   const startedAtRef = useRef<number | null>(null);
@@ -89,6 +97,9 @@ export function FlappyBallGame({ onScore }: FlappyBallGameProps) {
   const flapsRef = useRef(0);
   const submittedRef = useRef(false);
   const stageRef = useRef<Stage>('idle');
+  const trailRef = useRef<TrailPoint[]>([]);
+  const trailIdRef = useRef(0);
+  const lastTrailAtRef = useRef(0);
 
   const localScores = getScores().filter((entry) => entry.gameId === 'flappy-ball');
   const bestScore = sortScoresByMetric(localScores, 'flappy-ball')[0];
@@ -140,6 +151,10 @@ export function FlappyBallGame({ onScore }: FlappyBallGameProps) {
     setFlaps(0);
     setElapsedMs(0);
     setResult(null);
+    trailRef.current = [];
+    trailIdRef.current = 0;
+    lastTrailAtRef.current = 0;
+    setTrail([]);
   }
 
   function startRun() {
@@ -198,6 +213,15 @@ export function FlappyBallGame({ onScore }: FlappyBallGameProps) {
 
     velocityRef.current += gravity * deltaSeconds;
     yRef.current += velocityRef.current * deltaSeconds;
+
+    if (now - lastTrailAtRef.current > 58) {
+      trailIdRef.current += 1;
+      trailRef.current = [{ id: trailIdRef.current, y: yRef.current, age: 0 }, ...trailRef.current]
+        .slice(0, trailLimit)
+        .map((point, index) => ({ ...point, age: index }));
+      setTrail(trailRef.current);
+      lastTrailAtRef.current = now;
+    }
 
     const difficulty = getDifficulty(scoreRef.current);
     let nextPipes = pipesRef.current
@@ -269,7 +293,9 @@ export function FlappyBallGame({ onScore }: FlappyBallGameProps) {
 
   const difficulty = getDifficulty(score);
   const elapsedSeconds = Math.round((elapsedMs / 1000) * 10) / 10;
-  const trailY = clamp(ballY + 12, 18, arenaHeight - 18);
+  const reducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const gridOffset = stage === 'playing' ? -(elapsedMs / 70) % 36 : 0;
+  const starOffset = stage === 'playing' ? -(elapsedMs / 28) % 120 : 0;
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
@@ -282,14 +308,23 @@ export function FlappyBallGame({ onScore }: FlappyBallGameProps) {
 
       <div
         aria-label="Flappy Ball arena"
-        className="relative h-[22rem] touch-none select-none overflow-hidden rounded-3xl border border-cyan-300/15 bg-[radial-gradient(circle_at_35%_35%,rgba(34,211,238,0.18),transparent_34%),linear-gradient(180deg,rgba(15,23,42,0.76),rgba(2,6,23,0.94))] shadow-[0_0_46px_rgba(34,211,238,0.10)] sm:h-[26rem]"
+        className="relative h-[22rem] touch-none select-none overflow-hidden rounded-3xl border border-cyan-300/15 bg-[radial-gradient(circle_at_35%_30%,rgba(34,211,238,0.14),transparent_34%),radial-gradient(circle_at_80%_72%,rgba(168,85,247,0.12),transparent_30%),linear-gradient(180deg,rgba(15,23,42,0.78),rgba(2,6,23,0.95))] shadow-[0_0_46px_rgba(34,211,238,0.10)] sm:h-[26rem]"
         onKeyDown={handleArenaKeyDown}
         onPointerDown={handleArenaPointerDown}
         role="button"
         style={{ touchAction: 'none' }}
         tabIndex={0}
       >
-        <div className="pointer-events-none absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(34,211,238,0.16)_1px,transparent_1px),linear-gradient(90deg,rgba(34,211,238,0.12)_1px,transparent_1px)] [background-size:36px_36px]" />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-22 [background-image:linear-gradient(rgba(34,211,238,0.16)_1px,transparent_1px),linear-gradient(90deg,rgba(34,211,238,0.12)_1px,transparent_1px)] [background-size:36px_36px]"
+          style={{ backgroundPosition: `${gridOffset}px 0px` }}
+        />
+        {!reducedMotion && (
+          <div
+            className="pointer-events-none absolute inset-0 opacity-35 [background-image:linear-gradient(90deg,transparent_0%,rgba(34,211,238,0.18)_48%,transparent_58%)] [background-size:120px_1px]"
+            style={{ backgroundPosition: `${starOffset}px 18%, ${starOffset * 0.7}px 46%, ${starOffset * 1.2}px 72%` }}
+          />
+        )}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 border-t border-cyan-300/10 bg-cyan-300/[0.045]" />
 
         {stage === 'idle' && (
@@ -302,25 +337,40 @@ export function FlappyBallGame({ onScore }: FlappyBallGameProps) {
           return (
             <div key={pipe.id}>
               <div
-                className="absolute top-0 rounded-b-2xl border border-cyan-300/20 bg-cyan-300/16 shadow-[0_0_24px_rgba(34,211,238,0.13)]"
+                className="absolute top-0 rounded-b-2xl border border-cyan-200/25 bg-gradient-to-b from-cyan-200/18 via-cyan-300/10 to-slate-950/35 shadow-[0_0_24px_rgba(34,211,238,0.13),inset_0_0_18px_rgba(34,211,238,0.08)]"
                 style={{ height: `${(topHeight / arenaHeight) * 100}%`, left: `${(pipe.x / arenaWidth) * 100}%`, width: `${(pipeWidth / arenaWidth) * 100}%` }}
               />
               <div
-                className="absolute bottom-0 rounded-t-2xl border border-violet-300/20 bg-violet-300/16 shadow-[0_0_24px_rgba(168,85,247,0.13)]"
+                className="absolute bottom-0 rounded-t-2xl border border-violet-200/25 bg-gradient-to-t from-violet-200/18 via-violet-300/10 to-slate-950/35 shadow-[0_0_24px_rgba(168,85,247,0.13),inset_0_0_18px_rgba(168,85,247,0.08)]"
                 style={{ height: `${((arenaHeight - bottomY) / arenaHeight) * 100}%`, left: `${(pipe.x / arenaWidth) * 100}%`, width: `${(pipeWidth / arenaWidth) * 100}%` }}
               />
             </div>
           );
         })}
 
+        {stage === 'playing' && !reducedMotion && trail.map((point) => {
+          const opacity = Math.max(0.1, 0.42 - point.age * 0.052);
+          const scale = Math.max(0.45, 1 - point.age * 0.09);
+          return (
+            <span
+              className="pointer-events-none absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-200/20 bg-cyan-200/25"
+              key={point.id}
+              style={{
+                left: `${((ballX - 11 - point.age * 9) / arenaWidth) * 100}%`,
+                opacity,
+                top: `${(clamp(point.y, 16, arenaHeight - 16) / arenaHeight) * 100}%`,
+                transform: `translate(-50%, -50%) scale(${scale})`,
+              }}
+            />
+          );
+        })}
         <div
-          className="pointer-events-none absolute h-8 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-300/10 blur-md"
-          style={{ left: `${((ballX - 22) / arenaWidth) * 100}%`, top: `${(trailY / arenaHeight) * 100}%` }}
-        />
-        <div
-          className="pointer-events-none absolute h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border border-fuchsia-200/70 bg-fuchsia-300 shadow-[0_0_24px_rgba(217,70,239,0.55)]"
+          className="pointer-events-none absolute h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-fuchsia-100/70 bg-[radial-gradient(circle_at_33%_28%,rgba(255,255,255,0.95),rgba(245,208,254,0.75)_16%,rgba(217,70,239,0.95)_48%,rgba(88,28,135,0.95)_100%)] shadow-[0_0_14px_rgba(217,70,239,0.38),0_0_26px_rgba(34,211,238,0.16),inset_-4px_-5px_10px_rgba(30,41,59,0.45)]"
           style={{ left: `${(ballX / arenaWidth) * 100}%`, top: `${(ballY / arenaHeight) * 100}%` }}
-        />
+        >
+          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-white/70 blur-[1px]" />
+          <span className="absolute inset-[-3px] rounded-full border border-cyan-100/20" />
+        </div>
 
         {stage === 'gameOver' && result && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-950/78 p-4 backdrop-blur-[3px]">
