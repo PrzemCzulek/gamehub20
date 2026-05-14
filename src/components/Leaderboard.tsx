@@ -756,7 +756,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
         <div>
           <p className="text-[0.65rem] font-black uppercase tracking-[0.25em] text-cyan-200">Leaderboard</p>
           <h2 className="mt-1 text-lg font-black uppercase tracking-wide text-white">Ranking</h2>
-          <p className="mt-1 text-xs text-slate-500">Top {limit} Â· {totalEntriesLabel}</p>
+          <p className="mt-1 text-xs text-slate-500">Top {limit} · {totalEntriesLabel}</p>
         </div>
 
         <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-white/10 bg-black/25 p-1">
@@ -936,7 +936,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
                         </div>
                       )}
                       {secondaryInfo.length > 0 && (
-                        <p className="mt-1 truncate text-[0.7rem] font-medium leading-4 text-slate-400">{secondaryInfo.join(' â€˘ ')}</p>
+                        <p className="mt-1 truncate text-[0.7rem] font-medium leading-4 text-slate-400">{secondaryInfo.join(' · ')}</p>
                       )}
                     </div>
                     <div className="min-w-[4.8rem] shrink-0 text-right">
@@ -948,7 +948,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
                   {!selected && (
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-950/55 opacity-0 backdrop-blur-[1px] transition duration-150 group-hover:opacity-100 group-focus:opacity-100">
                       <span className="rounded-full border border-cyan-300/35 bg-cyan-300/10 px-3 py-1.5 text-[0.65rem] font-black uppercase tracking-[0.18em] text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.16)]">
-                        PokaĹĽ profil
+                        Pokaż profil
                       </span>
                     </div>
                   )}
@@ -977,4 +977,3 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
     </section>
   );
 }
-
