@@ -40,6 +40,10 @@ function getCpsInputMode(stats) {
   return stats?.inputMode === 'space' || stats?.inputMode === 'alternating' ? stats.inputMode : 'normal';
 }
 
+function getAimMode(stats) {
+  return stats?.mode === '15s' || stats?.mode === 'infinity' ? stats.mode : '30s';
+}
+
 function validateScore(payload) {
   const errors = [];
   const playerId = typeof payload.playerId === 'string' ? payload.playerId.trim() : '';
@@ -100,6 +104,10 @@ function getLeaderboardScope(value) {
     if (inputMode === 'alternating') return `${durationSeconds}s-alt`;
     if (inputMode === 'space') return `${durationSeconds}s-space`;
     return `${durationSeconds}s`;
+  }
+
+  if (value.gameId === 'aim-test') {
+    return `mode:${getAimMode(value.stats)}`;
   }
 
   if (value.gameId !== 'typing-speed' && value.gameId !== 'time-sense' && value.gameId !== 'stroop-test') {

@@ -46,9 +46,11 @@ export const games = {
     metrics: {
       score: { source: 'score', direction: 'descending' },
       accuracy: { source: 'stats', statKey: 'accuracy', direction: 'descending' },
-      averageReactionMs: { source: 'stats', statKey: 'averageReactionMs', direction: 'ascending' },
+      bestCombo: { source: 'stats', statKey: 'bestCombo', direction: 'descending' },
+      combo: { source: 'stats', statKey: 'bestCombo', direction: 'descending' },
       hits: { source: 'stats', statKey: 'hits', direction: 'descending' },
-      misses: { source: 'stats', statKey: 'misses', direction: 'ascending' },
+      averageReactionMs: { source: 'stats', statKey: 'averageReactionMs', direction: 'ascending' },
+      survivedTime: { source: 'stats', statKey: 'survivedTime', direction: 'descending' },
     },
   },
   'word-memory': {

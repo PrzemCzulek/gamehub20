@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { getGameConfig } from '../data/games';
+import { aimModeChangedEvent, aimModeOptions, readStoredAimMode, storeAimMode } from '../data/aimModes';
 import {
   type CpsInputMode,
   cpsDurationOptions,
@@ -46,6 +47,15 @@ const cpsMetricLabels: Record<string, string> = {
   peakCPS: 'Peak',
   totalClicks: 'Clicks',
   consistency: 'Consistency',
+};
+
+const aimMetricLabels: Record<string, string> = {
+  score: 'Punkty',
+  accuracy: 'Celność',
+  bestCombo: 'Combo',
+  hits: 'Trafienia',
+  averageReactionMs: 'Śr. czas',
+  survivedTime: 'Czas',
 };
 
 type LeaderboardSource = 'local' | 'online';
@@ -101,6 +111,7 @@ function getMetricLabel(gameId: GameId, metric: LeaderboardMetric): string {
   if (gameId === 'time-sense') return timeSenseMetricLabels[metric.id] ?? metric.label;
   if (gameId === 'stroop-test') return stroopMetricLabels[metric.id] ?? metric.label;
   if (gameId === 'cps-test') return cpsMetricLabels[metric.id] ?? metric.label;
+  if (gameId === 'aim-test') return aimMetricLabels[metric.id] ?? metric.label;
   return metric.label;
 }
 
@@ -140,6 +151,11 @@ function getSecondaryInfo(entry: LeaderboardEntry, gameId: GameId, localAttempts
 
   if (gameId === 'reaction-time' && localAttempts && localAttempts > 1) info.push(`Próby lokalnie ${localAttempts}`);
   if (gameId === 'aim-test' && stats.accuracy !== undefined) info.push(`Celność ${formatPercent(stats.accuracy)}`);
+  if (gameId === 'aim-test' && stats.bestCombo !== undefined) info.push(`Combo ${stats.bestCombo}`);
+  if (gameId === 'aim-test' && stats.mode === 'infinity') {
+    if (stats.hpRecovered !== undefined) info.push(`HP +${stats.hpRecovered}`);
+    if (stats.survivedTime !== undefined) info.push(`${stats.survivedTime}s`);
+  }
 
   if (gameId === 'color-memory') {
     const similarity = stats.bestSimilarity ?? stats.finalSimilarity ?? stats.averageSimilarity;
@@ -399,6 +415,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   const [timeSenseDuration, setTimeSenseDuration] = useState(readStoredTimeSenseDuration);
   const [stroopDuration, setStroopDuration] = useState(readStoredStroopDuration);
   const [cpsSettings, setCpsSettings] = useState(readStoredCpsSettings);
+  const [aimMode, setAimMode] = useState(readStoredAimMode);
   const [onlineEntries, setOnlineEntries] = useState<LeaderboardEntry[]>([]);
   const [onlineError, setOnlineError] = useState<string | null>(null);
   const [onlineLoading, setOnlineLoading] = useState(false);
@@ -419,10 +436,18 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   const isTimeSense = gameId === 'time-sense';
   const isStroop = gameId === 'stroop-test';
   const isCps = gameId === 'cps-test';
+  const isAim = gameId === 'aim-test';
   const hasDurationFilter = isTypingSpeed || isTimeSense || isStroop || isCps;
   const activeDuration = isCps ? cpsSettings.durationSeconds : isStroop ? stroopDuration : isTimeSense ? timeSenseDuration : typingDuration;
   const durationOptions = isCps ? cpsDurationOptions : isStroop ? stroopDurationOptions : isTimeSense ? timeSenseDurationOptions : typingDurationOptions;
-  const activeMetric = game.metrics.find((metric) => metric.id === metricId) ?? game.metrics[0];
+  const visibleMetrics = isAim
+    ? game.metrics.filter((metric) =>
+        aimMode === 'infinity'
+          ? ['score', 'accuracy', 'bestCombo', 'averageReactionMs', 'survivedTime'].includes(metric.id)
+          : ['score', 'accuracy', 'bestCombo', 'hits'].includes(metric.id),
+      )
+    : game.metrics;
+  const activeMetric = visibleMetrics.find((metric) => metric.id === metricId) ?? visibleMetrics[0] ?? game.metrics[0];
   const limit = 10;
   const filteredEntries = useMemo(
     () =>
@@ -432,8 +457,10 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
             const modeMatches = !isCps || (entry.stats?.inputMode ?? 'normal') === cpsSettings.inputMode;
             return durationMatches && modeMatches;
           })
+        : isAim
+          ? entries.filter((entry) => (entry.stats?.mode ?? '30s') === aimMode)
         : entries,
-    [activeDuration, cpsSettings.inputMode, entries, hasDurationFilter, isCps],
+    [activeDuration, aimMode, cpsSettings.inputMode, entries, hasDurationFilter, isAim, isCps],
   );
   const localAttemptsByPlayer = useMemo(() => {
     return filteredEntries.reduce<Record<string, number>>((acc, entry) => {
@@ -510,13 +537,35 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   }, [isCps]);
 
   useEffect(() => {
+    if (!isAim) return;
+
+    function handleAimModeChange() {
+      setAimMode(readStoredAimMode());
+      setActiveProfileKey(null);
+    }
+
+    window.addEventListener(aimModeChangedEvent, handleAimModeChange);
+
+    return () => {
+      window.removeEventListener(aimModeChangedEvent, handleAimModeChange);
+    };
+  }, [isAim]);
+
+  useEffect(() => {
     if (source !== 'online') return;
 
     let ignore = false;
     setOnlineLoading(true);
     setOnlineError(null);
 
-    getOnlineLeaderboard(gameId, activeMetric.id, limit, hasDurationFilter ? activeDuration : undefined, isCps ? cpsSettings.inputMode : undefined)
+    getOnlineLeaderboard(
+      gameId,
+      activeMetric.id,
+      limit,
+      hasDurationFilter ? activeDuration : undefined,
+      isCps ? cpsSettings.inputMode : undefined,
+      isAim ? aimMode : undefined,
+    )
       .then((results) => {
         if (!ignore) setOnlineEntries(results);
       })
@@ -533,7 +582,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
     return () => {
       ignore = true;
     };
-  }, [activeDuration, activeMetric.id, cpsSettings.inputMode, entries.length, gameId, hasDurationFilter, isCps, source]);
+  }, [activeDuration, activeMetric.id, aimMode, cpsSettings.inputMode, entries.length, gameId, hasDurationFilter, isAim, isCps, source]);
 
   useEffect(() => {
     const activeEntry = selectedEntryData?.entry;
@@ -615,6 +664,15 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
     const nextSettings = { ...cpsSettings, inputMode };
     storeCpsSettings(nextSettings);
     setCpsSettings(nextSettings);
+    setActiveProfileKey(null);
+  }
+
+  function handleAimModeChange(nextMode: string) {
+    if (nextMode !== '15s' && nextMode !== '30s' && nextMode !== 'infinity') return;
+    playNormalClickSound();
+    storeAimMode(nextMode);
+    setAimMode(nextMode);
+    setMetricId('score');
     setActiveProfileKey(null);
   }
 
@@ -710,6 +768,29 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
         </div>
       )}
 
+      {isAim && (
+        <div className="mt-4">
+          <p className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-slate-400">Tryb</p>
+          <div className="mt-2 flex flex-wrap gap-1 rounded-lg border border-white/10 bg-black/25 p-1">
+            {aimModeOptions.map((option) => (
+              <button
+                aria-pressed={aimMode === option.value}
+                className={`min-w-14 flex-1 rounded-md px-2 py-2 text-xs font-black transition duration-200 hover:scale-[1.02] ${
+                  aimMode === option.value
+                    ? 'bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.22)]'
+                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                }`}
+                key={option.value}
+                onClick={() => handleAimModeChange(option.value)}
+                type="button"
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {onlineError && source === 'online' && (
         <p className="mt-3 rounded-md border border-amber-300/20 bg-amber-300/10 p-3 text-sm text-amber-100">{onlineError}</p>
       )}
@@ -718,7 +799,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
         <div className="mt-4">
           <p className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-slate-400">Metryka</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {game.metrics.map((metric) => (
+            {visibleMetrics.map((metric) => (
               <button
                 aria-pressed={activeMetric.id === metric.id}
                 className={`rounded-full border px-3 py-2 text-xs font-black transition duration-200 ${

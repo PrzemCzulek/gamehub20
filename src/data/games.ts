@@ -76,10 +76,11 @@ export const games: GameConfig[] = [
     tags: ['precision', 'reflex', 'challenge'],
     metrics: [
       { id: 'score', label: 'Punkty', direction: 'descending', source: 'score', suffix: 'pkt' },
-      { id: 'accuracy', label: 'CelnoÅ›Ä‡', direction: 'descending', source: 'stats', statKey: 'accuracy', valueType: 'percent' },
-      { id: 'averageReactionMs', label: 'Åšr. czas', direction: 'ascending', source: 'stats', statKey: 'averageReactionMs', valueType: 'ms' },
+      { id: 'accuracy', label: 'Celnoœæ', direction: 'descending', source: 'stats', statKey: 'accuracy', valueType: 'percent' },
+      { id: 'bestCombo', label: 'Combo', direction: 'descending', source: 'stats', statKey: 'bestCombo' },
       { id: 'hits', label: 'Trafienia', direction: 'descending', source: 'stats', statKey: 'hits' },
-      { id: 'misses', label: 'PomyÅ‚ki', direction: 'ascending', source: 'stats', statKey: 'misses' },
+      { id: 'averageReactionMs', label: 'Œr. czas', direction: 'ascending', source: 'stats', statKey: 'averageReactionMs', valueType: 'ms' },
+      { id: 'survivedTime', label: 'Czas', direction: 'descending', source: 'stats', statKey: 'survivedTime', suffix: 's' },
     ],
   },
   {

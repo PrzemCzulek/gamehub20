@@ -29,7 +29,9 @@ export type GameTag =
 
 export type ScoreStats = {
   accuracy?: number;
+  mode?: string;
   averageReactionMs?: number;
+  bestReactionMs?: number;
   bestSimilarity?: number;
   avgSimilarity?: number;
   worstSimilarity?: number;
@@ -45,6 +47,9 @@ export type ScoreStats = {
   misses?: number;
   combo?: number;
   bestCombo?: number;
+  survivedTime?: number;
+  hpRecovered?: number;
+  finalHp?: number;
   moves?: number;
   correctChars?: number;
   incorrectChars?: number;

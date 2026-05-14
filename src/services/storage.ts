@@ -161,8 +161,14 @@ function deriveStats(entry: Pick<LeaderboardEntry, 'gameId' | 'score' | 'meta' |
         ...baseStats,
         accuracy: baseStats.accuracy ?? readMetaNumber(meta, 'accuracy'),
         averageReactionMs: baseStats.averageReactionMs ?? readMetaNumber(meta, 'averageReactionMs'),
+        bestReactionMs: baseStats.bestReactionMs ?? readMetaNumber(meta, 'bestReactionMs'),
         hits: baseStats.hits ?? readMetaNumber(meta, 'hits'),
         misses: baseStats.misses ?? readMetaNumber(meta, 'misses'),
+        bestCombo: baseStats.bestCombo ?? readMetaNumber(meta, 'bestCombo') ?? readMetaNumber(meta, 'combo'),
+        combo: baseStats.combo ?? baseStats.bestCombo ?? readMetaNumber(meta, 'bestCombo') ?? readMetaNumber(meta, 'combo'),
+        survivedTime: baseStats.survivedTime ?? readMetaNumber(meta, 'survivedTime'),
+        hpRecovered: baseStats.hpRecovered ?? readMetaNumber(meta, 'hpRecovered'),
+        finalHp: baseStats.finalHp ?? readMetaNumber(meta, 'finalHp'),
       };
     case 'word-memory':
       return {

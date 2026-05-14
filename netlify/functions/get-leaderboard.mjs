@@ -30,11 +30,19 @@ function readCpsInputMode(value) {
   return value === 'space' || value === 'alternating' ? value : 'normal';
 }
 
-function getLeaderboardScope(gameId, durationSeconds, inputMode) {
+function readAimMode(value) {
+  return value === '15s' || value === 'infinity' ? value : '30s';
+}
+
+function getLeaderboardScope(gameId, durationSeconds, inputMode, aimMode) {
   if (gameId === 'cps-test') {
     if (inputMode === 'alternating') return `${durationSeconds}s-alt`;
     if (inputMode === 'space') return `${durationSeconds}s-space`;
     return `${durationSeconds}s`;
+  }
+
+  if (gameId === 'aim-test') {
+    return `mode:${aimMode}`;
   }
 
   return `duration:${durationSeconds}`;
@@ -70,9 +78,11 @@ export async function handler(event) {
     const metric = getMetric(gameId, params.metric ?? 'score');
     const limit = readLimit(params.limit);
     const usesDurationScope = gameId === 'typing-speed' || gameId === 'time-sense' || gameId === 'stroop-test' || gameId === 'cps-test';
+    const usesModeScope = gameId === 'aim-test';
     const durationSeconds = usesDurationScope ? readDurationSeconds(params.durationSeconds, gameId) : undefined;
     const inputMode = gameId === 'cps-test' ? readCpsInputMode(params.inputMode) : undefined;
-    const leaderboardScope = usesDurationScope ? getLeaderboardScope(gameId, durationSeconds, inputMode) : 'default';
+    const aimMode = usesModeScope ? readAimMode(params.mode) : undefined;
+    const leaderboardScope = usesDurationScope || usesModeScope ? getLeaderboardScope(gameId, durationSeconds, inputMode, aimMode) : 'default';
     const metricExpression = getMetricExpression(metric);
     const direction = metric?.direction === 'ascending' ? 'ASC' : 'DESC';
     const query = `
@@ -92,6 +102,7 @@ export async function handler(event) {
         metric: params.metric ?? 'score',
         durationSeconds,
         inputMode,
+        mode: aimMode,
         limit,
         entries: [],
         scores: [],
@@ -108,6 +119,7 @@ export async function handler(event) {
       metric: params.metric ?? 'score',
       durationSeconds,
       inputMode,
+      mode: aimMode,
       limit,
       entries: rows.map(mapScoreRow),
       scores: rows.map(mapScoreRow),
