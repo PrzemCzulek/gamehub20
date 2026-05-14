@@ -190,6 +190,28 @@ export function AimTestGame({ onScore }: AimTestGameProps) {
     }
   }
 
+  function resetToIdle(nextMode: AimMode) {
+    clearTimer();
+    modeRef.current = nextMode;
+    finishingRef.current = false;
+    startedAtRef.current = 0;
+    syncCounters({
+      hits: 0,
+      misses: 0,
+      combo: 0,
+      maxCombo: 0,
+      hp: maxHp,
+      regenThreshold: initialRegenThreshold,
+      hpRecovered: 0,
+      reactionTimes: [],
+    });
+    setTarget(null);
+    setFinalResult(null);
+    setFeedbacks([]);
+    setElapsedMs(0);
+    setRemainingMs((modeDurationSeconds[nextMode] ?? 0) * 1000);
+  }
+
   function finish(reason: 'timer' | 'hp') {
     if (finishingRef.current) return;
 
@@ -246,13 +268,10 @@ export function AimTestGame({ onScore }: AimTestGameProps) {
   }
 
   function handleModeChange(nextMode: AimMode) {
-    if (target && !finalResult) return;
     playNormalClickSound();
     setMode(nextMode);
     storeAimMode(nextMode);
-    setFinalResult(null);
-    setElapsedMs(0);
-    setRemainingMs((modeDurationSeconds[nextMode] ?? 0) * 1000);
+    resetToIdle(nextMode);
   }
 
   function handleHit() {
