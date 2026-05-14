@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
+import { pushFeedback } from './feedback/feedbackQueue';
 import { achievementDefinitions } from '../data/achievements';
+import { getCosmetic } from '../data/cosmetics';
 import { gameMilestones } from '../data/gameMilestones';
 import { games } from '../data/games';
 import { questDefinitions } from '../data/quests';
+import { rewardDefinitions, type RewardDefinition } from '../data/rewards';
 import { buildPlayerProfileSummary, emptyValueLabel } from '../progression/playerProfile';
 import { getQuestStreak } from '../progression/quests';
 import { getAchievementUnlocks, getQuestProgress } from '../progression/progressionEngine';
+import { claimReward, equipCosmetic, getEquippedCosmetics, getRewardStatus } from '../progression/rewardHelpers';
 import { playNormalClickSound } from '../services/audio';
 import type { GameId, LocalProfile, PlayerGameProgressSummary } from '../types';
 import { formatPercent } from '../utils/format';
@@ -18,11 +22,12 @@ type PlayerHubProps = {
   revision: number;
 };
 
-type PlayerHubTab = 'stats' | 'achievements' | 'quests' | 'history';
+type PlayerHubTab = 'stats' | 'rewards' | 'achievements' | 'quests' | 'history';
 type Rarity = 'common' | 'rare' | 'epic';
 
 const tabs: Array<{ id: PlayerHubTab; label: string }> = [
   { id: 'stats', label: 'Stats' },
+  { id: 'rewards', label: 'Rewards' },
   { id: 'achievements', label: 'Achievements' },
   { id: 'quests', label: 'Quests' },
   { id: 'history', label: 'History' },
@@ -130,15 +135,161 @@ function MiniScoreTile({ title, value, metric }: { title: string; value?: string
   );
 }
 
+function RewardCard({ onUpdate, reward }: { onUpdate: () => void; reward: RewardDefinition }) {
+  const status = getRewardStatus(reward);
+  const cosmetic = getCosmetic(reward.reward.id);
+  const equippedCosmetics = getEquippedCosmetics();
+  const isEquipped = equippedCosmetics[reward.reward.type] === reward.reward.id;
+  const ready = status === 'ready';
+  const claimed = status === 'claimed';
+
+  return (
+    <div
+      className={`rounded-xl border p-3.5 transition ${
+        ready
+          ? 'border-cyan-300/40 bg-cyan-300/[0.08] shadow-[0_0_22px_rgba(34,211,238,0.16)]'
+          : claimed
+            ? 'border-teal-300/20 bg-teal-300/[0.045]'
+            : 'border-white/10 bg-black/22 opacity-75'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-black text-white">{cosmetic?.label ?? reward.label}</p>
+          <p className="mt-1 truncate text-xs text-slate-500">{reward.gameId ? getGameTitle(reward.gameId) : 'Global'} · Lv {reward.requirement.value}</p>
+        </div>
+        <span className="shrink-0 rounded-full border border-white/10 bg-black/25 px-2 py-0.5 text-[0.6rem] font-black uppercase text-slate-300">
+          {reward.reward.type}
+        </span>
+      </div>
+
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <span className={`text-xs font-black uppercase ${ready ? 'text-cyan-100' : claimed ? 'text-teal-100' : 'text-slate-500'}`}>
+          {ready ? 'READY' : claimed && isEquipped ? 'ZAŁOŻONE' : claimed ? 'ODEBRANE' : 'LOCKED'}
+        </span>
+        {ready && (
+          <button
+            className="rounded-md bg-cyan-300 px-3 py-1.5 text-xs font-black uppercase tracking-wide text-slate-950 transition hover:bg-cyan-100"
+            onClick={() => {
+              playNormalClickSound();
+              const result = claimReward(reward.id);
+              if (result.ok) {
+                pushFeedback({
+                  type: 'reward',
+                  title: 'NAGRODA ODEBRANA',
+                  message: cosmetic?.label ?? reward.label,
+                  detail: 'Gotowe do użycia',
+                  priority: 'high',
+                });
+              }
+              onUpdate();
+            }}
+            type="button"
+          >
+            Odbierz
+          </button>
+        )}
+        {claimed && isEquipped && (
+          <span className="rounded-md border border-teal-300/25 bg-teal-300/10 px-3 py-1.5 text-xs font-black uppercase tracking-wide text-teal-100">
+            Założone
+          </span>
+        )}
+        {claimed && !isEquipped && (
+          <button
+            className="rounded-md border border-teal-300/25 bg-teal-300/10 px-3 py-1.5 text-xs font-black uppercase tracking-wide text-teal-100 transition hover:bg-teal-300/15"
+            onClick={() => {
+              playNormalClickSound();
+              const result = equipCosmetic(reward.reward.id);
+              if (result.ok) {
+                pushFeedback({
+                  type: 'quest',
+                  title: 'ZAŁOŻONO',
+                  message: result.cosmetic.label,
+                  priority: 'medium',
+                });
+              }
+              onUpdate();
+            }}
+            type="button"
+          >
+            Załóż
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RewardSection({ onUpdate, rewards, title }: { onUpdate: () => void; rewards: RewardDefinition[]; title: string }) {
+  return (
+    <section>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100">{title}</h3>
+        <span className="text-xs text-slate-500">{rewards.length}</span>
+      </div>
+      {rewards.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-white/10 p-4 text-sm text-slate-500">Brak.</p>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {rewards.map((reward) => (
+            <RewardCard key={reward.id} onUpdate={onUpdate} reward={reward} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ActiveCosmeticsSection() {
+  const equippedCosmetics = getEquippedCosmetics();
+  const activeCosmetics = [
+    { label: 'Title', cosmetic: getCosmetic(equippedCosmetics.title) },
+    { label: 'Frame', cosmetic: getCosmetic(equippedCosmetics.frame) },
+    { label: 'Badge', cosmetic: getCosmetic(equippedCosmetics.badge) },
+  ];
+  const hasActiveCosmetics = activeCosmetics.some((item) => item.cosmetic);
+
+  return (
+    <section className="rounded-xl border border-cyan-300/12 bg-black/20 p-3.5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100">Aktywne kosmetyki</h3>
+        <span className="text-xs text-slate-500">{activeCosmetics.filter((item) => item.cosmetic).length}/3</span>
+      </div>
+      {!hasActiveCosmetics ? (
+        <p className="rounded-lg border border-dashed border-white/10 p-3 text-sm text-slate-500">Brak aktywnych kosmetyków</p>
+      ) : (
+        <div className="grid gap-2 sm:grid-cols-3">
+          {activeCosmetics.map((item) => (
+            <div className={`rounded-lg border border-white/10 bg-black/24 px-3 py-2 ${item.cosmetic?.className ?? ''}`} key={item.label}>
+              <span className="block text-[0.58rem] font-black uppercase tracking-[0.16em] text-slate-500">{item.label}</span>
+              <strong className={`mt-1 block truncate text-sm ${item.cosmetic ? 'text-white' : 'text-slate-600'}`}>
+                {item.cosmetic?.label ?? emptyValueLabel}
+              </strong>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, revision }: PlayerHubProps) {
   const [activeTab, setActiveTab] = useState<PlayerHubTab>('stats');
   const [draftName, setDraftName] = useState(profile.playerName);
+  const [rewardRevision, setRewardRevision] = useState(0);
   const summary = buildPlayerProfileSummary(profile);
   const questProgress = getQuestProgress();
   const questStreak = getQuestStreak();
   const achievementUnlocks = getAchievementUnlocks();
   const unlockById = new Map(achievementUnlocks.map((unlock) => [unlock.achievementId, unlock]));
   const unlockedIds = new Set(unlockById.keys());
+  const readyRewards = rewardDefinitions.filter((reward) => getRewardStatus(reward) === 'ready');
+  const claimedRewards = rewardDefinitions.filter((reward) => getRewardStatus(reward) === 'claimed');
+  const lockedRewards = rewardDefinitions.filter((reward) => getRewardStatus(reward) === 'locked');
+  const equippedCosmetics = getEquippedCosmetics();
+  const equippedTitle = getCosmetic(equippedCosmetics.title);
+  const equippedBadge = getCosmetic(equippedCosmetics.badge);
+  const equippedFrame = getCosmetic(equippedCosmetics.frame);
   const mostPlayedGameTitle = getGameTitle(summary.favoriteGame);
   const bestGameTitle = getGameTitle(summary.bestGame);
   const highlights = [
@@ -185,16 +336,24 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
   return (
     <section
       className="rounded-2xl border border-white/10 bg-slate-950/42 p-4 shadow-[0_0_40px_rgba(34,211,238,0.06)] sm:p-5"
-      data-revision={revision}
+      data-revision={`${revision}-${rewardRevision}`}
     >
-      <div className="grid gap-4 rounded-xl border border-cyan-300/10 bg-black/18 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+      <div className={`grid gap-4 rounded-xl border border-cyan-300/10 bg-black/18 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center ${equippedFrame?.className ?? ''}`}>
         <div className="flex min-w-0 items-center gap-3.5">
           <div className="grid h-13 min-h-13 w-13 min-w-13 shrink-0 place-items-center rounded-xl border border-violet-300/30 bg-violet-300/10 text-xl font-black text-violet-100 shadow-[0_0_22px_rgba(168,85,247,0.16)]">
             {summary.displayName.slice(0, 1).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-200">Player profile</p>
-            <h2 className="truncate text-2xl font-black text-white sm:text-3xl">{summary.displayName}</h2>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <h2 className="truncate text-2xl font-black text-white sm:text-3xl">{summary.displayName}</h2>
+              {equippedBadge && (
+                <span className={`rounded-full border px-2 py-0.5 text-[0.62rem] font-black uppercase ${equippedBadge.className ?? 'border-cyan-300/30 bg-cyan-300/10 text-cyan-100'}`}>
+                  {equippedBadge.label}
+                </span>
+              )}
+            </div>
+            {equippedTitle && <p className="mt-0.5 truncate text-xs font-bold uppercase tracking-[0.16em] text-violet-100">{equippedTitle.label}</p>}
           </div>
         </div>
 
@@ -223,6 +382,9 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
             type="button"
           >
             {tab.label}
+            {tab.id === 'rewards' && readyRewards.length > 0 && (
+              <span className="ml-2 rounded-full bg-slate-950/75 px-1.5 py-0.5 text-[0.58rem] text-cyan-100">{readyRewards.length} READY</span>
+            )}
           </button>
         ))}
       </div>
@@ -333,6 +495,15 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
           </div>
         )}
 
+        {activeTab === 'rewards' && (
+          <div className="space-y-5">
+            <ActiveCosmeticsSection />
+            <RewardSection onUpdate={() => setRewardRevision((value) => value + 1)} rewards={readyRewards} title="Do odebrania" />
+            <RewardSection onUpdate={() => setRewardRevision((value) => value + 1)} rewards={claimedRewards} title="Odebrane" />
+            <RewardSection onUpdate={() => setRewardRevision((value) => value + 1)} rewards={lockedRewards} title="Zablokowane" />
+          </div>
+        )}
+
         {activeTab === 'quests' && (
           <div className="space-y-3">
             <div className="grid gap-2 text-sm sm:grid-cols-2">
@@ -416,7 +587,7 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
                                 }}
                                 type="button"
                               >
-                                Odbierz
+                                Odbierz nagrodę
                               </button>
                             )}
                           </div>

@@ -12,7 +12,7 @@ export function LiveFeed() {
   }
 
   return (
-    <div className="pointer-events-none fixed right-4 top-4 z-50 flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-3">
+    <div className="pointer-events-none fixed right-3 top-16 z-50 flex w-[min(21.5rem,calc(100vw-1.5rem))] flex-col gap-2 sm:right-5 sm:top-[4.5rem]">
       {items.map((item) => (
         <div className="pointer-events-auto" key={item.id}>
           <FeedbackToast item={item} onDismiss={dismissFeedback} />

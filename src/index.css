@@ -179,11 +179,15 @@ input:focus-visible {
 }
 
 .feedback-toast {
-  animation: feedbackSlideIn 220ms ease-out both;
+  animation: feedbackSlideIn 180ms ease-out both;
 }
 
 .achievement-unlock-toast {
   animation: achievementUnlockIn 320ms cubic-bezier(0.2, 0.9, 0.25, 1.12) both;
+}
+
+.feedback-toast-high {
+  animation: achievementUnlockIn 240ms cubic-bezier(0.2, 0.9, 0.25, 1.04) both;
 }
 
 .achievement-shine {
@@ -320,7 +324,7 @@ input:focus-visible {
 @keyframes feedbackSlideIn {
   from {
     opacity: 0;
-    transform: translateY(-0.75rem) scale(0.98);
+    transform: translateY(-0.35rem) scale(0.985);
   }
 
   to {

@@ -9,10 +9,12 @@ import {
   readStoredCpsSettings,
   storeCpsSettings,
 } from '../data/cpsModes';
+import { getCosmetic } from '../data/cosmetics';
 import { readStoredStroopDuration, storeStroopDuration, stroopDurationChangedEvent, stroopDurationOptions } from '../data/stroopDurations';
 import { readStoredTimeSenseDuration, storeTimeSenseDuration, timeSenseDurationChangedEvent, timeSenseDurationOptions } from '../data/timeSenseDurations';
 import { readStoredTypingDuration, storeTypingDuration, typingDurationOptions } from '../data/typingDurations';
 import { buildPlayerProfileSummary, emptyValueLabel } from '../progression/playerProfile';
+import { getEquippedCosmetics } from '../progression/rewardHelpers';
 import { playNormalClickSound } from '../services/audio';
 import { getOnlineLeaderboard } from '../services/onlineLeaderboard';
 import { fetchOnlinePlayerProfile, type OnlinePlayerProfile } from '../services/onlinePlayerProfile';
@@ -249,6 +251,9 @@ function ProfilePanel({
 }
 
 function OwnProfileContent({ summary }: { summary: PlayerProfileSummary }) {
+  const equippedCosmetics = getEquippedCosmetics();
+  const equippedTitle = getCosmetic(equippedCosmetics.title);
+  const equippedBadge = getCosmetic(equippedCosmetics.badge);
   const highlights = [
     { label: 'Reaction', value: summary.highlights.bestReactionTime?.scoreLabel },
     { label: 'WPM', value: summary.highlights.bestTypingWpm?.scoreLabel },
@@ -268,7 +273,17 @@ function OwnProfileContent({ summary }: { summary: PlayerProfileSummary }) {
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
-        <h4 className="min-w-0 truncate text-lg font-black text-white">{summary.displayName}</h4>
+        <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-2">
+            <h4 className="min-w-0 truncate text-lg font-black text-white">{summary.displayName}</h4>
+            {equippedBadge && (
+              <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[0.58rem] font-black uppercase ${equippedBadge.className ?? 'border-cyan-300/30 bg-cyan-300/10 text-cyan-100'}`}>
+                {equippedBadge.label}
+              </span>
+            )}
+          </div>
+          {equippedTitle && <p className="mt-0.5 truncate text-[0.65rem] font-bold uppercase tracking-wide text-violet-100">{equippedTitle.label}</p>}
+        </div>
         <span className="rounded-full border border-violet-300/35 bg-violet-300/10 px-2 py-1 text-[0.65rem] font-black text-violet-100">L{summary.level}</span>
       </div>
       <ProfileStatsGrid
@@ -368,6 +383,10 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   const game = getGameConfig(gameId);
   const currentPlayerId = getPlayerId();
   const currentPlayerName = getPlayerName();
+  const equippedCosmetics = getEquippedCosmetics();
+  const equippedTitle = getCosmetic(equippedCosmetics.title);
+  const equippedBadge = getCosmetic(equippedCosmetics.badge);
+  const equippedFrame = getCosmetic(equippedCosmetics.frame);
   const profileSummary = useMemo(() => buildPlayerProfileSummary(getProfile()), [entries.length]);
   const isTypingSpeed = gameId === 'typing-speed';
   const isTimeSense = gameId === 'time-sense';
@@ -699,7 +718,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
                   aria-expanded={selected}
                   className={`leaderboard-row group relative overflow-hidden rounded-xl border px-3 py-2.5 transition duration-200 hover:border-cyan-300/35 hover:bg-cyan-300/[0.06] hover:shadow-[0_0_18px_rgba(34,211,238,0.10)] focus:outline-none focus-visible:border-cyan-300/45 focus-visible:ring-1 focus-visible:ring-cyan-300/40 ${
                     selected ? 'border-cyan-300/45 bg-cyan-300/[0.07] shadow-[0_0_24px_rgba(34,211,238,0.14)]' : getRankClass(index, ownEntry)
-                  }`}
+                  } ${ownEntry ? equippedFrame?.className ?? '' : ''}`}
                   key={entryKey}
                   onClick={() => setActiveProfileKey((current) => (current === entryKey ? null : entryKey))}
                   onKeyDown={(event) => handleRowKeyDown(event, entryKey)}
@@ -714,6 +733,16 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
                       {ownEntry && (
                         <span className="shrink-0 rounded-full border border-cyan-300/35 bg-cyan-300/10 px-2 py-0.5 text-[0.6rem] font-black uppercase tracking-wide text-cyan-100">
                           Ty
+                        </span>
+                      )}
+                      {ownEntry && equippedBadge && (
+                        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[0.58rem] font-black uppercase tracking-wide ${equippedBadge.className ?? 'border-cyan-300/30 bg-cyan-300/10 text-cyan-100'}`}>
+                          {equippedBadge.label}
+                        </span>
+                      )}
+                      {ownEntry && equippedTitle && (
+                        <span className="hidden shrink-0 truncate text-[0.64rem] font-bold uppercase tracking-wide text-violet-100 sm:inline">
+                          {equippedTitle.label}
                         </span>
                       )}
                       {selected && (

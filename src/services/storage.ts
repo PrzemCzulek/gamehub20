@@ -1,5 +1,6 @@
 import { games, getGameConfig } from '../data/games';
 import { resetProgressionData } from '../progression/progressionEngine';
+import { getClaimedRewards, getEquippedCosmetics, resetRewardData } from '../progression/rewardHelpers';
 import { calculateScoreXp, getLevelBaseXp, getLevelFromXp, getMainAccountXp } from '../progression/xp';
 import type { GameId, LeaderboardEntry, LocalProfile, ScoreInput, ScoreStats } from '../types';
 
@@ -387,6 +388,7 @@ export function resetLocalData(): void {
     localStorage.removeItem(SCORES_KEY);
     localStorage.removeItem(AUDIO_ENABLED_KEY);
     resetProgressionData();
+    resetRewardData();
   } catch {
     return;
   }
@@ -447,6 +449,8 @@ export function getProfile(): LocalProfile {
     recentScores: [...playerScores]
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, RECENT_LIMIT),
+    claimedRewards: getClaimedRewards(),
+    equippedCosmetics: getEquippedCosmetics(),
     highlights: {
       bestReactionTime: sortScoresByMetric(
         playerScores.filter((score) => score.gameId === 'reaction-time' && score.score < 9999),

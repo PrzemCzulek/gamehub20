@@ -9,6 +9,7 @@ import { MetaPanel } from './components/meta/MetaPanel';
 import { achievementDefinitions } from './data/achievements';
 import { games } from './data/games';
 import { questDefinitions } from './data/quests';
+import { rewardDefinitions } from './data/rewards';
 import { AimTestGame } from './games/AimTestGame';
 import { ColorMemoryGame } from './games/ColorMemoryGame';
 import { CpsTestGame } from './games/CpsTestGame';
@@ -23,10 +24,12 @@ import { createProgressionEvent } from './progression/events';
 import { claimGameMilestone } from './progression/gameProgress';
 import { claimQuestReward } from './progression/quests';
 import { getQuestProgress, processProgressionEvent } from './progression/progressionEngine';
+import { getRewardStatus, rewardStateChangedEvent } from './progression/rewardHelpers';
 import { preloadAudio } from './services/audio';
 import { submitOnlineScore } from './services/onlineLeaderboard';
 import { getLeaderboard, getProfile, hasValidPlayerName, resetLocalData, saveScore, setPlayerName } from './services/storage';
 import type { GameId, GameTag, LocalProfile, ScoreInput } from './types';
+import { preloadFeedbackSounds } from './utils/audioFeedback';
 import { canPlayGameOnDevice, canSubmitScoreForGame, getDeviceType, type DeviceType } from './utils/device';
 
 type AppView = 'home' | 'game' | 'profile';
@@ -43,6 +46,54 @@ const categoryFilters: Array<{ id: GameTag | 'hardcore'; label: string; tags: Ga
   { id: 'casual', label: 'Casual', tags: ['casual'] },
   { id: 'hardcore', label: 'Hardcore', tags: ['challenge', 'desktop'] },
 ];
+
+const seenRewardReadyKey = 'game-hub:seen-reward-ready';
+
+function readSeenRewardReady(): string[] {
+  try {
+    const raw = localStorage.getItem(seenRewardReadyKey);
+    const value = raw ? JSON.parse(raw) : [];
+    return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeSeenRewardReady(ids: string[]): void {
+  try {
+    localStorage.setItem(seenRewardReadyKey, JSON.stringify(ids));
+  } catch {
+    return;
+  }
+}
+
+function getReadyRewardIds(): string[] {
+  return rewardDefinitions.filter((reward) => getRewardStatus(reward) === 'ready').map((reward) => reward.id);
+}
+
+function getReadyRewardsCount(): number {
+  return getReadyRewardIds().length;
+}
+
+function notifyNewReadyRewards(): void {
+  const readyIds = getReadyRewardIds();
+  const seenIds = readSeenRewardReady();
+  const seen = new Set(seenIds);
+  const newIds = readyIds.filter((id) => !seen.has(id));
+
+  if (newIds.length === 0) {
+    return;
+  }
+
+  writeSeenRewardReady([...new Set([...seenIds, ...newIds])]);
+  pushFeedback({
+    type: 'reward',
+    title: 'NOWA NAGRODA',
+    message: 'Odbierz w profilu',
+    detail: newIds.length > 1 ? `${newIds.length} READY` : undefined,
+    priority: 'high',
+  });
+}
 
 function renderGame(gameId: GameId, onScore: (score: ScoreInput) => void) {
   switch (gameId) {
@@ -107,6 +158,7 @@ function TopBar({
   onReset,
   onViewChange,
   profile,
+  readyRewardsCount,
   revision,
 }: {
   activeGameTitle: string;
@@ -114,6 +166,7 @@ function TopBar({
   onReset: () => void;
   onViewChange: (view: AppView) => void;
   profile: LocalProfile;
+  readyRewardsCount: number;
   revision: number;
 }) {
   return (
@@ -137,6 +190,11 @@ function TopBar({
                 type="button"
               >
                 {view === 'home' ? 'Home' : 'Profil'}
+                {view === 'profile' && readyRewardsCount > 0 && (
+                  <span className="ml-2 rounded-full bg-cyan-300 px-1.5 py-0.5 text-[0.55rem] text-slate-950 shadow-[0_0_10px_rgba(34,211,238,0.35)]">
+                    {readyRewardsCount}
+                  </span>
+                )}
               </button>
             ))}
             {activeView === 'game' && (
@@ -212,6 +270,7 @@ export default function App() {
   const profile = useMemo(() => getProfile(), [revision]);
   const leaderboard = useMemo(() => getLeaderboard(activeGameId), [activeGameId, revision]);
   const questProgress = useMemo(() => getQuestProgress(), [revision]);
+  const readyRewardsCount = useMemo(() => getReadyRewardsCount(), [revision]);
   const activeGame = games.find((game) => game.id === activeGameId) ?? games[0];
   const activeGamePlayable = canPlayGameOnDevice(activeGame, deviceType);
   const firstPlayableGame = games.find((game) => canPlayGameOnDevice(game, deviceType));
@@ -219,7 +278,10 @@ export default function App() {
   const dailyProgress = dailyQuest ? questProgress.find((item) => item.questId === dailyQuest.id) : undefined;
 
   useEffect(() => {
-    const handleFirstInteraction = () => preloadAudio();
+    const handleFirstInteraction = () => {
+      preloadAudio();
+      preloadFeedbackSounds();
+    };
     const options = { once: true };
 
     window.addEventListener('click', handleFirstInteraction, options);
@@ -245,6 +307,15 @@ export default function App() {
       window.removeEventListener('resize', handleDeviceChange);
       window.removeEventListener('orientationchange', handleDeviceChange);
     };
+  }, []);
+
+  useEffect(() => {
+    function handleRewardStateChanged() {
+      setRevision((current) => current + 1);
+    }
+
+    window.addEventListener(rewardStateChangedEvent, handleRewardStateChanged);
+    return () => window.removeEventListener(rewardStateChangedEvent, handleRewardStateChanged);
   }, []);
 
   function refresh() {
@@ -320,6 +391,7 @@ export default function App() {
         title: 'LEVEL GRY',
         message: `${getGameTitle(savedScore.gameId)} osiągnął poziom ${progressionResult.gameProgress.level}`,
         detail: `+${progressionEvent.xpGained} XP gry`,
+        priority: 'medium',
       });
     }
 
@@ -337,9 +409,10 @@ export default function App() {
       if (quest) {
         pushFeedback({
           type: 'quest',
-          title: 'QUEST GOTOWY',
-          message: quest.title,
-          detail: 'Odbierz nagrodę w Player Hub',
+          title: 'QUEST READY',
+          message: 'Odbierz nagrodę',
+          detail: quest.title,
+          priority: 'medium',
         });
       }
     });
@@ -350,13 +423,15 @@ export default function App() {
       if (achievement) {
         pushFeedback({
           type: 'achievement',
-          title: 'OSIĄGNIĘCIE ODBLOKOWANE',
+          title: 'ACHIEVEMENT',
           message: achievement.title,
-          detail: achievement.rarity.toUpperCase(),
+          detail: 'Unlocked',
           rarity: achievement.rarity,
         });
       }
     });
+
+    notifyNewReadyRewards();
 
     if (import.meta.env.DEV) {
       console.debug('Score submit audit: before submitOnlineScore', {
@@ -391,6 +466,11 @@ export default function App() {
 
   function handleResetLocalData() {
     resetLocalData();
+    try {
+      localStorage.removeItem(seenRewardReadyKey);
+    } catch {
+      // Reset should stay non-blocking.
+    }
     setNeedsNick(true);
     refresh();
   }
@@ -406,10 +486,11 @@ export default function App() {
     const nextProfile = getProfile();
 
     pushFeedback({
-      type: 'quest',
-      title: 'NAGRODA ODEBRANA',
+      type: 'reward',
+      title: 'NAGRODA',
       message: `${getGameTitle(gameId)}: ${result.milestone.label}`,
       detail: `+${result.mainXpGained} XP konta`,
+      priority: 'high',
     });
 
     if (nextProfile.level > previousLevel) {
@@ -435,16 +516,11 @@ export default function App() {
     const nextProfile = getProfile();
 
     pushFeedback({
-      type: 'quest',
-      title: 'QUEST UKOŃCZONY',
-      message: result.quest.title,
-      detail: `+${result.mainXpGained} XP konta`,
-    });
-
-    pushFeedback({
-      type: 'xp',
-      title: '+XP KONTA',
+      type: 'reward',
+      title: 'NAGRODA',
       message: `+${result.mainXpGained} XP konta`,
+      detail: result.quest.title,
+      priority: 'high',
     });
 
     if (nextProfile.level > previousLevel) {
@@ -463,7 +539,15 @@ export default function App() {
     <main className="min-h-screen bg-transparent text-slate-100">
       <LiveFeed />
       {needsNick && <FirstRunNickModal onSubmit={handleFirstRunName} />}
-      <TopBar activeGameTitle={activeGame.title} activeView={activeView} onReset={handleResetLocalData} onViewChange={setActiveView} profile={profile} revision={revision} />
+      <TopBar
+        activeGameTitle={activeGame.title}
+        activeView={activeView}
+        onReset={handleResetLocalData}
+        onViewChange={setActiveView}
+        profile={profile}
+        readyRewardsCount={readyRewardsCount}
+        revision={revision}
+      />
 
       <div className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-5 lg:px-8">
         <div className="view-fade">

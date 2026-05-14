@@ -129,6 +129,12 @@ export type LocalProfile = {
   mostPlayedGame?: GameId;
   bestScores: Partial<Record<GameId, LeaderboardEntry>>;
   recentScores: LeaderboardEntry[];
+  claimedRewards: string[];
+  equippedCosmetics: {
+    title?: string;
+    frame?: string;
+    badge?: string;
+  };
   highlights: {
     bestReactionTime?: LeaderboardEntry;
     highestWpm?: LeaderboardEntry;
