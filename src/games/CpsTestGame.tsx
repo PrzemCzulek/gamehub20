@@ -27,6 +27,7 @@ type RunResult = {
   consistency: number;
   burst: number;
   overheatTime: number;
+  heatPeak: number;
   longestStreak: number;
   rating: 'S' | 'A' | 'B' | 'C' | 'MISS';
 };
@@ -99,10 +100,12 @@ export function CpsTestGame({ onScore }: CpsTestGameProps) {
   const longestStreakRef = useRef(0);
   const lastAltKeyRef = useRef<string | null>(null);
   const overheatMsRef = useRef(0);
+  const heatPeakRef = useRef(0);
   const lastTickRef = useRef<number | null>(null);
   const submittedRef = useRef(false);
 
-  const flowState = getFlowState(energy);
+  const displayHeat = stage === 'running' ? energy : 0;
+  const flowState = stage === 'running' ? getFlowState(energy) : 'FLOW';
   const liveCps = stage === 'running' ? Math.round((effectiveClicks / Math.max((durationSeconds * 1000 - remainingMs) / 1000, 0.1)) * 100) / 100 : result?.score ?? 0;
   const modeLabel = cpsInputModeOptions.find((option) => option.value === inputMode)?.label ?? 'Click';
 
@@ -183,6 +186,7 @@ export function CpsTestGame({ onScore }: CpsTestGameProps) {
     longestStreakRef.current = 0;
     lastAltKeyRef.current = null;
     overheatMsRef.current = 0;
+    heatPeakRef.current = 0;
     lastTickRef.current = null;
     energyRef.current = 0;
     setClicks(0);
@@ -224,6 +228,7 @@ export function CpsTestGame({ onScore }: CpsTestGameProps) {
     const peakCPS = getPeakCps(clickTimesRef.current);
     const consistency = getConsistency(clickTimesRef.current, durationSeconds);
     const overheatTime = Math.round(overheatMsRef.current);
+    const heatPeak = Math.round(heatPeakRef.current);
     const burst = peakCPS;
     const nextResult: RunResult = {
       score,
@@ -232,12 +237,15 @@ export function CpsTestGame({ onScore }: CpsTestGameProps) {
       consistency,
       burst,
       overheatTime,
+      heatPeak,
       longestStreak: longestStreakRef.current,
       rating: getRating(score),
     };
 
     setResult(nextResult);
     setRemainingMs(0);
+    energyRef.current = 0;
+    setEnergy(0);
 
     onScore({
       gameId: 'cps-test',
@@ -253,6 +261,7 @@ export function CpsTestGame({ onScore }: CpsTestGameProps) {
         accuracy: inputMode === 'alternating' ? Math.round((effectiveClicksRef.current / Math.max(totalClicks, 1)) * 10000) / 100 : 100,
         burst,
         overheatTime,
+        heatPeak,
         longestStreak: longestStreakRef.current,
       },
       runDurationMs: durationSeconds * 1000,
@@ -280,8 +289,7 @@ export function CpsTestGame({ onScore }: CpsTestGameProps) {
 
     const now = performance.now();
     const elapsed = now - startedAtRef.current;
-    const currentFlow = getFlowState(energyRef.current);
-    const efficiency = currentFlow === 'OVERHEAT' ? 0.88 : currentFlow === 'HOT' ? 0.96 : 1;
+    const efficiency = 1;
     const nextEffectiveClicks = effectiveClicksRef.current + efficiency;
     const nextClicks = clicksRef.current + 1;
     const nextStreak = currentStreakRef.current + 1;
@@ -293,13 +301,15 @@ export function CpsTestGame({ onScore }: CpsTestGameProps) {
     currentStreakRef.current = nextStreak;
     longestStreakRef.current = Math.max(longestStreakRef.current, nextStreak);
     energyRef.current = nextEnergy;
+    heatPeakRef.current = Math.max(heatPeakRef.current, nextEnergy);
     setPulse((current) => current + 1);
     setClicks(nextClicks);
     setEffectiveClicks(nextEffectiveClicks);
     setEnergy(nextEnergy);
   }
 
-  function handlePadPointerDown(event: PointerEvent<HTMLButtonElement>) {
+  function handlePadPointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (stageRef.current !== 'running') return;
     event.preventDefault();
     if (inputMode === 'space' || inputMode === 'alternating') return;
     registerHit('pointer');
@@ -358,7 +368,7 @@ export function CpsTestGame({ onScore }: CpsTestGameProps) {
         <Stat label="CPS" value={liveCps.toFixed(2)} />
         <Stat label="Clicks" value={String(clicks)} />
         <Stat label="Flow" value={flowState} />
-        <Stat label="Energy" value={`${Math.round(energy)}%`} />
+        <Stat label="Heat" value={`${Math.round(displayHeat)}%`} />
         <Stat label="Mode" value={modeLabel} />
       </div>
 
@@ -372,24 +382,24 @@ export function CpsTestGame({ onScore }: CpsTestGameProps) {
           />
         )}
 
-        <button
+        <div
           aria-label="CPS click pad"
           className={`relative flex min-h-[22rem] w-full touch-none select-none flex-col items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-black/24 p-6 text-center transition active:scale-[0.995] ${
             flowState === 'OVERHEAT'
               ? 'shadow-[0_0_44px_rgba(248,113,113,0.18)]'
               : flowState === 'HOT'
                 ? 'shadow-[0_0_44px_rgba(251,191,36,0.15)]'
-                : 'shadow-[0_0_44px_rgba(34,211,238,0.12)]'
+              : 'shadow-[0_0_44px_rgba(34,211,238,0.12)]'
           }`}
-          disabled={stage !== 'running' || inputMode !== 'normal'}
           onPointerDown={handlePadPointerDown}
+          role={stage === 'running' && inputMode === 'normal' ? 'button' : undefined}
           style={{ touchAction: 'none' }}
-          type="button"
+          tabIndex={stage === 'running' && inputMode === 'normal' ? 0 : undefined}
         >
           <div
             className="pointer-events-none absolute inset-0 opacity-25"
             style={{
-              background: `radial-gradient(circle at center, rgba(34,211,238,${Math.min(0.32, 0.08 + energy / 420)}), transparent 42%)`,
+              background: `radial-gradient(circle at center, rgba(34,211,238,${Math.min(0.32, 0.08 + displayHeat / 420)}), transparent 42%)`,
             }}
           />
           <div
@@ -411,7 +421,7 @@ export function CpsTestGame({ onScore }: CpsTestGameProps) {
                 <Stat label="Peak" value={`${result.peakCPS} CPS`} />
                 <Stat label="Clicks" value={String(result.totalClicks)} />
                 <Stat label="Consistency" value={formatPercent(result.consistency)} />
-                <Stat label="Overheat" value={`${(result.overheatTime / 1000).toFixed(1)}s`} />
+                <Stat label="Heat peak" value={`${result.heatPeak}%`} />
               </div>
               <button
                 className="mt-6 rounded-xl bg-cyan-300 px-7 py-3 text-sm font-black uppercase tracking-wide text-slate-950 transition hover:bg-cyan-200"
@@ -434,12 +444,12 @@ export function CpsTestGame({ onScore }: CpsTestGameProps) {
                   className={`h-full rounded-full transition-all duration-100 ${
                     flowState === 'OVERHEAT' ? 'bg-red-300' : flowState === 'HOT' ? 'bg-yellow-300' : 'bg-cyan-300'
                   }`}
-                  style={{ width: `${Math.min(100, energy)}%` }}
+                  style={{ width: `${Math.min(100, displayHeat)}%` }}
                 />
               </div>
             </>
           )}
-        </button>
+        </div>
       </div>
     </div>
   );

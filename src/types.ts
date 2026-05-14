@@ -71,6 +71,7 @@ export type ScoreStats = {
   consistency?: number;
   burst?: number;
   overheatTime?: number;
+  heatPeak?: number;
   inputMode?: string;
   longestStreak?: number;
 };
