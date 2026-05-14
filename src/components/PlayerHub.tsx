@@ -71,6 +71,26 @@ const questRarityStyles = {
   legendary: 'border-amber-200/40 bg-amber-200/[0.09] text-amber-100 shadow-[0_0_22px_rgba(251,191,36,0.14)]',
 };
 
+const questCategoryLabels: Record<string, string> = {
+  accuracy: 'PRECISION',
+  speed: 'SPEED',
+  precision: 'PRECISION',
+  survival: 'SURVIVAL',
+  focus: 'FOCUS',
+  streak: 'STREAK',
+  combo: 'COMBO',
+  consistency: 'CONSISTENCY',
+  mastery: 'MASTERY',
+  arcade: 'ARCADE',
+  flawless: 'NO MISS',
+  personal_best: 'PB',
+  participation: 'RUN',
+  xp: 'XP',
+  skill: 'SKILL',
+  challenge: 'CHALLENGE',
+  exploration: 'EXPLORE',
+};
+
 function getGameTitle(gameId?: string): string {
   return gameId ? games.find((game) => game.id === gameId)?.title ?? gameId : emptyValueLabel;
 }
@@ -574,9 +594,14 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
                               </span>
                             </div>
                             <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
-                              <span className="rounded-full border border-amber-200/25 bg-amber-200/10 px-2 py-0.5 font-semibold uppercase text-amber-100">
-                                {quest.rarity} · +{quest.rewardXp} XP
-                              </span>
+                              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                                <span className="rounded-full border border-amber-200/25 bg-amber-200/10 px-2 py-0.5 font-semibold uppercase text-amber-100">
+                                  {quest.rarity} · +{quest.rewardXp} XP
+                                </span>
+                                <span className="rounded-full border border-cyan-200/15 bg-cyan-200/[0.06] px-2 py-0.5 font-semibold uppercase text-cyan-100/80">
+                                  {questCategoryLabels[quest.category] ?? quest.category}
+                                </span>
+                              </div>
                               <span className={`font-bold uppercase ${claimed ? 'text-slate-400' : ready ? 'text-cyan-100' : 'text-slate-500'}`}>
                                 {claimed ? '✓ Odebrano' : statusLabel}
                               </span>
@@ -696,3 +721,4 @@ function GameLevelCard({
     </div>
   );
 }
+

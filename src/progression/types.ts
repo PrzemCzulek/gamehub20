@@ -57,9 +57,15 @@ export type QuestType = 'daily' | 'weekly';
 export type QuestRarity = 'common' | 'rare' | 'epic' | 'legendary';
 export type QuestCategory =
   | 'accuracy'
+  | 'speed'
+  | 'precision'
+  | 'survival'
+  | 'focus'
   | 'streak'
   | 'combo'
   | 'consistency'
+  | 'mastery'
+  | 'arcade'
   | 'flawless'
   | 'personal_best'
   | 'participation'
@@ -94,7 +100,32 @@ export type QuestTargetKind =
   | 'color_similarity_over'
   | 'color_average_similarity_over'
   | 'color_completed_round'
-  | 'benchmark_runs';
+  | 'benchmark_runs'
+  | 'aim_hits_in_mode'
+  | 'aim_combo_in_mode'
+  | 'aim_survive_infinity_seconds'
+  | 'aim_hp_recovered'
+  | 'aim_accuracy_with_hits'
+  | 'aim_no_miss_mode'
+  | 'flappy_score'
+  | 'flappy_survive_seconds'
+  | 'flappy_efficiency'
+  | 'flappy_low_flaps_for_score'
+  | 'cps_score_mode_duration'
+  | 'cps_peak'
+  | 'cps_consistency'
+  | 'cps_total_clicks_mode'
+  | 'cps_overheat'
+  | 'stroop_accuracy'
+  | 'stroop_combo'
+  | 'stroop_average_under_ms'
+  | 'stroop_no_miss'
+  | 'time_sense_perfects'
+  | 'time_sense_deviation_under_ms'
+  | 'time_sense_accuracy'
+  | 'time_sense_no_miss'
+  | 'total_combo'
+  | 'no_miss_runs';
 
 export type QuestDefinition = {
   id: string;
@@ -111,6 +142,12 @@ export type QuestDefinition = {
   target: {
     kind: QuestTargetKind;
     amount: number;
+    gameId?: GameId;
+    mode?: string;
+    durationSeconds?: number;
+    inputMode?: string;
+    minScore?: number;
+    maxFlaps?: number;
   };
 };
 

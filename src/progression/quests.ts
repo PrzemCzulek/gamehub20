@@ -104,6 +104,40 @@ function isPersonalBest(event: ProgressionEvent, previousEvents: ProgressionEven
   return direction === 'ascending' ? event.scoreEntry.score < previousBest : event.scoreEntry.score > previousBest;
 }
 
+function matchesMode(event: ProgressionEvent, mode?: string): boolean {
+  return !mode || event.stats.mode === mode;
+}
+
+function matchesDuration(event: ProgressionEvent, durationSeconds?: number): boolean {
+  return !durationSeconds || event.stats.durationSeconds === durationSeconds;
+}
+
+function matchesInputMode(event: ProgressionEvent, inputMode?: string): boolean {
+  return !inputMode || (event.stats.inputMode ?? 'normal') === inputMode;
+}
+
+function getRunHits(event: ProgressionEvent): number {
+  return Number(event.stats.hits ?? event.stats.correctAnswers ?? event.scoreEntry.score ?? 0);
+}
+
+function getRunCombo(event: ProgressionEvent): number {
+  return Number(event.stats.bestCombo ?? event.stats.combo ?? event.stats.longestStreak ?? 0);
+}
+
+function getMistakes(event: ProgressionEvent): number | undefined {
+  const value = event.stats.misses ?? event.stats.mistakes;
+  return typeof value === 'number' ? value : undefined;
+}
+
+function isNoMissRun(event: ProgressionEvent): boolean {
+  const mistakes = getMistakes(event);
+  if (mistakes === undefined) {
+    return false;
+  }
+
+  return mistakes === 0 && getRunHits(event) > 0;
+}
+
 function getTargetIncrement(
   quest: QuestDefinition,
   event: ProgressionEvent,
@@ -179,6 +213,125 @@ function getTargetIncrement(
         progress:
           event.gameId === 'reaction-time' && event.scoreEntry.score < 9999 && event.scoreEntry.meta?.benchmarkMode === true ? 1 : 0,
       };
+    case 'aim_hits_in_mode':
+      return {
+        progress:
+          event.gameId === 'aim-test' && matchesMode(event, quest.target.mode) && getRunHits(event) >= quest.target.amount ? 1 : 0,
+      };
+    case 'aim_combo_in_mode':
+      return {
+        progress:
+          event.gameId === 'aim-test' && matchesMode(event, quest.target.mode) && getRunCombo(event) >= quest.target.amount ? 1 : 0,
+      };
+    case 'aim_survive_infinity_seconds':
+      return {
+        progress:
+          event.gameId === 'aim-test' &&
+          matchesMode(event, quest.target.mode ?? 'infinity') &&
+          (event.stats.survivedTime ?? event.stats.survivedTimeSeconds ?? 0) >= quest.target.amount
+            ? 1
+            : 0,
+      };
+    case 'aim_hp_recovered':
+      return {
+        progress:
+          event.gameId === 'aim-test' && matchesMode(event, quest.target.mode ?? 'infinity') ? Number(event.stats.hpRecovered ?? 0) : 0,
+      };
+    case 'aim_accuracy_with_hits':
+      return {
+        progress:
+          event.gameId === 'aim-test' &&
+          matchesMode(event, quest.target.mode) &&
+          (event.stats.accuracy ?? 0) >= quest.target.amount &&
+          getRunHits(event) >= (quest.target.minScore ?? 0)
+            ? 1
+            : 0,
+      };
+    case 'aim_no_miss_mode':
+      return {
+        progress: event.gameId === 'aim-test' && matchesMode(event, quest.target.mode) && isNoMissRun(event) ? 1 : 0,
+      };
+    case 'flappy_score':
+      return { progress: event.gameId === 'flappy-ball' && event.scoreEntry.score >= quest.target.amount ? 1 : 0 };
+    case 'flappy_survive_seconds':
+      return {
+        progress:
+          event.gameId === 'flappy-ball' && (event.stats.survivedTimeSeconds ?? event.stats.survivedTime ?? 0) >= quest.target.amount
+            ? 1
+            : 0,
+      };
+    case 'flappy_efficiency':
+      return { progress: event.gameId === 'flappy-ball' && (event.stats.efficiency ?? 0) >= quest.target.amount ? 1 : 0 };
+    case 'flappy_low_flaps_for_score':
+      return {
+        progress:
+          event.gameId === 'flappy-ball' &&
+          event.scoreEntry.score >= quest.target.amount &&
+          (event.stats.flaps ?? Infinity) <= (quest.target.maxFlaps ?? Infinity)
+            ? 1
+            : 0,
+      };
+    case 'cps_score_mode_duration':
+      return {
+        progress:
+          event.gameId === 'cps-test' &&
+          matchesDuration(event, quest.target.durationSeconds) &&
+          matchesInputMode(event, quest.target.inputMode) &&
+          event.scoreEntry.score >= quest.target.amount
+            ? 1
+            : 0,
+      };
+    case 'cps_peak':
+      return { progress: event.gameId === 'cps-test' && (event.stats.peakCPS ?? 0) >= quest.target.amount ? 1 : 0 };
+    case 'cps_consistency':
+      return { progress: event.gameId === 'cps-test' && (event.stats.consistency ?? 0) >= quest.target.amount ? 1 : 0 };
+    case 'cps_total_clicks_mode':
+      return {
+        progress:
+          event.gameId === 'cps-test' &&
+          matchesDuration(event, quest.target.durationSeconds) &&
+          matchesInputMode(event, quest.target.inputMode) &&
+          (event.stats.totalClicks ?? 0) >= quest.target.amount
+            ? 1
+            : 0,
+      };
+    case 'cps_overheat':
+      return {
+        progress: event.gameId === 'cps-test' && ((event.stats.heatPeak ?? 0) >= 82 || (event.stats.overheatTime ?? 0) > 0) ? 1 : 0,
+      };
+    case 'stroop_accuracy':
+      return { progress: event.gameId === 'stroop-test' && (event.stats.accuracy ?? 0) >= quest.target.amount ? 1 : 0 };
+    case 'stroop_combo':
+      return { progress: event.gameId === 'stroop-test' && getRunCombo(event) >= quest.target.amount ? 1 : 0 };
+    case 'stroop_average_under_ms':
+      return {
+        progress:
+          event.gameId === 'stroop-test' && (event.stats.averageReactionMs ?? Infinity) <= quest.target.amount && getRunHits(event) > 0
+            ? 1
+            : 0,
+      };
+    case 'stroop_no_miss':
+      return { progress: event.gameId === 'stroop-test' && isNoMissRun(event) ? 1 : 0 };
+    case 'time_sense_perfects':
+      return {
+        progress:
+          event.gameId === 'time-sense' && (Boolean(event.stats.isPerfect) || String(event.stats.rating).toUpperCase() === 'PERFECT') ? 1 : 0,
+      };
+    case 'time_sense_deviation_under_ms':
+      return { progress: event.gameId === 'time-sense' && (event.stats.deviationMs ?? Infinity) <= quest.target.amount ? 1 : 0 };
+    case 'time_sense_accuracy':
+      return { progress: event.gameId === 'time-sense' && (event.stats.accuracy ?? 0) >= quest.target.amount ? 1 : 0 };
+    case 'time_sense_no_miss':
+      return {
+        progress:
+          event.gameId === 'time-sense' && String(event.stats.rating ?? '').toUpperCase() !== 'MISS' && (event.stats.accuracy ?? 0) > 0
+            ? 1
+            : 0,
+      };
+    case 'total_combo':
+      return { progress: getRunCombo(event) };
+    case 'no_miss_runs':
+      return { progress: isNoMissRun(event) ? 1 : 0 };
   }
 }
 
