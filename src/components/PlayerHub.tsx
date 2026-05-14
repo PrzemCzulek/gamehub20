@@ -11,7 +11,7 @@ import { getQuestStreak } from '../progression/quests';
 import { getAchievementUnlocks, getQuestProgress } from '../progression/progressionEngine';
 import { claimReward, equipCosmetic, getEquippedCosmetics, getRewardStatus } from '../progression/rewardHelpers';
 import { playNormalClickSound } from '../services/audio';
-import type { GameId, LocalProfile, PlayerGameProgressSummary } from '../types';
+import type { DeviceType, GameId, LocalProfile, PlayerGameProgressSummary } from '../types';
 import { formatPercent } from '../utils/format';
 
 type PlayerHubProps = {
@@ -32,6 +32,13 @@ const tabs: Array<{ id: PlayerHubTab; label: string }> = [
   { id: 'quests', label: 'Quests' },
   { id: 'history', label: 'History' },
 ];
+
+function getDeviceLabel(device?: DeviceType): string | undefined {
+  if (device === 'mobile') return 'Mobile';
+  if (device === 'tablet') return 'Tablet';
+  if (device === 'desktop') return 'Desktop';
+  return undefined;
+}
 
 const rarityLabels: Record<Rarity, string> = {
   common: 'COMMON',
@@ -290,6 +297,7 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
   const equippedTitle = getCosmetic(equippedCosmetics.title, 'title');
   const equippedBadge = getCosmetic(equippedCosmetics.badge, 'badge');
   const equippedFrame = getCosmetic(equippedCosmetics.frame, 'frame');
+  const deviceLabel = getDeviceLabel(summary.lastSeenDevice ?? summary.createdOnDevice);
   const mostPlayedGameTitle = getGameTitle(summary.favoriteGame);
   const bestGameTitle = getGameTitle(summary.bestGame);
   const highlights = [
@@ -350,6 +358,11 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
               {equippedBadge && (
                 <span className={`rounded-full border px-2 py-0.5 text-[0.62rem] font-black uppercase ${equippedBadge.className ?? 'border-cyan-300/30 bg-cyan-300/10 text-cyan-100'}`}>
                   {equippedBadge.label}
+                </span>
+              )}
+              {deviceLabel && (
+                <span className="rounded-full border border-cyan-300/25 bg-cyan-300/8 px-2 py-0.5 text-[0.58rem] font-black uppercase tracking-wide text-cyan-100/85">
+                  {deviceLabel}
                 </span>
               )}
             </div>

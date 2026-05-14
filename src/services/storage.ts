@@ -2,14 +2,17 @@ import { games, getGameConfig } from '../data/games';
 import { resetProgressionData } from '../progression/progressionEngine';
 import { getClaimedRewards, getEquippedCosmetics, resetRewardData } from '../progression/rewardHelpers';
 import { calculateScoreXp, getLevelBaseXp, getLevelFromXp, getMainAccountXp } from '../progression/xp';
-import type { GameId, LeaderboardEntry, LocalProfile, ScoreInput, ScoreStats } from '../types';
+import { getDeviceType } from '../utils/device';
+import type { DeviceType, GameId, LeaderboardEntry, LocalProfile, ScoreInput, ScoreStats } from '../types';
 
 const PLAYER_KEY = 'game-hub:player-name';
 const PLAYER_ID_KEY = 'game-hub:player-id';
 const SCORES_KEY = 'game-hub:scores';
 const AUDIO_ENABLED_KEY = 'gameHubAudioEnabled';
+const DEVICE_ORIGIN_KEY = 'game-hub:player-device-origin';
 const RECENT_LIMIT = 5;
 const validGameIds = new Set<GameId>(games.map((game) => game.id));
+const validDeviceTypes = new Set<DeviceType>(['mobile', 'tablet', 'desktop']);
 
 function readJson<T>(key: string, fallback: T): T {
   try {
@@ -37,6 +40,43 @@ function writeJson<T>(key: string, value: T): boolean {
   } catch {
     return false;
   }
+}
+
+type PlayerDeviceOrigin = {
+  createdOnDevice?: DeviceType;
+  lastSeenDevice?: DeviceType;
+};
+
+function normalizeDeviceType(value: unknown): DeviceType | undefined {
+  return typeof value === 'string' && validDeviceTypes.has(value as DeviceType) ? (value as DeviceType) : undefined;
+}
+
+export function getPlayerDeviceOrigin(): PlayerDeviceOrigin {
+  const stored = readJson<Partial<PlayerDeviceOrigin>>(DEVICE_ORIGIN_KEY, {});
+  const currentDevice = getDeviceType();
+  const origin: PlayerDeviceOrigin = {
+    createdOnDevice: normalizeDeviceType(stored.createdOnDevice),
+    lastSeenDevice: normalizeDeviceType(stored.lastSeenDevice),
+  };
+
+  if (!origin.createdOnDevice) {
+    origin.createdOnDevice = currentDevice;
+    origin.lastSeenDevice = origin.lastSeenDevice ?? currentDevice;
+    writeJson(DEVICE_ORIGIN_KEY, origin);
+  }
+
+  return origin;
+}
+
+export function touchPlayerDeviceOrigin(deviceType: DeviceType = getDeviceType()): PlayerDeviceOrigin {
+  const origin = getPlayerDeviceOrigin();
+  const nextOrigin: PlayerDeviceOrigin = {
+    createdOnDevice: origin.createdOnDevice ?? deviceType,
+    lastSeenDevice: deviceType,
+  };
+
+  writeJson(DEVICE_ORIGIN_KEY, nextOrigin);
+  return nextOrigin;
 }
 
 function isLeaderboardEntry(value: unknown): value is LeaderboardEntry {
@@ -383,6 +423,7 @@ export function saveScore(entry: ScoreInput): LeaderboardEntry {
   };
   const savedEntry = normalizeEntry(baseEntry);
 
+  touchPlayerDeviceOrigin();
   writeJson(SCORES_KEY, [savedEntry, ...getScores()]);
   return savedEntry;
 }
@@ -393,6 +434,7 @@ export function resetLocalData(): void {
     localStorage.removeItem(PLAYER_ID_KEY);
     localStorage.removeItem(SCORES_KEY);
     localStorage.removeItem(AUDIO_ENABLED_KEY);
+    localStorage.removeItem(DEVICE_ORIGIN_KEY);
     resetProgressionData();
     resetRewardData();
   } catch {
@@ -437,6 +479,7 @@ export function getProfile(): LocalProfile {
   const bestGame = Object.values(bestScores)
     .filter(Boolean)
     .sort((a, b) => (b?.xpGained ?? 0) - (a?.xpGained ?? 0))[0]?.gameId;
+  const deviceOrigin = getPlayerDeviceOrigin();
 
   return {
     playerId,
@@ -457,6 +500,8 @@ export function getProfile(): LocalProfile {
       .slice(0, RECENT_LIMIT),
     claimedRewards: getClaimedRewards(),
     equippedCosmetics: getEquippedCosmetics(),
+    createdOnDevice: deviceOrigin.createdOnDevice,
+    lastSeenDevice: deviceOrigin.lastSeenDevice,
     highlights: {
       bestReactionTime: sortScoresByMetric(
         playerScores.filter((score) => score.gameId === 'reaction-time' && score.score < 9999),

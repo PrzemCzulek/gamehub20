@@ -12,6 +12,7 @@ export type GameId =
 
 export type ScoreDirection = 'ascending' | 'descending';
 export type MobileSupport = 'ready' | 'limited' | 'desktop-only';
+export type DeviceType = 'mobile' | 'tablet' | 'desktop';
 export type GameTag =
   | 'reflex'
   | 'memory'
@@ -140,6 +141,8 @@ export type LocalProfile = {
     frame?: string;
     badge?: string;
   };
+  createdOnDevice?: DeviceType;
+  lastSeenDevice?: DeviceType;
   highlights: {
     bestReactionTime?: LeaderboardEntry;
     highestWpm?: LeaderboardEntry;
@@ -215,4 +218,6 @@ export type PlayerProfileSummary = {
   highlights: PlayerHighlights;
   gameProgressSummary: PlayerGameProgressSummary[];
   topGameLevels: PlayerGameProgressSummary[];
+  createdOnDevice?: DeviceType;
+  lastSeenDevice?: DeviceType;
 };

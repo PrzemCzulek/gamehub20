@@ -144,6 +144,8 @@ export function buildPlayerProfileSummary(profile: LocalProfile): PlayerProfileS
     achievements,
     gameProgressSummary,
     topGameLevels,
+    createdOnDevice: profile.createdOnDevice,
+    lastSeenDevice: profile.lastSeenDevice,
     highlights: {
       bestReactionTime: highlights.bestReactionTime ?? profile.highlights.bestReactionTime,
       bestTypingWpm: highlights.bestTypingWpm ?? profile.highlights.highestWpm,

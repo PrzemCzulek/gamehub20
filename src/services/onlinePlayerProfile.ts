@@ -1,4 +1,4 @@
-import type { GameId, LocalProfile, ScoreStats } from '../types';
+import type { DeviceType, GameId, LocalProfile, ScoreStats } from '../types';
 
 export type OnlineProfileHighlight = {
   gameId?: GameId;
@@ -21,6 +21,8 @@ export type OnlinePlayerProfile = {
   achievementsUnlocked: number;
   achievementsTotal: number;
   equippedCosmetics?: LocalProfile['equippedCosmetics'];
+  createdOnDevice?: DeviceType;
+  lastSeenDevice?: DeviceType;
   highlights: {
     bestReactionTime?: OnlineProfileHighlight;
     bestTypingWpm?: OnlineProfileHighlight;

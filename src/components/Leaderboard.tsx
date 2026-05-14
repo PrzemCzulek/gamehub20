@@ -20,7 +20,7 @@ import { playNormalClickSound } from '../services/audio';
 import { getOnlineLeaderboard } from '../services/onlineLeaderboard';
 import { fetchOnlinePlayerProfile, type OnlinePlayerProfile } from '../services/onlinePlayerProfile';
 import { getPlayerId, getPlayerName, getProfile, sortScoresByMetric } from '../services/storage';
-import type { GameId, LeaderboardEntry, LeaderboardMetric, PlayerProfileSummary } from '../types';
+import type { DeviceType, GameId, LeaderboardEntry, LeaderboardMetric, PlayerProfileSummary } from '../types';
 import { formatPercent } from '../utils/format';
 
 type LeaderboardProps = {
@@ -48,6 +48,60 @@ const cpsMetricLabels: Record<string, string> = {
   totalClicks: 'Clicks',
   consistency: 'Consistency',
 };
+
+function getDeviceLabel(device?: DeviceType): string | undefined {
+  if (device === 'mobile') return 'Mobile';
+  if (device === 'tablet') return 'Tablet';
+  if (device === 'desktop') return 'Desktop';
+  return undefined;
+}
+
+function DeviceGlyph({ device }: { device: DeviceType }) {
+  if (device === 'desktop') {
+    return (
+      <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 16 16">
+        <path d="M2.5 3.5h11v7h-11v-7Z" stroke="currentColor" strokeWidth="1.4" />
+        <path d="M6 13h4M8 10.5V13" stroke="currentColor" strokeLinecap="round" strokeWidth="1.4" />
+      </svg>
+    );
+  }
+
+  if (device === 'tablet') {
+    return (
+      <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 16 16">
+        <rect height="11" rx="1.6" stroke="currentColor" strokeWidth="1.4" width="8.5" x="3.75" y="2.5" />
+        <path d="M7.4 11.4h1.2" stroke="currentColor" strokeLinecap="round" strokeWidth="1.4" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 16 16">
+      <rect height="12" rx="1.7" stroke="currentColor" strokeWidth="1.4" width="6.8" x="4.6" y="2" />
+      <path d="M7.45 11.6h1.1" stroke="currentColor" strokeLinecap="round" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
+function DeviceOriginBadge({ device, compact = false }: { device?: DeviceType; compact?: boolean }) {
+  const label = getDeviceLabel(device);
+
+  if (!device || !label) {
+    return null;
+  }
+
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full border border-cyan-300/25 bg-cyan-300/8 font-black uppercase text-cyan-100/85 ${
+        compact ? 'h-5 px-1.5 text-[0.52rem]' : 'px-2 py-0.5 text-[0.58rem] tracking-wide'
+      }`}
+      title={`Device: ${label}`}
+    >
+      <DeviceGlyph device={device} />
+      {!compact && <span>{label}</span>}
+    </span>
+  );
+}
 
 const aimMetricLabels: Record<string, string> = {
   score: 'Punkty',
@@ -295,7 +349,7 @@ function OwnProfileContent({ summary }: { summary: PlayerProfileSummary }) {
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <h4 className="min-w-0 truncate text-lg font-black text-white">{summary.displayName}</h4>
-          {(equippedTitle || equippedBadge) && (
+          {(equippedTitle || equippedBadge || summary.lastSeenDevice || summary.createdOnDevice) && (
             <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
               {equippedTitle && <p className="min-w-0 max-w-[10rem] truncate text-[0.65rem] font-bold uppercase tracking-wide text-violet-100">{equippedTitle.label}</p>}
               {equippedBadge && (
@@ -303,6 +357,7 @@ function OwnProfileContent({ summary }: { summary: PlayerProfileSummary }) {
                   {equippedBadge.label}
                 </span>
               )}
+              <DeviceOriginBadge device={summary.lastSeenDevice ?? summary.createdOnDevice} />
             </div>
           )}
         </div>
@@ -339,7 +394,7 @@ function OnlineProfileContent({ profile }: { profile: OnlinePlayerProfile }) {
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <h4 className="min-w-0 truncate text-lg font-black text-white">{profile.playerName}</h4>
-          {(equippedTitle || equippedBadge) && (
+          {(equippedTitle || equippedBadge || profile.lastSeenDevice || profile.createdOnDevice) && (
             <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
               {equippedTitle && <span className="min-w-0 max-w-[10rem] truncate text-[0.65rem] font-bold uppercase tracking-wide text-violet-100">{equippedTitle.label}</span>}
               {equippedBadge && (
@@ -347,6 +402,7 @@ function OnlineProfileContent({ profile }: { profile: OnlinePlayerProfile }) {
                   {equippedBadge.label}
                 </span>
               )}
+              <DeviceOriginBadge device={profile.lastSeenDevice ?? profile.createdOnDevice} />
             </div>
           )}
         </div>
@@ -831,6 +887,10 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
               const secondaryInfo = getSecondaryInfo(entry, gameId, source === 'local' ? localAttemptsByPlayer[attemptsKey] : undefined);
               const entryKey = getEntryKey(entry, index);
               const selected = activeProfileKey === entryKey;
+              const publicProfile = entry.playerId ? onlineProfiles[entry.playerId] : undefined;
+              const rowDevice = ownEntry
+                ? profileSummary.lastSeenDevice ?? profileSummary.createdOnDevice
+                : publicProfile?.lastSeenDevice ?? publicProfile?.createdOnDevice;
 
               return (
                 <div
@@ -849,6 +909,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
                     <div className="min-w-0">
                       <div className="flex min-w-0 items-center gap-1.5">
                         <span className="min-w-0 max-w-[9.5rem] truncate text-sm font-bold leading-5 text-slate-100">{entry.playerName}</span>
+                      <DeviceOriginBadge compact device={rowDevice} />
                       {ownEntry && (
                         <span className="shrink-0 rounded-full border border-cyan-300/35 bg-cyan-300/10 px-1.5 py-0.5 text-[0.56rem] font-black uppercase tracking-wide text-cyan-100">
                           Ty

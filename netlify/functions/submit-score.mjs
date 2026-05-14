@@ -28,6 +28,10 @@ function sanitizeEquippedCosmetics(value) {
   return Object.keys(equipped).length > 0 ? equipped : undefined;
 }
 
+function sanitizeDeviceType(value) {
+  return value === 'mobile' || value === 'tablet' || value === 'desktop' ? value : undefined;
+}
+
 function readNumber(value) {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
@@ -61,6 +65,8 @@ function validateScore(payload) {
   if (!isPlainObject(payload.stats)) errors.push('stats must be an object');
   if (!isPlainObject(payload.meta)) errors.push('meta must be an object');
   if (!isPlainObject(payload.equippedCosmetics)) errors.push('equippedCosmetics must be an object');
+  if (payload.createdOnDevice !== undefined && !sanitizeDeviceType(payload.createdOnDevice)) errors.push('createdOnDevice is invalid');
+  if (payload.lastSeenDevice !== undefined && !sanitizeDeviceType(payload.lastSeenDevice)) errors.push('lastSeenDevice is invalid');
 
   try {
     if (JSON.stringify(payload.stats ?? {}).length > 20000) errors.push('stats payload is too large');
@@ -86,6 +92,8 @@ function validateScore(payload) {
       stats: payload.stats ?? {},
       meta: payload.meta ?? {},
       equippedCosmetics: sanitizeEquippedCosmetics(payload.equippedCosmetics),
+      createdOnDevice: sanitizeDeviceType(payload.createdOnDevice),
+      lastSeenDevice: sanitizeDeviceType(payload.lastSeenDevice),
       xpGained: readNumber(payload.xpGained),
       runDurationMs: readNumber(payload.runDurationMs),
       createdAt: Number.isFinite(new Date(payload.createdAt).getTime()) ? new Date(payload.createdAt).toISOString() : new Date().toISOString(),
@@ -256,6 +264,8 @@ async function upsertPlayerProfile(sql, value) {
   const achievementsUnlocked = Number(existingProfile?.achievements_unlocked ?? 0);
   const achievementsTotal = Number(existingProfile?.achievements_total ?? 0);
   const nextEquippedCosmetics = value.equippedCosmetics ?? existingProfile?.equipped_cosmetics ?? {};
+  const nextCreatedOnDevice = existingProfile?.created_on_device ?? value.createdOnDevice ?? value.lastSeenDevice ?? null;
+  const nextLastSeenDevice = value.lastSeenDevice ?? existingProfile?.last_seen_device ?? value.createdOnDevice ?? null;
 
   const [profileRow] = await sql.query(
     `
@@ -272,8 +282,10 @@ async function upsertPlayerProfile(sql, value) {
         achievements_total,
         highlights,
         equipped_cosmetics,
+        created_on_device,
+        last_seen_device,
         updated_at
-      ) VALUES ($1, $2, $3, $4, 1, 1, $5, $6, $7, $8, $9::jsonb, $10::jsonb, NOW())
+      ) VALUES ($1, $2, $3, $4, 1, 1, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11, $12, NOW())
       ON CONFLICT (player_id) DO UPDATE
       SET
         player_name = EXCLUDED.player_name,
@@ -290,6 +302,8 @@ async function upsertPlayerProfile(sql, value) {
           WHEN EXCLUDED.equipped_cosmetics = '{}'::jsonb THEN player_profiles.equipped_cosmetics
           ELSE EXCLUDED.equipped_cosmetics
         END,
+        created_on_device = COALESCE(player_profiles.created_on_device, EXCLUDED.created_on_device),
+        last_seen_device = COALESCE(EXCLUDED.last_seen_device, player_profiles.last_seen_device),
         updated_at = NOW()
       RETURNING *
     `,
@@ -304,6 +318,8 @@ async function upsertPlayerProfile(sql, value) {
       achievementsTotal,
       JSON.stringify(nextHighlights),
       JSON.stringify(nextEquippedCosmetics),
+      nextCreatedOnDevice,
+      nextLastSeenDevice,
     ],
   );
 

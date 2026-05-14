@@ -1,5 +1,7 @@
 import type { GameId, LeaderboardEntry } from '../types';
 import { getEquippedCosmetics } from '../progression/rewardHelpers';
+import { getPlayerDeviceOrigin, touchPlayerDeviceOrigin } from './storage';
+import { getDeviceType } from '../utils/device';
 
 type OnlineLeaderboardResponse = {
   entries?: LeaderboardEntry[];
@@ -34,6 +36,7 @@ async function readJsonResponse<T>(response: Response): Promise<T> {
 }
 
 export async function submitOnlineScore(scoreEntry: LeaderboardEntry): Promise<LeaderboardEntry | undefined> {
+  const deviceOrigin = touchPlayerDeviceOrigin(getDeviceType());
   const response = await fetch('/.netlify/functions/submit-score', {
     method: 'POST',
     headers: {
@@ -42,6 +45,8 @@ export async function submitOnlineScore(scoreEntry: LeaderboardEntry): Promise<L
     body: JSON.stringify({
       ...scoreEntry,
       equippedCosmetics: getEquippedCosmetics(),
+      createdOnDevice: deviceOrigin.createdOnDevice ?? getPlayerDeviceOrigin().createdOnDevice,
+      lastSeenDevice: deviceOrigin.lastSeenDevice,
     }),
   });
   const data = await readJsonResponse<SubmitScoreResponse>(response);

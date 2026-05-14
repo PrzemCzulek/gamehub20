@@ -165,11 +165,15 @@ export async function initializeDatabase() {
             achievements_total INTEGER DEFAULT 0,
             highlights JSONB DEFAULT '{}'::jsonb,
             equipped_cosmetics JSONB DEFAULT '{}'::jsonb,
+            created_on_device TEXT,
+            last_seen_device TEXT,
             updated_at TIMESTAMPTZ DEFAULT NOW()
           )
         `),
       )
       .then(() => sql.query("ALTER TABLE player_profiles ADD COLUMN IF NOT EXISTS equipped_cosmetics JSONB DEFAULT '{}'::jsonb"))
+      .then(() => sql.query('ALTER TABLE player_profiles ADD COLUMN IF NOT EXISTS created_on_device TEXT'))
+      .then(() => sql.query('ALTER TABLE player_profiles ADD COLUMN IF NOT EXISTS last_seen_device TEXT'))
       .then(() => sql.query('CREATE INDEX IF NOT EXISTS player_profiles_updated_at_idx ON player_profiles (updated_at DESC)'))
       .catch((error) => {
         initializePromise = undefined;
@@ -212,6 +216,8 @@ export function mapPlayerProfileRow(row) {
     achievementsUnlocked: Number(row.achievements_unlocked ?? 0),
     achievementsTotal: Number(row.achievements_total ?? 0),
     equippedCosmetics: row.equipped_cosmetics ?? {},
+    createdOnDevice: row.created_on_device ?? undefined,
+    lastSeenDevice: row.last_seen_device ?? undefined,
     highlights: row.highlights ?? {},
     updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : row.updated_at,
   };

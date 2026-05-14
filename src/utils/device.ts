@@ -1,6 +1,5 @@
-import type { GameConfig } from '../types';
-
-export type DeviceType = 'mobile' | 'tablet' | 'desktop';
+import type { DeviceType, GameConfig } from '../types';
+export type { DeviceType } from '../types';
 
 function getViewportWidth(): number {
   if (typeof window === 'undefined') {
