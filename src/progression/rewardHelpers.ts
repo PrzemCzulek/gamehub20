@@ -100,6 +100,19 @@ export function equipCosmetic(cosmeticId: string) {
   return { ok: true as const, cosmetic, equipped: nextEquipped };
 }
 
+export function unequipCosmetic(type: keyof EquippedCosmetics) {
+  const equipped = getEquippedCosmetics();
+  if (!equipped[type]) return { ok: false as const, reason: 'not_equipped' as const };
+
+  const nextEquipped = { ...equipped };
+  delete nextEquipped[type];
+
+  writeJson(EQUIPPED_COSMETICS_KEY, nextEquipped);
+  emitRewardStateChanged();
+
+  return { ok: true as const, equipped: nextEquipped };
+}
+
 export function resetRewardData(): void {
   try {
     localStorage.removeItem(CLAIMED_REWARDS_KEY);
