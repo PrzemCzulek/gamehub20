@@ -105,6 +105,10 @@ function isBetterScore(game, nextScore, currentScore) {
   return game.scoreDirection === 'ascending' ? nextScore < currentScore : nextScore > currentScore;
 }
 
+function getTypingDifficulty(stats) {
+  return stats?.difficulty === 'hard' ? 'hard' : 'normal';
+}
+
 function getLeaderboardScope(value) {
   if (value.gameId === 'cps-test') {
     const durationSeconds = getDurationSeconds(value.stats) ?? 5;
@@ -128,6 +132,10 @@ function getLeaderboardScope(value) {
     const fallbackDuration = value.gameId === 'time-sense' ? 10 : 30;
     console.warn(`${value.gameId} score missing durationSeconds/selectedDuration; falling back to ${fallbackDuration}s scope`);
     return `duration:${fallbackDuration}`;
+  }
+
+  if (value.gameId === 'typing-speed') {
+    return `duration:${durationSeconds}:${getTypingDifficulty(value.stats)}`;
   }
 
   return `duration:${durationSeconds}`;

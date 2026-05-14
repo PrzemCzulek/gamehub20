@@ -13,7 +13,14 @@ import {
 import { getCosmetic } from '../data/cosmetics';
 import { readStoredStroopDuration, storeStroopDuration, stroopDurationChangedEvent, stroopDurationOptions } from '../data/stroopDurations';
 import { readStoredTimeSenseDuration, storeTimeSenseDuration, timeSenseDurationChangedEvent, timeSenseDurationOptions } from '../data/timeSenseDurations';
-import { readStoredTypingDuration, storeTypingDuration, typingDurationOptions } from '../data/typingDurations';
+import { readStoredTypingDuration, storeTypingDuration, typingDurationChangedEvent, typingDurationOptions } from '../data/typingDurations';
+import {
+  readStoredTypingDifficulty,
+  storeTypingDifficulty,
+  typingDifficultyChangedEvent,
+  typingDifficultyOptions,
+  type TypingDifficulty,
+} from '../data/typingTexts';
 import { buildPlayerProfileSummary, emptyValueLabel } from '../progression/playerProfile';
 import { getEquippedCosmetics } from '../progression/rewardHelpers';
 import { playNormalClickSound } from '../services/audio';
@@ -181,6 +188,7 @@ function getSecondaryInfo(entry: LeaderboardEntry, gameId: GameId, localAttempts
     if (stats.accuracy !== undefined) info.push(`Dokładność ${formatPercent(stats.accuracy)}`);
     const duration = formatDuration(getEntryDuration(entry), gameId);
     if (duration) info.push(duration);
+    if (stats.difficulty) info.push(String(stats.difficulty).toUpperCase());
   }
 
   if (gameId === 'time-sense') {
@@ -472,6 +480,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   const [metricId, setMetricId] = useState('score');
   const [source, setSource] = useState<LeaderboardSource>('online');
   const [typingDuration, setTypingDuration] = useState(readStoredTypingDuration);
+  const [typingDifficulty, setTypingDifficulty] = useState<TypingDifficulty>(readStoredTypingDifficulty);
   const [timeSenseDuration, setTimeSenseDuration] = useState(readStoredTimeSenseDuration);
   const [stroopDuration, setStroopDuration] = useState(readStoredStroopDuration);
   const [cpsSettings, setCpsSettings] = useState(readStoredCpsSettings);
@@ -515,12 +524,13 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
         ? entries.filter((entry) => {
             const durationMatches = getEntryDuration(entry) === activeDuration;
             const modeMatches = !isCps || (entry.stats?.inputMode ?? 'normal') === cpsSettings.inputMode;
-            return durationMatches && modeMatches;
+            const difficultyMatches = !isTypingSpeed || (entry.stats?.difficulty ?? 'normal') === typingDifficulty;
+            return durationMatches && modeMatches && difficultyMatches;
           })
         : isAim
           ? entries.filter((entry) => (entry.stats?.mode ?? '30s') === aimMode)
         : entries,
-    [activeDuration, aimMode, cpsSettings.inputMode, entries, hasDurationFilter, isAim, isCps],
+    [activeDuration, aimMode, cpsSettings.inputMode, entries, hasDurationFilter, isAim, isCps, isTypingSpeed, typingDifficulty],
   );
   const localAttemptsByPlayer = useMemo(() => {
     return filteredEntries.reduce<Record<string, number>>((acc, entry) => {
@@ -550,6 +560,28 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
     setMetricId('score');
     setActiveProfileKey(null);
   }, [gameId]);
+
+  useEffect(() => {
+    if (!isTypingSpeed) return;
+
+    function handleTypingDurationChange() {
+      setTypingDuration(readStoredTypingDuration());
+      setActiveProfileKey(null);
+    }
+
+    function handleTypingDifficultyChange() {
+      setTypingDifficulty(readStoredTypingDifficulty());
+      setActiveProfileKey(null);
+    }
+
+    window.addEventListener(typingDurationChangedEvent, handleTypingDurationChange);
+    window.addEventListener(typingDifficultyChangedEvent, handleTypingDifficultyChange);
+
+    return () => {
+      window.removeEventListener(typingDurationChangedEvent, handleTypingDurationChange);
+      window.removeEventListener(typingDifficultyChangedEvent, handleTypingDifficultyChange);
+    };
+  }, [isTypingSpeed]);
 
   useEffect(() => {
     if (!isTimeSense) return;
@@ -625,6 +657,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
       hasDurationFilter ? activeDuration : undefined,
       isCps ? cpsSettings.inputMode : undefined,
       isAim ? aimMode : undefined,
+      isTypingSpeed ? typingDifficulty : undefined,
     )
       .then((results) => {
         if (!ignore) setOnlineEntries(results);
@@ -642,7 +675,20 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
     return () => {
       ignore = true;
     };
-  }, [activeDuration, activeMetric.id, aimMode, cpsSettings.inputMode, entries.length, gameId, hasDurationFilter, isAim, isCps, source]);
+  }, [
+    activeDuration,
+    activeMetric.id,
+    aimMode,
+    cpsSettings.inputMode,
+    entries.length,
+    gameId,
+    hasDurationFilter,
+    isAim,
+    isCps,
+    isTypingSpeed,
+    source,
+    typingDifficulty,
+  ]);
 
   useEffect(() => {
     const activeEntry = selectedEntryData?.entry;
@@ -710,6 +756,14 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
       storeTypingDuration(duration);
       setTypingDuration(duration);
     }
+    setActiveProfileKey(null);
+  }
+
+  function handleTypingDifficultyChange(nextDifficulty: TypingDifficulty) {
+    playNormalClickSound();
+    storeTypingDifficulty(nextDifficulty);
+    setTypingDifficulty(nextDifficulty);
+    setMetricId('score');
     setActiveProfileKey(null);
   }
 
@@ -799,6 +853,27 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
                 type="button"
               >
                 {duration.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isTypingSpeed && (
+        <div className="mt-3">
+          <p className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-slate-400">Poziom</p>
+          <div className="mt-2 flex flex-wrap gap-1 rounded-lg border border-white/10 bg-black/25 p-1">
+            {typingDifficultyOptions.map((option) => (
+              <button
+                aria-pressed={typingDifficulty === option.value}
+                className={`min-w-20 flex-1 rounded-md px-2 py-2 text-xs font-black transition duration-200 hover:scale-[1.02] ${
+                  typingDifficulty === option.value ? option.accentClass : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                }`}
+                key={option.value}
+                onClick={() => handleTypingDifficultyChange(option.value)}
+                type="button"
+              >
+                {option.label}
               </button>
             ))}
           </div>

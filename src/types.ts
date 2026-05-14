@@ -60,6 +60,7 @@ export type ScoreStats = {
   rawWpm?: number;
   selectedDuration?: number;
   durationSeconds?: number;
+  difficulty?: string;
   rounds?: number;
   durationMs?: number;
   bestAccuracy?: number;

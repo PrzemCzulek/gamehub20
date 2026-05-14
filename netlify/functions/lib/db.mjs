@@ -59,7 +59,9 @@ export async function initializeDatabase() {
                 WHEN run_duration_ms IS NOT NULL THEN CAST(ROUND(run_duration_ms::numeric / 1000) AS TEXT)
                 ELSE '30'
               END
-            )
+            ),
+            ':',
+            CASE WHEN stats ->> 'difficulty' = 'hard' THEN 'hard' ELSE 'normal' END
           )
           WHERE game_id = 'typing-speed'
         `),

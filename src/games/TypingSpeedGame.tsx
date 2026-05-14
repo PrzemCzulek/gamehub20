@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { readStoredTypingDuration, storeTypingDuration, typingDurationOptions } from '../data/typingDurations';
-import { typingTexts } from '../data/typingTexts';
+import {
+  getTypingTexts,
+  readStoredTypingDifficulty,
+  storeTypingDifficulty,
+  typingDifficultyOptions,
+  type TypingDifficulty,
+} from '../data/typingTexts';
 import { playNormalClickSound } from '../services/audio';
 import type { ScoreInput } from '../types';
 import { formatPercent } from '../utils/format';
@@ -20,6 +26,7 @@ type TypingSnapshot = {
   typed: string;
   currentText: string;
   status: TestStatus;
+  difficulty: TypingDifficulty;
 };
 
 const maxCreditedWpm = 240;
@@ -29,8 +36,12 @@ const minSavedCorrectChars = 10;
 const minSavedTotalTypedChars = 20;
 const minSavedElapsedSeconds = 5;
 
-function shuffleTexts(): string[] {
-  return [...typingTexts].sort(() => Math.random() - 0.5);
+function toChars(value: string): string[] {
+  return Array.from(value);
+}
+
+function shuffleTexts(difficulty: TypingDifficulty): string[] {
+  return [...getTypingTexts(difficulty)].sort(() => Math.random() - 0.5);
 }
 
 function calculateWpm(correctChars: number, elapsedSeconds: number): number {
@@ -44,8 +55,10 @@ function calculateAccuracy(correctChars: number, incorrectChars: number): number
 }
 
 export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
+  const initialDifficulty = readStoredTypingDifficulty();
   const [selectedDuration, setSelectedDuration] = useState(readStoredTypingDuration);
-  const [textQueue, setTextQueue] = useState(() => shuffleTexts());
+  const [difficulty, setDifficulty] = useState<TypingDifficulty>(initialDifficulty);
+  const [textQueue, setTextQueue] = useState(() => shuffleTexts(initialDifficulty));
   const [queueIndex, setQueueIndex] = useState(0);
   const [typed, setTyped] = useState('');
   const [status, setStatus] = useState<TestStatus>('idle');
@@ -62,8 +75,9 @@ export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const latestSnapshotRef = useRef<TypingSnapshot | null>(null);
 
-  const currentText = textQueue[queueIndex] ?? typingTexts[0];
-  const nextText = textQueue[queueIndex + 1] ?? textQueue[0] ?? typingTexts[1];
+  const fallbackTexts = getTypingTexts(difficulty);
+  const currentText = textQueue[queueIndex] ?? fallbackTexts[0];
+  const nextText = textQueue[queueIndex + 1] ?? textQueue[0] ?? fallbackTexts[1];
   const elapsedSeconds = startedAt ? selectedDuration - remainingSeconds : 0;
   const displayElapsedSeconds = status === 'active' ? Math.max(1, elapsedSeconds) : elapsedSeconds;
   const liveCorrectChars = correctChars + currentCorrectChars;
@@ -73,17 +87,14 @@ export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
   const statusLabel =
     status === 'finished' ? 'Test zakończony' : status === 'active' ? 'Test aktywny' : 'Zacznij pisać, aby rozpocząć test';
 
-  const charStates = useMemo(
-    () =>
-      currentText.split('').map((char, index) => {
-        const typedChar = typed[index];
-        const state =
-          typedChar === undefined ? (index === typed.length ? 'current' : 'pending') : typedChar === char ? 'correct' : 'wrong';
-
-        return { char, state };
-      }),
-    [currentText, typed],
-  );
+  const charStates = useMemo(() => {
+    const typedChars = toChars(typed);
+    return toChars(currentText).map((char, index) => {
+      const typedChar = typedChars[index];
+      const state = typedChar === undefined ? (index === typedChars.length ? 'current' : 'pending') : typedChar === char ? 'correct' : 'wrong';
+      return { char, state };
+    });
+  }, [currentText, typed]);
 
   useEffect(() => {
     latestSnapshotRef.current = {
@@ -95,29 +106,26 @@ export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
       typed,
       currentText,
       status,
+      difficulty,
     };
   });
 
   useEffect(() => {
-    if (status !== 'active' || !startedAt) {
-      return;
-    }
+    if (status !== 'active' || !startedAt) return;
 
     const interval = window.setInterval(() => {
       const elapsed = Math.floor((performance.now() - startedAt) / 1000);
       const nextRemaining = Math.max(0, selectedDuration - elapsed);
       setRemainingSeconds(nextRemaining);
 
-      if (nextRemaining <= 0) {
-        finishTest('timer');
-      }
+      if (nextRemaining <= 0) finishTest('timer');
     }, 250);
 
     return () => window.clearInterval(interval);
   }, [selectedDuration, startedAt, status]);
 
-  function reset() {
-    const nextQueue = shuffleTexts();
+  function reset(nextDifficulty = difficulty) {
+    const nextQueue = shuffleTexts(nextDifficulty);
     setTextQueue(nextQueue);
     setQueueIndex(0);
     setTyped('');
@@ -134,10 +142,20 @@ export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
     savedRef.current = false;
   }
 
+  function countTypedAgainstTarget(value: string, target = currentText) {
+    const targetChars = toChars(target);
+    return toChars(value).reduce(
+      (counts, char, index) => {
+        if (char === targetChars[index]) counts.correct += 1;
+        else counts.incorrect += 1;
+        return counts;
+      },
+      { correct: 0, incorrect: 0 },
+    );
+  }
+
   function finishTest(reason: FinishReason = 'manual') {
-    if (savedRef.current) {
-      return;
-    }
+    if (savedRef.current) return;
 
     const snapshot = latestSnapshotRef.current ?? {
       selectedDuration,
@@ -148,10 +166,11 @@ export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
       typed,
       currentText,
       status,
+      difficulty,
     };
-    const partialInput = snapshot.typed.slice(0, snapshot.currentText.length);
+    const partialInput = toChars(snapshot.typed).slice(0, toChars(snapshot.currentText).length).join('');
     const partialCounts = countTypedAgainstTarget(partialInput, snapshot.currentText);
-    const sentenceCompletedInInput = partialInput.length >= snapshot.currentText.length && partialInput.length > 0;
+    const sentenceCompletedInInput = toChars(partialInput).length >= toChars(snapshot.currentText).length && partialInput.length > 0;
     const finalCorrectChars = snapshot.correctChars + partialCounts.correct;
     const finalIncorrectChars = snapshot.incorrectChars + partialCounts.incorrect;
     const finalTotalTypedChars = finalCorrectChars + finalIncorrectChars;
@@ -171,11 +190,10 @@ export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
       rawWpm,
       wpm,
       selectedDuration: snapshot.selectedDuration,
+      difficulty: snapshot.difficulty,
     };
 
-    if (import.meta.env.DEV) {
-      console.log('Typing finish stats', finalStats);
-    }
+    if (import.meta.env.DEV) console.log('Typing finish stats', finalStats);
 
     savedRef.current = true;
     setStatus('finished');
@@ -186,18 +204,13 @@ export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
       return;
     }
 
-    if (
-      finalCorrectChars < minSavedCorrectChars ||
-      finalTotalTypedChars < minSavedTotalTypedChars ||
-      finalElapsedSeconds < minSavedElapsedSeconds
-    ) {
+    if (finalCorrectChars < minSavedCorrectChars || finalTotalTypedChars < minSavedTotalTypedChars || finalElapsedSeconds < minSavedElapsedSeconds) {
       setResult(tooShortResultMessage);
       return;
     }
 
     const label = `${wpm} WPM`;
-
-    setResult(`${label}, dokładność ${formatPercent(finalAccuracy)}`);
+    setResult(`${label}, dokładność ${formatPercent(finalAccuracy)} · ${snapshot.difficulty.toUpperCase()}`);
     onScore({
       gameId: 'typing-speed',
       score: wpm,
@@ -213,6 +226,7 @@ export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
         totalTypedChars: finalTotalTypedChars,
         rawWpm,
         selectedDuration: snapshot.selectedDuration,
+        difficulty: snapshot.difficulty,
       },
       meta: {
         accuracy: finalAccuracy,
@@ -223,37 +237,21 @@ export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
         totalTypedChars: finalTotalTypedChars,
         rawWpm,
         selectedDuration: snapshot.selectedDuration,
+        difficulty: snapshot.difficulty,
       },
       runDurationMs: finalElapsedSeconds * 1000,
     });
   }
 
-  function countTypedAgainstTarget(value: string, target = currentText) {
-    return value.split('').reduce(
-      (counts, char, index) => {
-        if (char === target[index]) {
-          counts.correct += 1;
-        } else {
-          counts.incorrect += 1;
-        }
-
-        return counts;
-      },
-      { correct: 0, incorrect: 0 },
-    );
-  }
-
   function advanceSentence(finalValue: string) {
-    if (savedRef.current) {
-      return;
-    }
+    if (savedRef.current) return;
 
-    const counts = countTypedAgainstTarget(finalValue.slice(0, currentText.length));
+    const counts = countTypedAgainstTarget(toChars(finalValue).slice(0, toChars(currentText).length).join(''));
     const latestSnapshot = latestSnapshotRef.current;
     const nextCorrectChars = (latestSnapshot?.correctChars ?? correctChars) + counts.correct;
     const nextIncorrectChars = (latestSnapshot?.incorrectChars ?? incorrectChars) + counts.incorrect;
     const nextCompletedSentences = (latestSnapshot?.completedSentences ?? completedSentences) + 1;
-    const nextCurrentText = textQueue[queueIndex + 1] ?? textQueue[0] ?? typingTexts[0];
+    const nextCurrentText = textQueue[queueIndex + 1] ?? textQueue[0] ?? fallbackTexts[0];
 
     latestSnapshotRef.current = {
       selectedDuration,
@@ -264,6 +262,7 @@ export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
       typed: '',
       currentText: nextCurrentText,
       status,
+      difficulty,
     };
 
     setCorrectChars((value) => value + counts.correct);
@@ -273,18 +272,13 @@ export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
     setCompletedSentences((value) => value + 1);
     setTyped('');
     setQueueIndex((index) => {
-      if (index + 2 >= textQueue.length) {
-        setTextQueue((queue) => [...queue, ...shuffleTexts()]);
-      }
-
+      if (index + 2 >= textQueue.length) setTextQueue((queue) => [...queue, ...shuffleTexts(difficulty)]);
       return index + 1;
     });
   }
 
   function handleChange(value: string) {
-    if (status === 'finished') {
-      return;
-    }
+    if (status === 'finished') return;
 
     if (status === 'idle' && value.length > 0) {
       setStatus('active');
@@ -294,7 +288,7 @@ export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
       setPasteBlocked(false);
     }
 
-    const currentValue = value.slice(0, currentText.length);
+    const currentValue = toChars(value).slice(0, toChars(currentText).length).join('');
     const counts = countTypedAgainstTarget(currentValue);
     const nextStatus = status === 'idle' && value.length > 0 ? 'active' : status;
 
@@ -307,21 +301,18 @@ export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
       typed: currentValue,
       currentText,
       status: nextStatus,
+      difficulty,
     };
 
     setCurrentCorrectChars(counts.correct);
     setCurrentIncorrectChars(counts.incorrect);
     setTyped(currentValue);
 
-    if (value.length >= currentText.length) {
-      window.setTimeout(() => advanceSentence(currentValue), 120);
-    }
+    if (toChars(value).length >= toChars(currentText).length) window.setTimeout(() => advanceSentence(currentValue), 120);
   }
 
   function handleDurationChange(duration: number) {
-    if (status === 'active') {
-      return;
-    }
+    if (status === 'active') return;
 
     playNormalClickSound();
     storeTypingDuration(duration);
@@ -329,19 +320,27 @@ export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
     setRemainingSeconds(duration);
   }
 
+  function handleDifficultyChange(nextDifficulty: TypingDifficulty) {
+    if (status === 'active') return;
+
+    playNormalClickSound();
+    storeTypingDifficulty(nextDifficulty);
+    setDifficulty(nextDifficulty);
+    reset(nextDifficulty);
+  }
+
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-white/10 bg-black/20 p-4 text-center">
+      <div className={`rounded-lg border p-4 text-center ${difficulty === 'hard' ? 'border-fuchsia-300/25 bg-fuchsia-300/[0.06]' : 'border-white/10 bg-black/20'}`}>
         <p className="text-lg font-semibold text-white">{statusLabel}</p>
+        <p className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-slate-400">{difficulty === 'hard' ? 'HARD · Polish chaos' : 'NORMAL · Polish flow'}</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
         {typingDurationOptions.map((duration) => (
           <button
             className={`rounded-md border px-3 py-2 text-sm font-semibold transition ${
-              selectedDuration === duration.value
-                ? 'border-teal-300 bg-teal-300 text-slate-950'
-                : 'border-white/15 text-white hover:bg-white/10'
+              selectedDuration === duration.value ? 'border-teal-300 bg-teal-300 text-slate-950' : 'border-white/15 text-white hover:bg-white/10'
             }`}
             disabled={status === 'active'}
             key={duration.value}
@@ -349,6 +348,23 @@ export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
             type="button"
           >
             {duration.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {typingDifficultyOptions.map((option) => (
+          <button
+            aria-pressed={difficulty === option.value}
+            className={`rounded-md border px-3 py-2 text-xs font-black uppercase tracking-[0.14em] transition ${
+              difficulty === option.value ? option.accentClass : 'border-white/15 text-white hover:bg-white/10'
+            }`}
+            disabled={status === 'active'}
+            key={option.value}
+            onClick={() => handleDifficultyChange(option.value)}
+            type="button"
+          >
+            {option.label}
           </button>
         ))}
       </div>
@@ -362,11 +378,7 @@ export function TypingSpeedGame({ onScore }: TypingSpeedGameProps) {
         <span className="rounded-md bg-black/20 px-3 py-2 text-slate-300">Zdania: {completedSentences}</span>
       </div>
 
-      <button
-        className="w-full rounded-lg border border-white/10 bg-black/20 p-5 text-left"
-        onClick={() => inputRef.current?.focus()}
-        type="button"
-      >
+      <button className="w-full rounded-lg border border-white/10 bg-black/20 p-5 text-left" onClick={() => inputRef.current?.focus()} type="button">
         <div className="min-h-24 text-xl leading-9">
           {charStates.map(({ char, state }, index) => (
             <span

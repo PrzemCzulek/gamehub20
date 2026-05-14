@@ -185,6 +185,7 @@ function deriveStats(entry: Pick<LeaderboardEntry, 'gameId' | 'score' | 'meta' |
         rawWpm: baseStats.rawWpm ?? readMetaNumber(meta, 'rawWpm'),
         selectedDuration: baseStats.selectedDuration ?? readMetaNumber(meta, 'selectedDuration'),
         durationSeconds: baseStats.durationSeconds ?? durationSeconds,
+        difficulty: baseStats.difficulty ?? (typeof meta?.difficulty === 'string' ? meta.difficulty : 'normal'),
         rounds: baseStats.rounds ?? completedSentences,
         durationMs: baseStats.durationMs ?? (baseStats.durationSeconds !== undefined ? baseStats.durationSeconds * 1000 : durationSeconds !== undefined ? durationSeconds * 1000 : undefined),
       };

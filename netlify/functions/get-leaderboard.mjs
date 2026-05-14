@@ -34,7 +34,11 @@ function readAimMode(value) {
   return value === '15s' || value === 'infinity' ? value : '30s';
 }
 
-function getLeaderboardScope(gameId, durationSeconds, inputMode, aimMode) {
+function readTypingDifficulty(value) {
+  return value === 'hard' ? 'hard' : 'normal';
+}
+
+function getLeaderboardScope(gameId, durationSeconds, inputMode, aimMode, typingDifficulty) {
   if (gameId === 'cps-test') {
     if (inputMode === 'alternating') return `${durationSeconds}s-alt`;
     if (inputMode === 'space') return `${durationSeconds}s-space`;
@@ -43,6 +47,10 @@ function getLeaderboardScope(gameId, durationSeconds, inputMode, aimMode) {
 
   if (gameId === 'aim-test') {
     return `mode:${aimMode}`;
+  }
+
+  if (gameId === 'typing-speed') {
+    return `duration:${durationSeconds}:${typingDifficulty}`;
   }
 
   return `duration:${durationSeconds}`;
@@ -82,7 +90,8 @@ export async function handler(event) {
     const durationSeconds = usesDurationScope ? readDurationSeconds(params.durationSeconds, gameId) : undefined;
     const inputMode = gameId === 'cps-test' ? readCpsInputMode(params.inputMode) : undefined;
     const aimMode = usesModeScope ? readAimMode(params.mode) : undefined;
-    const leaderboardScope = usesDurationScope || usesModeScope ? getLeaderboardScope(gameId, durationSeconds, inputMode, aimMode) : 'default';
+    const typingDifficulty = gameId === 'typing-speed' ? readTypingDifficulty(params.difficulty) : undefined;
+    const leaderboardScope = usesDurationScope || usesModeScope ? getLeaderboardScope(gameId, durationSeconds, inputMode, aimMode, typingDifficulty) : 'default';
     const metricExpression = getMetricExpression(metric);
     const direction = metric?.direction === 'ascending' ? 'ASC' : 'DESC';
     const query = `

@@ -1,5 +1,6 @@
 export const typingDurationStorageKey = 'game-hub:typing-duration';
 export const defaultTypingDuration = 30;
+export const typingDurationChangedEvent = 'game-hub:typing-duration-changed';
 
 export const typingDurationOptions = [
   { label: '15s', value: 15 },
@@ -28,6 +29,7 @@ export function storeTypingDuration(value: number): void {
 
   try {
     localStorage.setItem(typingDurationStorageKey, String(value));
+    window.dispatchEvent(new CustomEvent(typingDurationChangedEvent, { detail: { durationSeconds: value } }));
   } catch {
     return;
   }
