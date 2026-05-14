@@ -1,11 +1,12 @@
 const AUDIO_ENABLED_KEY = 'gameHubAudioEnabled';
+const AUDIO_VOLUME_KEY = 'gameHubAudioVolume';
 const CLICK_SOUND_PATH = '/audio/ui-click.mp3';
 const HOVER_SOUND_PATH = '/audio/ui-hover.mp3';
 const NORMAL_CLICK_SOUND_PATH = '/audio/ui-click-normal.mp3';
 const CLICK_COOLDOWN_MS = 80;
 const NORMAL_CLICK_COOLDOWN_MS = 80;
 const HOVER_COOLDOWN_MS = 120;
-const DEFAULT_VOLUME = 0.5;
+const DEFAULT_VOLUME = 0.35;
 const CLICK_POOL_SIZE = 6;
 const NORMAL_CLICK_POOL_SIZE = 4;
 const HOVER_POOL_SIZE = 2;
@@ -19,11 +20,33 @@ let lastClickAt = 0;
 let lastNormalClickAt = 0;
 let lastHoverAt = 0;
 
+function clampVolume(value: number): number {
+  if (!Number.isFinite(value)) return DEFAULT_VOLUME;
+  return Math.min(1, Math.max(0, value));
+}
+
+function getEffectiveVolume(): number {
+  return getAudioVolume();
+}
+
+function applyVolumeToPools(): void {
+  const volume = getEffectiveVolume();
+  clickPool?.forEach((audio) => {
+    audio.volume = volume;
+  });
+  normalClickPool?.forEach((audio) => {
+    audio.volume = volume;
+  });
+  hoverPool?.forEach((audio) => {
+    audio.volume = volume;
+  });
+}
+
 function createAudio(src: string): HTMLAudioElement | null {
   try {
     const audio = new Audio(src);
     audio.preload = 'auto';
-    audio.volume = DEFAULT_VOLUME;
+    audio.volume = getEffectiveVolume();
     return audio;
   } catch {
     return null;
@@ -63,7 +86,7 @@ function playFromPool(pool: HTMLAudioElement[]): void {
   }
 
   try {
-    audio.volume = DEFAULT_VOLUME;
+    audio.volume = getEffectiveVolume();
     audio.currentTime = 0;
     const result = audio.play();
 
@@ -110,7 +133,7 @@ function playClickFromPool(
 
   try {
     audio.pause();
-    audio.volume = DEFAULT_VOLUME;
+    audio.volume = getEffectiveVolume();
     audio.currentTime = 0;
     startedAtMap.set(audio, now);
     const result = audio.play();
@@ -137,6 +160,26 @@ export function setAudioEnabled(enabled: boolean): void {
   } catch {
     return;
   }
+}
+
+export function getAudioVolume(): number {
+  try {
+    const rawValue = localStorage.getItem(AUDIO_VOLUME_KEY);
+    return rawValue === null ? DEFAULT_VOLUME : clampVolume(Number(rawValue));
+  } catch {
+    return DEFAULT_VOLUME;
+  }
+}
+
+export function setAudioVolume(volume: number): number {
+  const nextVolume = clampVolume(volume);
+  try {
+    localStorage.setItem(AUDIO_VOLUME_KEY, String(nextVolume));
+  } catch {
+    return nextVolume;
+  }
+  applyVolumeToPools();
+  return nextVolume;
 }
 
 export function toggleAudioEnabled(): boolean {

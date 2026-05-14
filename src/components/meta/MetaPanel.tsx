@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { questDefinitions } from '../../data/quests';
 import { buildPlayerProfileSummary } from '../../progression/playerProfile';
 import { getQuestProgress } from '../../progression/progressionEngine';
-import { getAudioEnabled, playNormalClickSound, toggleAudioEnabled } from '../../services/audio';
+import { getAudioEnabled, getAudioVolume, playNormalClickSound, setAudioVolume, toggleAudioEnabled } from '../../services/audio';
 import type { LocalProfile } from '../../types';
 
 type MetaPanelProps = {
@@ -14,6 +14,7 @@ type MetaPanelProps = {
 export function MetaPanel({ profile, onReset, revision }: MetaPanelProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [audioEnabled, setAudioEnabledState] = useState(getAudioEnabled);
+  const [audioVolume, setAudioVolumeState] = useState(getAudioVolume);
   const [resetInput, setResetInput] = useState('');
   const summary = buildPlayerProfileSummary(profile);
   const questProgress = getQuestProgress();
@@ -192,6 +193,32 @@ export function MetaPanel({ profile, onReset, revision }: MetaPanelProps) {
                   {audioEnabled ? 'ON' : 'OFF'}
                 </button>
               </div>
+              <div className="mt-4">
+                <div className="mb-2 flex items-center justify-between text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">
+                  <span>Głośność UI</span>
+                  <span className="text-cyan-100">{Math.round(audioVolume * 100)}%</span>
+                </div>
+                <div className="relative flex h-6 items-center">
+                  <div className="pointer-events-none absolute left-0 right-0 h-2 rounded-full bg-white/10" />
+                  <div
+                    className="pointer-events-none absolute left-0 h-2 rounded-full bg-gradient-to-r from-cyan-300 via-teal-300 to-violet-300 shadow-[0_0_16px_rgba(34,211,238,0.38)]"
+                    style={{ width: `${audioVolume * 100}%` }}
+                  />
+                  <input
+                    aria-label="Głośność dźwięków UI"
+                    className="relative h-6 w-full cursor-pointer appearance-none bg-transparent accent-cyan-300"
+                    max="1"
+                    min="0"
+                    onChange={(event) => {
+                      const nextVolume = setAudioVolume(Number(event.target.value));
+                      setAudioVolumeState(nextVolume);
+                    }}
+                    step="0.01"
+                    type="range"
+                    value={audioVolume}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="mt-3 rounded-md border border-red-300/20 bg-red-400/10 p-3">
@@ -218,3 +245,4 @@ export function MetaPanel({ profile, onReset, revision }: MetaPanelProps) {
     </section>
   );
 }
+
