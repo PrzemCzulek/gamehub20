@@ -1,4 +1,4 @@
-import type { GameId, ScoreStats } from '../types';
+import type { GameId, LocalProfile, ScoreStats } from '../types';
 
 export type OnlineProfileHighlight = {
   gameId?: GameId;
@@ -20,6 +20,7 @@ export type OnlinePlayerProfile = {
   bestGame?: GameId;
   achievementsUnlocked: number;
   achievementsTotal: number;
+  equippedCosmetics?: LocalProfile['equippedCosmetics'];
   highlights: {
     bestReactionTime?: OnlineProfileHighlight;
     bestTypingWpm?: OnlineProfileHighlight;
@@ -46,21 +47,35 @@ type OnlineProfileResponse = {
   profile?: OnlinePlayerProfile;
 };
 
-const profileCache = new Map<string, Promise<OnlinePlayerProfile | null>>();
+const profileCache = new Map<string, OnlinePlayerProfile | null>();
+const pendingProfileRequests = new Map<string, Promise<OnlinePlayerProfile | null>>();
 
 export function fetchOnlinePlayerProfile(playerId: string): Promise<OnlinePlayerProfile | null> {
   if (!playerId) {
     return Promise.resolve(null);
   }
 
-  const cached = profileCache.get(playerId);
-
-  if (cached) {
-    return cached;
+  if (profileCache.has(playerId)) {
+    return Promise.resolve(profileCache.get(playerId) ?? null);
   }
 
-  const request = fetchProfile(playerId);
-  profileCache.set(playerId, request);
+  const pending = pendingProfileRequests.get(playerId);
+  if (pending) {
+    return pending;
+  }
+
+  const request = fetchProfile(playerId)
+    .then((profile) => {
+      profileCache.set(playerId, profile);
+      pendingProfileRequests.delete(playerId);
+      return profile;
+    })
+    .catch((error) => {
+      pendingProfileRequests.delete(playerId);
+      throw error;
+    });
+
+  pendingProfileRequests.set(playerId, request);
   return request;
 }
 
@@ -74,14 +89,16 @@ async function fetchProfile(playerId: string): Promise<OnlinePlayerProfile | nul
       signal: controller.signal,
     });
 
-    if (!response.ok) {
+    if (response.status === 404) {
       return null;
+    }
+
+    if (!response.ok) {
+      throw new Error(`Profile request failed: ${response.status}`);
     }
 
     const data = (await response.json()) as OnlineProfileResponse;
     return data.ok && data.profile ? data.profile : null;
-  } catch {
-    return null;
   } finally {
     window.clearTimeout(timeoutId);
   }

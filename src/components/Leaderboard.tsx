@@ -201,6 +201,7 @@ function ProfilePanel({
   ownEntry,
   summary,
   onlineProfile,
+  profileError,
   onlineLoading,
   onClose,
 }: {
@@ -210,14 +211,16 @@ function ProfilePanel({
   ownEntry: boolean;
   summary: PlayerProfileSummary;
   onlineProfile?: OnlinePlayerProfile | null;
+  profileError?: string;
   onlineLoading?: boolean;
   onClose: () => void;
 }) {
   const title = ownEntry ? 'Twój profil' : onlineProfile ? 'Profil publiczny' : 'Mini profil';
   const ownFrame = ownEntry ? getCosmetic(getEquippedCosmetics().frame, 'frame') : undefined;
+  const publicFrame = !ownEntry && onlineProfile?.equippedCosmetics ? getCosmetic(onlineProfile.equippedCosmetics.frame, 'frame') : undefined;
 
   return (
-    <div className={`mt-3 rounded-xl border border-cyan-300/20 bg-slate-950/90 p-4 shadow-[0_0_28px_rgba(34,211,238,0.10)] backdrop-blur ${ownFrame?.className ?? ''}`}>
+    <div className={`mt-3 rounded-xl border border-cyan-300/20 bg-slate-950/90 p-4 shadow-[0_0_28px_rgba(34,211,238,0.10)] backdrop-blur ${ownFrame?.className ?? publicFrame?.className ?? ''}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[0.65rem] font-black uppercase tracking-[0.22em] text-cyan-200">Profil gracza</p>
@@ -244,7 +247,7 @@ function ProfilePanel({
         ) : onlineProfile ? (
           <OnlineProfileContent profile={onlineProfile} />
         ) : (
-          <FallbackProfileContent entry={entry} gameId={gameId} metric={metric} />
+          <FallbackProfileContent entry={entry} gameId={gameId} metric={metric} profileError={profileError} />
         )}
       </div>
     </div>
@@ -305,6 +308,9 @@ function OwnProfileContent({ summary }: { summary: PlayerProfileSummary }) {
 }
 
 function OnlineProfileContent({ profile }: { profile: OnlinePlayerProfile }) {
+  const equippedTitle = getCosmetic(profile.equippedCosmetics?.title, 'title');
+  const equippedBadge = getCosmetic(profile.equippedCosmetics?.badge, 'badge');
+  const equippedFrame = getCosmetic(profile.equippedCosmetics?.frame, 'frame');
   const highlights = [
     { label: 'Reaction', value: profile.highlights.bestReactionTime?.scoreLabel },
     { label: 'WPM', value: profile.highlights.bestTypingWpm?.scoreLabel },
@@ -313,9 +319,21 @@ function OnlineProfileContent({ profile }: { profile: OnlinePlayerProfile }) {
   ];
 
   return (
-    <div>
+    <div className={equippedFrame?.className ?? ''}>
       <div className="flex items-center justify-between gap-3">
-        <h4 className="min-w-0 truncate text-lg font-black text-white">{profile.playerName}</h4>
+        <div className="min-w-0">
+          <h4 className="min-w-0 truncate text-lg font-black text-white">{profile.playerName}</h4>
+          {(equippedTitle || equippedBadge) && (
+            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
+              {equippedTitle && <span className="min-w-0 max-w-[10rem] truncate text-[0.65rem] font-bold uppercase tracking-wide text-violet-100">{equippedTitle.label}</span>}
+              {equippedBadge && (
+                <span className={`max-w-[8rem] shrink truncate rounded-full border px-2 py-0.5 text-[0.56rem] font-black uppercase ${equippedBadge.className ?? 'border-cyan-300/30 bg-cyan-300/10 text-cyan-100'}`}>
+                  {equippedBadge.label}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
         <span className="rounded-full border border-violet-300/35 bg-violet-300/10 px-2 py-1 text-[0.65rem] font-black text-violet-100">L{profile.level}</span>
       </div>
       <ProfileStatsGrid
@@ -344,7 +362,7 @@ function ProfileStatsGrid({ xp, gamesPlayed, favoriteGame, achievementLabel }: {
   );
 }
 
-function FallbackProfileContent({ entry, gameId, metric }: { entry: LeaderboardEntry; gameId: GameId; metric: LeaderboardMetric }) {
+function FallbackProfileContent({ entry, gameId, metric, profileError }: { entry: LeaderboardEntry; gameId: GameId; metric: LeaderboardMetric; profileError?: string }) {
   return (
     <div>
       <h4 className="truncate text-lg font-black text-white">{entry.playerName}</h4>
@@ -353,7 +371,12 @@ function FallbackProfileContent({ entry, gameId, metric }: { entry: LeaderboardE
         <strong className="mt-1 block text-white">{formatMetricValue(entry, metric)}</strong>
         <span className="mt-1 block text-xs text-slate-400">{getGameTitle(gameId)} / {getMetricLabel(gameId, metric)}</span>
       </div>
-      <p className="mt-3 text-sm font-semibold text-cyan-100">Profil publiczny: soon</p>
+      <div className="mt-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+        <p className="text-sm font-semibold text-cyan-100">{profileError ?? 'Profil publiczny niedostępny'}</p>
+        <p className="mt-1 text-xs leading-5 text-slate-400">
+          {profileError ? 'Spróbuj ponownie później.' : 'Dane pojawią się po kolejnym wyniku online.'}
+        </p>
+      </div>
     </div>
   );
 }
@@ -382,6 +405,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   const [activeProfileKey, setActiveProfileKey] = useState<string | null>(null);
   const [onlineProfiles, setOnlineProfiles] = useState<Record<string, OnlinePlayerProfile | null>>({});
   const [loadingProfiles, setLoadingProfiles] = useState<Record<string, boolean>>({});
+  const [profileErrors, setProfileErrors] = useState<Record<string, string | undefined>>({});
   const panelRef = useRef<HTMLElement | null>(null);
   const game = getGameConfig(gameId);
   const currentPlayerId = getPlayerId();
@@ -514,23 +538,34 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   useEffect(() => {
     const activeEntry = selectedEntryData?.entry;
 
-    if (!activeEntry?.playerId || isOwnEntry(activeEntry) || onlineProfiles[activeEntry.playerId] !== undefined || loadingProfiles[activeEntry.playerId]) {
+    if (!activeEntry?.playerId || isOwnEntry(activeEntry) || onlineProfiles[activeEntry.playerId] !== undefined) {
       return;
     }
 
-    let ignore = false;
+    if (import.meta.env.DEV) {
+      console.debug('Mini profile fetch', {
+        selectedPlayerId: activeEntry.playerId,
+        localPlayerId: currentPlayerId,
+        isCurrentPlayer: isOwnEntry(activeEntry),
+      });
+    }
+
+    const playerId = activeEntry.playerId;
     setLoadingProfiles((current) => ({ ...current, [activeEntry.playerId!]: true }));
+    setProfileErrors((current) => ({ ...current, [playerId]: undefined }));
 
-    fetchOnlinePlayerProfile(activeEntry.playerId).then((profile) => {
-      if (ignore) return;
-      setOnlineProfiles((current) => ({ ...current, [activeEntry.playerId!]: profile }));
-      setLoadingProfiles((current) => ({ ...current, [activeEntry.playerId!]: false }));
-    });
-
-    return () => {
-      ignore = true;
-    };
-  }, [selectedEntryData, loadingProfiles, onlineProfiles]);
+    fetchOnlinePlayerProfile(playerId)
+      .then((profile) => {
+        setOnlineProfiles((current) => ({ ...current, [playerId]: profile }));
+      })
+      .catch(() => {
+        setOnlineProfiles((current) => ({ ...current, [playerId]: null }));
+        setProfileErrors((current) => ({ ...current, [playerId]: 'Nie udało się wczytać profilu' }));
+      })
+      .finally(() => {
+        setLoadingProfiles((current) => ({ ...current, [playerId]: false }));
+      });
+  }, [currentPlayerId, onlineProfiles, selectedEntryData]);
 
   useEffect(() => {
     function handleKeyDown(event: globalThis.KeyboardEvent) {
@@ -788,6 +823,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
           onClose={() => setActiveProfileKey(null)}
           onlineLoading={selectedEntryData.entry.playerId ? loadingProfiles[selectedEntryData.entry.playerId] : false}
           onlineProfile={selectedEntryData.entry.playerId ? onlineProfiles[selectedEntryData.entry.playerId] : null}
+          profileError={selectedEntryData.entry.playerId ? profileErrors[selectedEntryData.entry.playerId] : undefined}
           ownEntry={isOwnEntry(selectedEntryData.entry)}
           summary={profileSummary}
         />

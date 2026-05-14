@@ -1,4 +1,5 @@
 import type { GameId, LeaderboardEntry } from '../types';
+import { getEquippedCosmetics } from '../progression/rewardHelpers';
 
 type OnlineLeaderboardResponse = {
   entries?: LeaderboardEntry[];
@@ -38,7 +39,10 @@ export async function submitOnlineScore(scoreEntry: LeaderboardEntry): Promise<L
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(scoreEntry),
+    body: JSON.stringify({
+      ...scoreEntry,
+      equippedCosmetics: getEquippedCosmetics(),
+    }),
   });
   const data = await readJsonResponse<SubmitScoreResponse>(response);
 
