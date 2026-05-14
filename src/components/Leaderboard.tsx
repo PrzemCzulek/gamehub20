@@ -30,16 +30,16 @@ type LeaderboardProps = {
 
 const timeSenseMetricLabels: Record<string, string> = {
   score: 'Wynik',
-  accuracy: 'DokĹ‚adnoĹ›Ä‡',
-  deviationMs: 'RĂłĹĽnica',
+  accuracy: 'Dokładność',
+  deviationMs: 'Różnica',
   isPerfect: 'Perfect',
 };
 
 const stroopMetricLabels: Record<string, string> = {
   score: 'Punkty',
-  accuracy: 'Accuracy',
+  accuracy: 'Dokładność',
   bestCombo: 'Streak',
-  averageReactionMs: 'Ĺšr. reakcja',
+  averageReactionMs: 'Śr. reakcja',
 };
 
 const cpsMetricLabels: Record<string, string> = {
@@ -105,10 +105,10 @@ function DeviceOriginBadge({ device, compact = false }: { device?: DeviceType; c
 
 const aimMetricLabels: Record<string, string> = {
   score: 'Punkty',
-  accuracy: 'CelnoĹ›Ä‡',
+  accuracy: 'Celność',
   bestCombo: 'Combo',
   hits: 'Trafienia',
-  averageReactionMs: 'Ĺšr. czas',
+  averageReactionMs: 'Śr. czas',
   survivedTime: 'Czas',
 };
 
@@ -116,7 +116,7 @@ type LeaderboardSource = 'local' | 'online';
 
 const typingMetricLabels: Record<string, string> = {
   score: 'WPM',
-  accuracy: 'CelnoĹ›Ä‡',
+  accuracy: 'Celność',
   rounds: 'Zdania',
   correctChars: 'Poprawne znaki',
 };
@@ -178,19 +178,19 @@ function getSecondaryInfo(entry: LeaderboardEntry, gameId: GameId, localAttempts
   const info: string[] = [];
 
   if (gameId === 'typing-speed') {
-    if (stats.accuracy !== undefined) info.push(`CelnoĹ›Ä‡ ${formatPercent(stats.accuracy)}`);
+    if (stats.accuracy !== undefined) info.push(`Dokładność ${formatPercent(stats.accuracy)}`);
     const duration = formatDuration(getEntryDuration(entry), gameId);
     if (duration) info.push(duration);
   }
 
   if (gameId === 'time-sense') {
-    if (stats.deviationMs !== undefined) info.push(`Diff ${(stats.deviationMs / 1000).toFixed(2)}s`);
+    if (stats.deviationMs !== undefined) info.push(`Różnica ${(stats.deviationMs / 1000).toFixed(2)}s`);
     const duration = formatDuration(getEntryDuration(entry), gameId);
     if (duration) info.push(duration);
   }
 
   if (gameId === 'stroop-test') {
-    if (stats.accuracy !== undefined) info.push(`Accuracy ${formatPercent(stats.accuracy)}`);
+    if (stats.accuracy !== undefined) info.push(`Dokładność ${formatPercent(stats.accuracy)}`);
     if (stats.bestCombo !== undefined) info.push(`Streak ${stats.bestCombo}`);
     const duration = formatDuration(getEntryDuration(entry), gameId);
     if (duration) info.push(duration);
@@ -217,17 +217,17 @@ function getSecondaryInfo(entry: LeaderboardEntry, gameId: GameId, localAttempts
 
   if (gameId === 'color-memory') {
     const similarity = stats.bestSimilarity ?? stats.finalSimilarity ?? stats.averageSimilarity;
-    if (similarity !== undefined) info.push(`PodobieĹ„stwo ${formatPercent(similarity)}`);
+    if (similarity !== undefined) info.push(`Podobieństwo ${formatPercent(similarity)}`);
   }
 
   if (gameId === 'symbol-match') {
-    if (stats.mistakes !== undefined) info.push(`PomyĹ‚ki ${stats.mistakes}`);
+    if (stats.mistakes !== undefined) info.push(`Pomyłki ${stats.mistakes}`);
     if (stats.durationMs !== undefined) info.push(`${Math.round(stats.durationMs / 1000)}s`);
   }
 
   if (gameId === 'word-memory') {
     if (stats.bestCombo !== undefined) info.push(`Combo ${stats.bestCombo}`);
-    if (stats.mistakes !== undefined) info.push(`BĹ‚Ä™dy ${stats.mistakes}`);
+    if (stats.mistakes !== undefined) info.push(`Błędy ${stats.mistakes}`);
   }
 
   return info;
@@ -289,7 +289,7 @@ function ProfilePanel({
   onlineLoading?: boolean;
   onClose: () => void;
 }) {
-  const title = ownEntry ? 'TwĂłj profil' : onlineProfile ? 'Profil publiczny' : 'Mini profil';
+  const title = ownEntry ? 'Twój profil' : onlineProfile ? 'Profil publiczny' : 'Mini profil';
   const ownFrame = ownEntry ? getCosmetic(getEquippedCosmetics().frame, 'frame') : undefined;
   const publicFrame = !ownEntry && onlineProfile?.equippedCosmetics ? getCosmetic(onlineProfile.equippedCosmetics.frame, 'frame') : undefined;
 
@@ -316,7 +316,7 @@ function ProfilePanel({
         ) : onlineLoading ? (
           <div className="flex items-center gap-3 rounded-lg border border-cyan-300/15 bg-black/25 px-3 py-4 text-sm text-cyan-100">
             <span className="h-5 w-5 animate-spin rounded-full border-2 border-cyan-300/20 border-t-cyan-300" />
-            ĹadujÄ™ profil gracza
+            Ładuję profil gracza
           </div>
         ) : onlineProfile ? (
           <OnlineProfileContent profile={onlineProfile} />
