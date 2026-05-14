@@ -214,9 +214,10 @@ function ProfilePanel({
   onClose: () => void;
 }) {
   const title = ownEntry ? 'Twój profil' : onlineProfile ? 'Profil publiczny' : 'Mini profil';
+  const ownFrame = ownEntry ? getCosmetic(getEquippedCosmetics().frame, 'frame') : undefined;
 
   return (
-    <div className="mt-3 rounded-xl border border-cyan-300/20 bg-slate-950/90 p-4 shadow-[0_0_28px_rgba(34,211,238,0.10)] backdrop-blur">
+    <div className={`mt-3 rounded-xl border border-cyan-300/20 bg-slate-950/90 p-4 shadow-[0_0_28px_rgba(34,211,238,0.10)] backdrop-blur ${ownFrame?.className ?? ''}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[0.65rem] font-black uppercase tracking-[0.22em] text-cyan-200">Profil gracza</p>
@@ -274,15 +275,17 @@ function OwnProfileContent({ summary }: { summary: PlayerProfileSummary }) {
     <div>
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex min-w-0 items-center gap-2">
-            <h4 className="min-w-0 truncate text-lg font-black text-white">{summary.displayName}</h4>
-            {equippedBadge && (
-              <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[0.58rem] font-black uppercase ${equippedBadge.className ?? 'border-cyan-300/30 bg-cyan-300/10 text-cyan-100'}`}>
-                {equippedBadge.label}
-              </span>
-            )}
-          </div>
-          {equippedTitle && <p className="mt-0.5 truncate text-[0.65rem] font-bold uppercase tracking-wide text-violet-100">{equippedTitle.label}</p>}
+          <h4 className="min-w-0 truncate text-lg font-black text-white">{summary.displayName}</h4>
+          {(equippedTitle || equippedBadge) && (
+            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
+              {equippedTitle && <p className="min-w-0 max-w-[10rem] truncate text-[0.65rem] font-bold uppercase tracking-wide text-violet-100">{equippedTitle.label}</p>}
+              {equippedBadge && (
+                <span className={`max-w-[8rem] shrink truncate rounded-full border px-2 py-0.5 text-[0.56rem] font-black uppercase ${equippedBadge.className ?? 'border-cyan-300/30 bg-cyan-300/10 text-cyan-100'}`}>
+                  {equippedBadge.label}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <span className="rounded-full border border-violet-300/35 bg-violet-300/10 px-2 py-1 text-[0.65rem] font-black text-violet-100">L{summary.level}</span>
       </div>
@@ -725,37 +728,37 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
                   role="button"
                   tabIndex={0}
                 >
-                  <div className="grid grid-cols-[2.4rem_minmax(0,1fr)_auto] items-center gap-3">
+                  <div className="grid grid-cols-[2.2rem_minmax(0,1fr)_minmax(4.8rem,auto)] items-center gap-2.5">
                     <span className={`text-sm font-black ${getRankTextClass(index)}`}>#{index + 1}</span>
                     <div className="min-w-0">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span className="truncate text-sm font-bold leading-5 text-slate-100">{entry.playerName}</span>
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <span className="min-w-0 max-w-[9.5rem] truncate text-sm font-bold leading-5 text-slate-100">{entry.playerName}</span>
                       {ownEntry && (
-                        <span className="shrink-0 rounded-full border border-cyan-300/35 bg-cyan-300/10 px-2 py-0.5 text-[0.6rem] font-black uppercase tracking-wide text-cyan-100">
+                        <span className="shrink-0 rounded-full border border-cyan-300/35 bg-cyan-300/10 px-1.5 py-0.5 text-[0.56rem] font-black uppercase tracking-wide text-cyan-100">
                           Ty
                         </span>
                       )}
-                      {ownEntry && equippedBadge && (
-                        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[0.58rem] font-black uppercase tracking-wide ${equippedBadge.className ?? 'border-cyan-300/30 bg-cyan-300/10 text-cyan-100'}`}>
-                          {equippedBadge.label}
-                        </span>
-                      )}
-                      {ownEntry && equippedTitle && (
-                        <span className="hidden shrink-0 truncate text-[0.64rem] font-bold uppercase tracking-wide text-violet-100 sm:inline">
-                          {equippedTitle.label}
-                        </span>
-                      )}
                       {selected && (
-                        <span className="shrink-0 rounded-full border border-violet-300/30 bg-violet-300/10 px-2 py-0.5 text-[0.6rem] font-black uppercase tracking-wide text-violet-100">
-                          Profil otwarty
+                        <span className="hidden shrink-0 rounded-full border border-violet-300/30 bg-violet-300/10 px-1.5 py-0.5 text-[0.56rem] font-black uppercase tracking-wide text-violet-100 sm:inline">
+                          Profil
                         </span>
                       )}
                       </div>
+                      {ownEntry && (equippedTitle || equippedBadge) && (
+                        <div className="mt-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden">
+                          {equippedTitle && <span className="min-w-0 max-w-[8rem] truncate text-[0.62rem] font-bold uppercase tracking-wide text-violet-100/80">{equippedTitle.label}</span>}
+                          {equippedBadge && (
+                            <span className={`max-w-[6.8rem] shrink truncate rounded-full border px-1.5 py-0.5 text-[0.52rem] font-black uppercase tracking-wide ${equippedBadge.className ?? 'border-cyan-300/30 bg-cyan-300/10 text-cyan-100'}`}>
+                              {equippedBadge.label}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       {secondaryInfo.length > 0 && (
                         <p className="mt-1 truncate text-[0.7rem] font-medium leading-4 text-slate-400">{secondaryInfo.join(' • ')}</p>
                       )}
                     </div>
-                    <div className="text-right">
+                    <div className="min-w-[4.8rem] shrink-0 text-right">
                       <span className="block text-sm font-black leading-5 text-white sm:text-base">{formatMetricValue(entry, activeMetric)}</span>
                       <span className="text-[0.62rem] font-bold uppercase tracking-wide text-slate-500">{getMetricLabel(gameId, activeMetric)}</span>
                     </div>
