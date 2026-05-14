@@ -91,6 +91,34 @@ const questCategoryLabels: Record<string, string> = {
   exploration: 'EXPLORE',
 };
 
+const questHintSourceLabels: Record<string, string> = {
+  aim: 'Aim Test',
+  benchmark: 'Reaction Time',
+  color: 'Color Memory',
+  core: 'Hub',
+  cps: 'CPS Test',
+  'cross-game': 'Dowolne gry',
+  flappy: 'Flappy Ball',
+  memory: 'Memory Test',
+  progression: 'Poziomy gier',
+  reaction: 'Reaction Time',
+  stroop: 'Stroop Test',
+  symbol: 'Symbol Match',
+  'time-sense': 'Time Sense',
+  typing: 'Typing Speed',
+  variety: 'Hub',
+  word: 'Word Memory',
+};
+
+function getQuestHint(quest: { description: string; seasonalTags?: string[] }): string {
+  if (quest.description.includes('·')) {
+    return quest.description;
+  }
+
+  const source = quest.seasonalTags?.map((tag) => questHintSourceLabels[tag]).find(Boolean);
+  return source ? `${source} · ${quest.description}` : quest.description;
+}
+
 function getGameTitle(gameId?: string): string {
   return gameId ? games.find((game) => game.id === gameId)?.title ?? gameId : emptyValueLabel;
 }
@@ -303,6 +331,7 @@ function ActiveCosmeticsSection() {
 export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, revision }: PlayerHubProps) {
   const [activeTab, setActiveTab] = useState<PlayerHubTab>('stats');
   const [draftName, setDraftName] = useState(profile.playerName);
+  const [activeQuestHintId, setActiveQuestHintId] = useState<string | null>(null);
   const [rewardRevision, setRewardRevision] = useState(0);
   const summary = buildPlayerProfileSummary(profile);
   const questProgress = getQuestProgress();
@@ -362,6 +391,17 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
   useEffect(() => {
     setDraftName(profile.playerName);
   }, [profile.playerName]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setActiveQuestHintId(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
     <section
@@ -570,10 +610,11 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
                         const claimed = Boolean(progress?.isClaimed || progress?.claimedAt);
                         const ready = Boolean(progress?.completed && !claimed);
                         const statusLabel = claimed ? 'ODEBRANE' : ready ? 'ODBIERZ' : 'W TRAKCIE';
+                        const questHint = getQuestHint(quest);
 
                         return (
                           <div
-                            className={`rounded-lg border px-3 py-3 transition duration-200 hover:-translate-y-0.5 ${
+                            className={`group relative rounded-lg border px-3 py-3 transition duration-200 hover:-translate-y-0.5 ${
                               claimed
                                 ? 'border-white/5 bg-black/20 opacity-65'
                                 : ready
@@ -588,11 +629,37 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
                                   {quest.icon ?? 'Q'}
                                 </span>
                                 <span className="min-w-0 truncate">{quest.title}</span>
+                                <button
+                                  aria-expanded={activeQuestHintId === quest.id}
+                                  aria-label={`Opis questa: ${quest.title}`}
+                                  className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-cyan-200/20 bg-cyan-200/[0.06] text-[0.65rem] font-black text-cyan-100/80 transition hover:border-cyan-200/45 hover:bg-cyan-200/12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setActiveQuestHintId((current) => (current === quest.id ? null : quest.id));
+                                  }}
+                                  title={questHint}
+                                  type="button"
+                                >
+                                  i
+                                </button>
                               </span>
                               <span className="shrink-0 text-cyan-100">
                                 {value}/{quest.target.amount}
                               </span>
                             </div>
+                            <div
+                              className={`pointer-events-none absolute left-3 top-11 z-30 max-w-[260px] rounded-lg border border-cyan-200/20 bg-slate-950/95 px-3 py-2 text-xs leading-relaxed text-slate-200 shadow-[0_0_24px_rgba(34,211,238,0.16)] backdrop-blur ${
+                                activeQuestHintId === quest.id ? 'hidden sm:block' : 'hidden group-hover:block group-focus-within:block'
+                              }`}
+                              role="tooltip"
+                            >
+                              {questHint}
+                            </div>
+                            {activeQuestHintId === quest.id && (
+                              <p className="mt-2 rounded-lg border border-cyan-200/15 bg-cyan-200/[0.055] px-3 py-2 text-xs leading-relaxed text-slate-200 sm:hidden">
+                                {questHint}
+                              </p>
+                            )}
                             <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
                               <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                                 <span className="rounded-full border border-amber-200/25 bg-amber-200/10 px-2 py-0.5 font-semibold uppercase text-amber-100">
