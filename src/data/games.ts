@@ -1,4 +1,4 @@
-import type { GameConfig, GameId } from '../types';
+﻿import type { GameConfig, GameId } from '../types';
 
 export const games: GameConfig[] = [
   {
@@ -76,10 +76,10 @@ export const games: GameConfig[] = [
     tags: ['precision', 'reflex', 'challenge'],
     metrics: [
       { id: 'score', label: 'Punkty', direction: 'descending', source: 'score', suffix: 'pkt' },
-      { id: 'accuracy', label: 'Celno��', direction: 'descending', source: 'stats', statKey: 'accuracy', valueType: 'percent' },
+      { id: 'accuracy', label: 'Celność', direction: 'descending', source: 'stats', statKey: 'accuracy', valueType: 'percent' },
       { id: 'bestCombo', label: 'Combo', direction: 'descending', source: 'stats', statKey: 'bestCombo' },
       { id: 'hits', label: 'Trafienia', direction: 'descending', source: 'stats', statKey: 'hits' },
-      { id: 'averageReactionMs', label: '�r. czas', direction: 'ascending', source: 'stats', statKey: 'averageReactionMs', valueType: 'ms' },
+      { id: 'averageReactionMs', label: 'Śr. czas', direction: 'ascending', source: 'stats', statKey: 'averageReactionMs', valueType: 'ms' },
       { id: 'survivedTime', label: 'Czas', direction: 'descending', source: 'stats', statKey: 'survivedTime', suffix: 's' },
     ],
   },
@@ -142,6 +142,21 @@ export const games: GameConfig[] = [
       { id: 'peakCPS', label: 'Peak', direction: 'descending', source: 'stats', statKey: 'peakCPS', suffix: 'CPS' },
       { id: 'totalClicks', label: 'Clicks', direction: 'descending', source: 'stats', statKey: 'totalClicks' },
       { id: 'consistency', label: 'Consistency', direction: 'descending', source: 'stats', statKey: 'consistency', valueType: 'percent' },
+    ],
+  },
+  {
+    id: 'flappy-ball',
+    title: 'Flappy Ball',
+    description: 'Arcade flight.',
+    scoreDirection: 'descending',
+    scoreName: 'punkty',
+    mobileSupport: 'ready',
+    tags: ['arcade', 'reflex', 'focus', 'mobile', 'casual'],
+    metrics: [
+      { id: 'score', label: 'Punkty', direction: 'descending', source: 'score', suffix: 'pkt' },
+      { id: 'survivedTimeSeconds', label: 'Czas', direction: 'descending', source: 'stats', statKey: 'survivedTimeSeconds', suffix: 's' },
+      { id: 'flaps', label: 'Flaps', direction: 'ascending', source: 'stats', statKey: 'flaps' },
+      { id: 'efficiency', label: 'Efektywność', direction: 'descending', source: 'stats', statKey: 'efficiency', valueType: 'percent' },
     ],
   },
 ];

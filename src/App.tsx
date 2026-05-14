@@ -13,6 +13,7 @@ import { rewardDefinitions } from './data/rewards';
 import { AimTestGame } from './games/AimTestGame';
 import { ColorMemoryGame } from './games/ColorMemoryGame';
 import { CpsTestGame } from './games/CpsTestGame';
+import { FlappyBallGame } from './games/FlappyBallGame';
 import { MemoryTestGame } from './games/MemoryTestGame';
 import { ReactionTimeGame } from './games/ReactionTimeGame';
 import { SymbolMatchGame } from './games/SymbolMatchGame';
@@ -117,6 +118,8 @@ function renderGame(gameId: GameId, onScore: (score: ScoreInput) => void) {
       return <StroopTestGame onScore={onScore} />;
     case 'cps-test':
       return <CpsTestGame onScore={onScore} />;
+    case 'flappy-ball':
+      return <FlappyBallGame onScore={onScore} />;
   }
 }
 

@@ -335,6 +335,8 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
     { label: 'Best CPS', value: summary.highlights.bestCps?.scoreLabel, accent: 'cyan' as const },
     { label: 'Peak CPS', value: summary.highlights.peakCps?.stats?.peakCPS !== undefined ? `${summary.highlights.peakCps.stats.peakCPS} CPS` : undefined, accent: 'teal' as const },
     { label: 'Alt CPS', value: summary.highlights.bestAlternatingCps?.scoreLabel, accent: 'violet' as const },
+    { label: 'Flappy score', value: summary.highlights.bestFlappyScore?.scoreLabel, accent: 'cyan' as const },
+    { label: 'Flappy time', value: summary.highlights.bestFlappyTime?.stats?.survivedTimeSeconds !== undefined ? `${summary.highlights.bestFlappyTime.stats.survivedTimeSeconds}s` : undefined, accent: 'teal' as const },
   ];
 
   useEffect(() => {

@@ -8,7 +8,8 @@ export type GameId =
   | 'word-memory'
   | 'time-sense'
   | 'stroop-test'
-  | 'cps-test';
+  | 'cps-test'
+  | 'flappy-ball';
 
 export type ScoreDirection = 'ascending' | 'descending';
 export type MobileSupport = 'ready' | 'limited' | 'desktop-only';
@@ -80,6 +81,9 @@ export type ScoreStats = {
   heatPeak?: number;
   inputMode?: string;
   longestStreak?: number;
+  flaps?: number;
+  survivedTimeSeconds?: number;
+  efficiency?: number;
 };
 
 export type LeaderboardEntry = {
@@ -158,6 +162,8 @@ export type LocalProfile = {
     peakCps?: LeaderboardEntry;
     longestCpsStreak?: LeaderboardEntry;
     bestAlternatingCps?: LeaderboardEntry;
+    bestFlappyScore?: LeaderboardEntry;
+    bestFlappyTime?: LeaderboardEntry;
   };
 };
 
@@ -178,6 +184,8 @@ export type PlayerHighlights = {
   peakCps?: LeaderboardEntry;
   longestCpsStreak?: LeaderboardEntry;
   bestAlternatingCps?: LeaderboardEntry;
+  bestFlappyScore?: LeaderboardEntry;
+  bestFlappyTime?: LeaderboardEntry;
 };
 
 export type PlayerAchievementSummary = {

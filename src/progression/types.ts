@@ -38,7 +38,8 @@ export type ProgressionEventType =
     | 'symbol_match_finished'
     | 'time_sense_finished'
     | 'stroop_finished'
-    | 'cps_finished';
+    | 'cps_finished'
+    | 'flappy_finished';
 
 export type ProgressionEvent = {
   id: string;

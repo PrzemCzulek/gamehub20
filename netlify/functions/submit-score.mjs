@@ -243,6 +243,18 @@ function mergeHighlights(currentHighlights, value) {
     }
   }
 
+  if (value.gameId === 'flappy-ball') {
+    const survivedTimeSeconds = readNumber(value.stats?.survivedTimeSeconds);
+
+    if (isBetterHighlight(value.score, highlights.bestFlappyScore, 'descending')) {
+      highlights.bestFlappyScore = createHighlight(value);
+    }
+
+    if (isBetterHighlight(survivedTimeSeconds, highlights.bestFlappyTime, 'descending')) {
+      highlights.bestFlappyTime = createHighlight(value, survivedTimeSeconds);
+    }
+  }
+
   return highlights;
 }
 

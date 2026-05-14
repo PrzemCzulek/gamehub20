@@ -21,6 +21,7 @@ const gameVisuals: Record<GameId, string> = {
   'time-sense': '◷',
   'stroop-test': 'RGB',
   'cps-test': 'CPS',
+  'flappy-ball': '●',
 };
 
 const mobileSupportMeta: Record<MobileSupport, { label: string; className: string }> = {

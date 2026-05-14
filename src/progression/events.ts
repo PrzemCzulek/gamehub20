@@ -14,6 +14,7 @@ const eventTypeByGame = {
   'time-sense': 'time_sense_finished',
   'stroop-test': 'stroop_finished',
   'cps-test': 'cps_finished',
+  'flappy-ball': 'flappy_finished',
 } as const satisfies Record<LeaderboardEntry['gameId'], ProgressionEventType>;
 
 function createEventId(scoreEntry: LeaderboardEntry): string {

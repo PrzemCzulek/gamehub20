@@ -89,6 +89,15 @@ export const games = {
       consistency: { source: 'stats', statKey: 'consistency', direction: 'descending' },
     },
   },
+  'flappy-ball': {
+    scoreDirection: 'descending',
+    metrics: {
+      score: { source: 'score', direction: 'descending' },
+      survivedTimeSeconds: { source: 'stats', statKey: 'survivedTimeSeconds', direction: 'descending' },
+      flaps: { source: 'stats', statKey: 'flaps', direction: 'ascending' },
+      efficiency: { source: 'stats', statKey: 'efficiency', direction: 'descending' },
+    },
+  },
 };
 
 export function getGame(gameId) {

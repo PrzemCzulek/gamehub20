@@ -268,6 +268,15 @@ function deriveStats(entry: Pick<LeaderboardEntry, 'gameId' | 'score' | 'meta' |
         overheatTime: baseStats.overheatTime ?? readMetaNumber(meta, 'overheatTime'),
         longestStreak: baseStats.longestStreak ?? readMetaNumber(meta, 'longestStreak'),
       };
+    case 'flappy-ball':
+      return {
+        ...baseStats,
+        flaps: baseStats.flaps ?? readMetaNumber(meta, 'flaps'),
+        survivedTimeSeconds: baseStats.survivedTimeSeconds ?? readMetaNumber(meta, 'survivedTimeSeconds'),
+        durationMs: baseStats.durationMs ?? entry.runDurationMs,
+        bestCombo: baseStats.bestCombo ?? entry.score,
+        efficiency: baseStats.efficiency ?? readMetaNumber(meta, 'efficiency'),
+      };
   }
 }
 
@@ -528,6 +537,15 @@ export function getProfile(): LocalProfile {
       bestWordMemory: sortScoresByMetric(
         playerScores.filter((score) => score.gameId === 'word-memory'),
         'word-memory',
+      )[0],
+      bestFlappyScore: sortScoresByMetric(
+        playerScores.filter((score) => score.gameId === 'flappy-ball'),
+        'flappy-ball',
+      )[0],
+      bestFlappyTime: sortScoresByMetric(
+        playerScores.filter((score) => score.gameId === 'flappy-ball' && score.stats?.survivedTimeSeconds !== undefined),
+        'flappy-ball',
+        'survivedTimeSeconds',
       )[0],
     },
   };

@@ -40,6 +40,8 @@ export type OnlinePlayerProfile = {
     peakCps?: OnlineProfileHighlight;
     longestCpsStreak?: OnlineProfileHighlight;
     bestAlternatingCps?: OnlineProfileHighlight;
+    bestFlappyScore?: OnlineProfileHighlight;
+    bestFlappyTime?: OnlineProfileHighlight;
   };
   updatedAt?: string;
 };

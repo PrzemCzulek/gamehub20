@@ -113,6 +113,15 @@ export function getPlayerHighlights(scores: LeaderboardEntry[]): PlayerHighlight
       scores.filter((score) => score.gameId === 'cps-test' && score.stats?.inputMode === 'alternating'),
       'cps-test',
     )[0],
+    bestFlappyScore: sortScoresByMetric(
+      scores.filter((score) => score.gameId === 'flappy-ball'),
+      'flappy-ball',
+    )[0],
+    bestFlappyTime: sortScoresByMetric(
+      scores.filter((score) => score.gameId === 'flappy-ball' && score.stats?.survivedTimeSeconds !== undefined),
+      'flappy-ball',
+      'survivedTimeSeconds',
+    )[0],
   };
 }
 
@@ -163,6 +172,8 @@ export function buildPlayerProfileSummary(profile: LocalProfile): PlayerProfileS
       peakCps: highlights.peakCps ?? profile.highlights.peakCps,
       longestCpsStreak: highlights.longestCpsStreak ?? profile.highlights.longestCpsStreak,
       bestAlternatingCps: highlights.bestAlternatingCps ?? profile.highlights.bestAlternatingCps,
+      bestFlappyScore: highlights.bestFlappyScore ?? profile.highlights.bestFlappyScore,
+      bestFlappyTime: highlights.bestFlappyTime ?? profile.highlights.bestFlappyTime,
     },
   };
 }

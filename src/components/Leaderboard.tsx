@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { getGameConfig } from '../data/games';
 import { aimModeChangedEvent, aimModeOptions, readStoredAimMode, storeAimMode } from '../data/aimModes';
@@ -30,8 +30,8 @@ type LeaderboardProps = {
 
 const timeSenseMetricLabels: Record<string, string> = {
   score: 'Wynik',
-  accuracy: 'Dokładność',
-  deviationMs: 'Różnica',
+  accuracy: 'DokĹ‚adnoĹ›Ä‡',
+  deviationMs: 'RĂłĹĽnica',
   isPerfect: 'Perfect',
 };
 
@@ -39,7 +39,7 @@ const stroopMetricLabels: Record<string, string> = {
   score: 'Punkty',
   accuracy: 'Accuracy',
   bestCombo: 'Streak',
-  averageReactionMs: 'Śr. reakcja',
+  averageReactionMs: 'Ĺšr. reakcja',
 };
 
 const cpsMetricLabels: Record<string, string> = {
@@ -105,10 +105,10 @@ function DeviceOriginBadge({ device, compact = false }: { device?: DeviceType; c
 
 const aimMetricLabels: Record<string, string> = {
   score: 'Punkty',
-  accuracy: 'Celność',
+  accuracy: 'CelnoĹ›Ä‡',
   bestCombo: 'Combo',
   hits: 'Trafienia',
-  averageReactionMs: 'Śr. czas',
+  averageReactionMs: 'Ĺšr. czas',
   survivedTime: 'Czas',
 };
 
@@ -116,7 +116,7 @@ type LeaderboardSource = 'local' | 'online';
 
 const typingMetricLabels: Record<string, string> = {
   score: 'WPM',
-  accuracy: 'Celność',
+  accuracy: 'CelnoĹ›Ä‡',
   rounds: 'Zdania',
   correctChars: 'Poprawne znaki',
 };
@@ -178,7 +178,7 @@ function getSecondaryInfo(entry: LeaderboardEntry, gameId: GameId, localAttempts
   const info: string[] = [];
 
   if (gameId === 'typing-speed') {
-    if (stats.accuracy !== undefined) info.push(`Celność ${formatPercent(stats.accuracy)}`);
+    if (stats.accuracy !== undefined) info.push(`CelnoĹ›Ä‡ ${formatPercent(stats.accuracy)}`);
     const duration = formatDuration(getEntryDuration(entry), gameId);
     if (duration) info.push(duration);
   }
@@ -202,9 +202,13 @@ function getSecondaryInfo(entry: LeaderboardEntry, gameId: GameId, localAttempts
     const duration = formatDuration(getEntryDuration(entry), gameId);
     if (duration) info.push(duration);
   }
+  if (gameId === 'flappy-ball') {
+    if (stats.survivedTimeSeconds !== undefined) info.push(`${stats.survivedTimeSeconds}s`);
+    if (stats.flaps !== undefined) info.push(`${stats.flaps} flaps`);
+  }
 
-  if (gameId === 'reaction-time' && localAttempts && localAttempts > 1) info.push(`Próby lokalnie ${localAttempts}`);
-  if (gameId === 'aim-test' && stats.accuracy !== undefined) info.push(`Celność ${formatPercent(stats.accuracy)}`);
+  if (gameId === 'reaction-time' && localAttempts && localAttempts > 1) info.push(`PrĂłby lokalnie ${localAttempts}`);
+  if (gameId === 'aim-test' && stats.accuracy !== undefined) info.push(`CelnoĹ›Ä‡ ${formatPercent(stats.accuracy)}`);
   if (gameId === 'aim-test' && stats.bestCombo !== undefined) info.push(`Combo ${stats.bestCombo}`);
   if (gameId === 'aim-test' && stats.mode === 'infinity') {
     if (stats.hpRecovered !== undefined) info.push(`HP +${stats.hpRecovered}`);
@@ -213,17 +217,17 @@ function getSecondaryInfo(entry: LeaderboardEntry, gameId: GameId, localAttempts
 
   if (gameId === 'color-memory') {
     const similarity = stats.bestSimilarity ?? stats.finalSimilarity ?? stats.averageSimilarity;
-    if (similarity !== undefined) info.push(`Podobieństwo ${formatPercent(similarity)}`);
+    if (similarity !== undefined) info.push(`PodobieĹ„stwo ${formatPercent(similarity)}`);
   }
 
   if (gameId === 'symbol-match') {
-    if (stats.mistakes !== undefined) info.push(`Pomyłki ${stats.mistakes}`);
+    if (stats.mistakes !== undefined) info.push(`PomyĹ‚ki ${stats.mistakes}`);
     if (stats.durationMs !== undefined) info.push(`${Math.round(stats.durationMs / 1000)}s`);
   }
 
   if (gameId === 'word-memory') {
     if (stats.bestCombo !== undefined) info.push(`Combo ${stats.bestCombo}`);
-    if (stats.mistakes !== undefined) info.push(`Błędy ${stats.mistakes}`);
+    if (stats.mistakes !== undefined) info.push(`BĹ‚Ä™dy ${stats.mistakes}`);
   }
 
   return info;
@@ -285,7 +289,7 @@ function ProfilePanel({
   onlineLoading?: boolean;
   onClose: () => void;
 }) {
-  const title = ownEntry ? 'Twój profil' : onlineProfile ? 'Profil publiczny' : 'Mini profil';
+  const title = ownEntry ? 'TwĂłj profil' : onlineProfile ? 'Profil publiczny' : 'Mini profil';
   const ownFrame = ownEntry ? getCosmetic(getEquippedCosmetics().frame, 'frame') : undefined;
   const publicFrame = !ownEntry && onlineProfile?.equippedCosmetics ? getCosmetic(onlineProfile.equippedCosmetics.frame, 'frame') : undefined;
 
@@ -302,7 +306,7 @@ function ProfilePanel({
           onClick={onClose}
           type="button"
         >
-          ×
+          Ă—
         </button>
       </div>
 
@@ -312,7 +316,7 @@ function ProfilePanel({
         ) : onlineLoading ? (
           <div className="flex items-center gap-3 rounded-lg border border-cyan-300/15 bg-black/25 px-3 py-4 text-sm text-cyan-100">
             <span className="h-5 w-5 animate-spin rounded-full border-2 border-cyan-300/20 border-t-cyan-300" />
-            Ładuję profil gracza
+            ĹadujÄ™ profil gracza
           </div>
         ) : onlineProfile ? (
           <OnlineProfileContent profile={onlineProfile} />
@@ -444,9 +448,9 @@ function FallbackProfileContent({ entry, gameId, metric, profileError }: { entry
         <span className="mt-1 block text-xs text-slate-400">{getGameTitle(gameId)} / {getMetricLabel(gameId, metric)}</span>
       </div>
       <div className="mt-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-        <p className="text-sm font-semibold text-cyan-100">{profileError ?? 'Profil publiczny niedostępny'}</p>
+        <p className="text-sm font-semibold text-cyan-100">{profileError ?? 'Profil publiczny niedostÄ™pny'}</p>
         <p className="mt-1 text-xs leading-5 text-slate-400">
-          {profileError ? 'Spróbuj ponownie później.' : 'Dane pojawią się po kolejnym wyniku online.'}
+          {profileError ? 'SprĂłbuj ponownie pĂłĹşniej.' : 'Dane pojawiÄ… siÄ™ po kolejnym wyniku online.'}
         </p>
       </div>
     </div>
@@ -458,7 +462,7 @@ function LeaderboardLoadingOverlay() {
     <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-slate-950/35 opacity-100 backdrop-blur-[2px] transition-opacity duration-200">
       <div className="flex items-center gap-3 rounded-full border border-cyan-300/20 bg-slate-950/85 px-4 py-2 shadow-[0_0_24px_rgba(34,211,238,0.14)]">
         <span className="h-5 w-5 animate-spin rounded-full border-2 border-cyan-300/20 border-t-cyan-300" />
-        <span className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Ładowanie</span>
+        <span className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Ĺadowanie</span>
       </div>
     </div>
   );
@@ -628,7 +632,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
       .catch(() => {
         if (!ignore) {
           setOnlineEntries([]);
-          setOnlineError('Online leaderboard niedostępny - pokazuję lokalne wyniki.');
+          setOnlineError('Online leaderboard niedostÄ™pny - pokazujÄ™ lokalne wyniki.');
         }
       })
       .finally(() => {
@@ -665,7 +669,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
       })
       .catch(() => {
         setOnlineProfiles((current) => ({ ...current, [playerId]: null }));
-        setProfileErrors((current) => ({ ...current, [playerId]: 'Nie udało się wczytać profilu' }));
+        setProfileErrors((current) => ({ ...current, [playerId]: 'Nie udaĹ‚o siÄ™ wczytaÄ‡ profilu' }));
       })
       .finally(() => {
         setLoadingProfiles((current) => ({ ...current, [playerId]: false }));
@@ -752,7 +756,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
         <div>
           <p className="text-[0.65rem] font-black uppercase tracking-[0.25em] text-cyan-200">Leaderboard</p>
           <h2 className="mt-1 text-lg font-black uppercase tracking-wide text-white">Ranking</h2>
-          <p className="mt-1 text-xs text-slate-500">Top {limit} · {totalEntriesLabel}</p>
+          <p className="mt-1 text-xs text-slate-500">Top {limit} Â· {totalEntriesLabel}</p>
         </div>
 
         <div className="grid grid-cols-2 overflow-hidden rounded-lg border border-white/10 bg-black/25 p-1">
@@ -878,7 +882,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
         <div className={`max-h-[28rem] space-y-2 overflow-y-auto pr-1 transition duration-200 ${onlineLoading ? 'opacity-45 blur-[1px]' : 'opacity-100 blur-0'}`}>
           {visibleEntries.length === 0 && !onlineLoading ? (
             <p className="rounded-md border border-dashed border-white/10 p-4 text-sm leading-6 text-slate-400">
-              {usingOnline ? 'Brak wyników online.' : 'Brak wyników.'}
+              {usingOnline ? 'Brak wynikĂłw online.' : 'Brak wynikĂłw.'}
             </p>
           ) : (
             visibleEntries.map((entry, index) => {
@@ -932,7 +936,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
                         </div>
                       )}
                       {secondaryInfo.length > 0 && (
-                        <p className="mt-1 truncate text-[0.7rem] font-medium leading-4 text-slate-400">{secondaryInfo.join(' • ')}</p>
+                        <p className="mt-1 truncate text-[0.7rem] font-medium leading-4 text-slate-400">{secondaryInfo.join(' â€˘ ')}</p>
                       )}
                     </div>
                     <div className="min-w-[4.8rem] shrink-0 text-right">
@@ -944,7 +948,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
                   {!selected && (
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-950/55 opacity-0 backdrop-blur-[1px] transition duration-150 group-hover:opacity-100 group-focus:opacity-100">
                       <span className="rounded-full border border-cyan-300/35 bg-cyan-300/10 px-3 py-1.5 text-[0.65rem] font-black uppercase tracking-[0.18em] text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.16)]">
-                        Pokaż profil
+                        PokaĹĽ profil
                       </span>
                     </div>
                   )}
@@ -973,3 +977,4 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
     </section>
   );
 }
+
