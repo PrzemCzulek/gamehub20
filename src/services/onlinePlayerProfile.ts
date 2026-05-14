@@ -33,6 +33,10 @@ export type OnlinePlayerProfile = {
     bestStroopScore?: OnlineProfileHighlight;
     bestStroopAccuracy?: OnlineProfileHighlight;
     bestStroopStreak?: OnlineProfileHighlight;
+    bestCps?: OnlineProfileHighlight;
+    peakCps?: OnlineProfileHighlight;
+    longestCpsStreak?: OnlineProfileHighlight;
+    bestAlternatingCps?: OnlineProfileHighlight;
   };
   updatedAt?: string;
 };

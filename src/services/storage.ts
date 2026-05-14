@@ -207,6 +207,20 @@ function deriveStats(entry: Pick<LeaderboardEntry, 'gameId' | 'score' | 'meta' |
         mistakes: baseStats.mistakes ?? readMetaNumber(meta, 'mistakes'),
         conflictAccuracy: baseStats.conflictAccuracy ?? readMetaNumber(meta, 'conflictAccuracy'),
       };
+    case 'cps-test':
+      return {
+        ...baseStats,
+        durationSeconds: baseStats.durationSeconds ?? readMetaNumber(meta, 'durationSeconds'),
+        inputMode: baseStats.inputMode ?? (typeof meta?.inputMode === 'string' ? meta.inputMode : undefined),
+        cps: baseStats.cps ?? entry.score,
+        peakCPS: baseStats.peakCPS ?? readMetaNumber(meta, 'peakCPS'),
+        totalClicks: baseStats.totalClicks ?? readMetaNumber(meta, 'totalClicks'),
+        consistency: baseStats.consistency ?? readMetaNumber(meta, 'consistency'),
+        accuracy: baseStats.accuracy ?? readMetaNumber(meta, 'accuracy'),
+        burst: baseStats.burst ?? readMetaNumber(meta, 'burst'),
+        overheatTime: baseStats.overheatTime ?? readMetaNumber(meta, 'overheatTime'),
+        longestStreak: baseStats.longestStreak ?? readMetaNumber(meta, 'longestStreak'),
+      };
   }
 }
 

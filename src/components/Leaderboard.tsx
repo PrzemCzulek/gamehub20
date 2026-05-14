@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { getGameConfig } from '../data/games';
+import {
+  type CpsInputMode,
+  cpsDurationOptions,
+  cpsInputModeOptions,
+  cpsSettingsChangedEvent,
+  readStoredCpsSettings,
+  storeCpsSettings,
+} from '../data/cpsModes';
 import { readStoredStroopDuration, storeStroopDuration, stroopDurationChangedEvent, stroopDurationOptions } from '../data/stroopDurations';
 import { readStoredTimeSenseDuration, storeTimeSenseDuration, timeSenseDurationChangedEvent, timeSenseDurationOptions } from '../data/timeSenseDurations';
 import { readStoredTypingDuration, storeTypingDuration, typingDurationOptions } from '../data/typingDurations';
@@ -29,6 +37,13 @@ const stroopMetricLabels: Record<string, string> = {
   accuracy: 'Accuracy',
   bestCombo: 'Streak',
   averageReactionMs: 'Śr. reakcja',
+};
+
+const cpsMetricLabels: Record<string, string> = {
+  score: 'CPS',
+  peakCPS: 'Peak',
+  totalClicks: 'Clicks',
+  consistency: 'Consistency',
 };
 
 type LeaderboardSource = 'local' | 'online';
@@ -68,7 +83,14 @@ function getEntryDuration(entry: LeaderboardEntry): number | undefined {
 
 function formatDuration(seconds?: number, gameId?: GameId): string | undefined {
   if (!seconds) return undefined;
-  const options = gameId === 'time-sense' ? timeSenseDurationOptions : gameId === 'stroop-test' ? stroopDurationOptions : typingDurationOptions;
+  const options =
+    gameId === 'time-sense'
+      ? timeSenseDurationOptions
+      : gameId === 'stroop-test'
+        ? stroopDurationOptions
+        : gameId === 'cps-test'
+          ? cpsDurationOptions
+          : typingDurationOptions;
   return options.find((option) => option.value === seconds)?.label ?? `${seconds}s`;
 }
 
@@ -76,6 +98,7 @@ function getMetricLabel(gameId: GameId, metric: LeaderboardMetric): string {
   if (gameId === 'typing-speed') return typingMetricLabels[metric.id] ?? metric.label;
   if (gameId === 'time-sense') return timeSenseMetricLabels[metric.id] ?? metric.label;
   if (gameId === 'stroop-test') return stroopMetricLabels[metric.id] ?? metric.label;
+  if (gameId === 'cps-test') return cpsMetricLabels[metric.id] ?? metric.label;
   return metric.label;
 }
 
@@ -102,6 +125,13 @@ function getSecondaryInfo(entry: LeaderboardEntry, gameId: GameId, localAttempts
   if (gameId === 'stroop-test') {
     if (stats.accuracy !== undefined) info.push(`Accuracy ${formatPercent(stats.accuracy)}`);
     if (stats.bestCombo !== undefined) info.push(`Streak ${stats.bestCombo}`);
+    const duration = formatDuration(getEntryDuration(entry), gameId);
+    if (duration) info.push(duration);
+  }
+
+  if (gameId === 'cps-test') {
+    if (stats.peakCPS !== undefined) info.push(`Peak ${stats.peakCPS} CPS`);
+    if (stats.inputMode !== undefined) info.push(String(stats.inputMode));
     const duration = formatDuration(getEntryDuration(entry), gameId);
     if (duration) info.push(duration);
   }
@@ -327,6 +357,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   const [typingDuration, setTypingDuration] = useState(readStoredTypingDuration);
   const [timeSenseDuration, setTimeSenseDuration] = useState(readStoredTimeSenseDuration);
   const [stroopDuration, setStroopDuration] = useState(readStoredStroopDuration);
+  const [cpsSettings, setCpsSettings] = useState(readStoredCpsSettings);
   const [onlineEntries, setOnlineEntries] = useState<LeaderboardEntry[]>([]);
   const [onlineError, setOnlineError] = useState<string | null>(null);
   const [onlineLoading, setOnlineLoading] = useState(false);
@@ -341,14 +372,22 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   const isTypingSpeed = gameId === 'typing-speed';
   const isTimeSense = gameId === 'time-sense';
   const isStroop = gameId === 'stroop-test';
-  const hasDurationFilter = isTypingSpeed || isTimeSense || isStroop;
-  const activeDuration = isStroop ? stroopDuration : isTimeSense ? timeSenseDuration : typingDuration;
-  const durationOptions = isStroop ? stroopDurationOptions : isTimeSense ? timeSenseDurationOptions : typingDurationOptions;
+  const isCps = gameId === 'cps-test';
+  const hasDurationFilter = isTypingSpeed || isTimeSense || isStroop || isCps;
+  const activeDuration = isCps ? cpsSettings.durationSeconds : isStroop ? stroopDuration : isTimeSense ? timeSenseDuration : typingDuration;
+  const durationOptions = isCps ? cpsDurationOptions : isStroop ? stroopDurationOptions : isTimeSense ? timeSenseDurationOptions : typingDurationOptions;
   const activeMetric = game.metrics.find((metric) => metric.id === metricId) ?? game.metrics[0];
   const limit = 10;
   const filteredEntries = useMemo(
-    () => (hasDurationFilter ? entries.filter((entry) => getEntryDuration(entry) === activeDuration) : entries),
-    [activeDuration, entries, hasDurationFilter],
+    () =>
+      hasDurationFilter
+        ? entries.filter((entry) => {
+            const durationMatches = getEntryDuration(entry) === activeDuration;
+            const modeMatches = !isCps || (entry.stats?.inputMode ?? 'normal') === cpsSettings.inputMode;
+            return durationMatches && modeMatches;
+          })
+        : entries,
+    [activeDuration, cpsSettings.inputMode, entries, hasDurationFilter, isCps],
   );
   const localAttemptsByPlayer = useMemo(() => {
     return filteredEntries.reduce<Record<string, number>>((acc, entry) => {
@@ -410,13 +449,28 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   }, [isStroop]);
 
   useEffect(() => {
+    if (!isCps) return;
+
+    function handleCpsSettingsChange() {
+      setCpsSettings(readStoredCpsSettings());
+      setActiveProfileKey(null);
+    }
+
+    window.addEventListener(cpsSettingsChangedEvent, handleCpsSettingsChange);
+
+    return () => {
+      window.removeEventListener(cpsSettingsChangedEvent, handleCpsSettingsChange);
+    };
+  }, [isCps]);
+
+  useEffect(() => {
     if (source !== 'online') return;
 
     let ignore = false;
     setOnlineLoading(true);
     setOnlineError(null);
 
-    getOnlineLeaderboard(gameId, activeMetric.id, limit, hasDurationFilter ? activeDuration : undefined)
+    getOnlineLeaderboard(gameId, activeMetric.id, limit, hasDurationFilter ? activeDuration : undefined, isCps ? cpsSettings.inputMode : undefined)
       .then((results) => {
         if (!ignore) setOnlineEntries(results);
       })
@@ -433,7 +487,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
     return () => {
       ignore = true;
     };
-  }, [activeDuration, activeMetric.id, entries.length, gameId, hasDurationFilter, source]);
+  }, [activeDuration, activeMetric.id, cpsSettings.inputMode, entries.length, gameId, hasDurationFilter, isCps, source]);
 
   useEffect(() => {
     const activeEntry = selectedEntryData?.entry;
@@ -476,7 +530,11 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
 
   function handleDurationChange(duration: number) {
     playNormalClickSound();
-    if (isStroop) {
+    if (isCps) {
+      const nextSettings = { ...cpsSettings, durationSeconds: duration };
+      storeCpsSettings(nextSettings);
+      setCpsSettings(nextSettings);
+    } else if (isStroop) {
       storeStroopDuration(duration);
       setStroopDuration(duration);
     } else if (isTimeSense) {
@@ -492,6 +550,14 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   function handleMetricChange(nextMetricId: string) {
     playNormalClickSound();
     setMetricId(nextMetricId);
+    setActiveProfileKey(null);
+  }
+
+  function handleCpsModeChange(inputMode: CpsInputMode) {
+    playNormalClickSound();
+    const nextSettings = { ...cpsSettings, inputMode };
+    storeCpsSettings(nextSettings);
+    setCpsSettings(nextSettings);
     setActiveProfileKey(null);
   }
 
@@ -558,6 +624,29 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
                 type="button"
               >
                 {duration.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isCps && (
+        <div className="mt-3">
+          <p className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-slate-400">Tryb</p>
+          <div className="mt-2 flex flex-wrap gap-1 rounded-lg border border-white/10 bg-black/25 p-1">
+            {cpsInputModeOptions.map((mode) => (
+              <button
+                aria-pressed={cpsSettings.inputMode === mode.value}
+                className={`min-w-14 flex-1 rounded-md px-2 py-2 text-xs font-black transition duration-200 hover:scale-[1.02] ${
+                  cpsSettings.inputMode === mode.value
+                    ? 'bg-fuchsia-300 text-slate-950 shadow-[0_0_18px_rgba(217,70,239,0.22)]'
+                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                }`}
+                key={mode.value}
+                onClick={() => handleCpsModeChange(mode.value)}
+                type="button"
+              >
+                {mode.label}
               </button>
             ))}
           </div>

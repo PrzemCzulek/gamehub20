@@ -22,6 +22,10 @@ function getDurationSeconds(stats) {
   return readNumber(stats?.selectedDuration) ?? readNumber(stats?.durationSeconds);
 }
 
+function getCpsInputMode(stats) {
+  return stats?.inputMode === 'space' || stats?.inputMode === 'alternating' ? stats.inputMode : 'normal';
+}
+
 function validateScore(payload) {
   const errors = [];
   const playerId = typeof payload.playerId === 'string' ? payload.playerId.trim() : '';
@@ -74,6 +78,14 @@ function isBetterScore(game, nextScore, currentScore) {
 }
 
 function getLeaderboardScope(value) {
+  if (value.gameId === 'cps-test') {
+    const durationSeconds = getDurationSeconds(value.stats) ?? 5;
+    const inputMode = getCpsInputMode(value.stats);
+    if (inputMode === 'alternating') return `${durationSeconds}s-alt`;
+    if (inputMode === 'space') return `${durationSeconds}s-space`;
+    return `${durationSeconds}s`;
+  }
+
   if (value.gameId !== 'typing-speed' && value.gameId !== 'time-sense' && value.gameId !== 'stroop-test') {
     return 'default';
   }
@@ -174,6 +186,28 @@ function mergeHighlights(currentHighlights, value) {
 
     if (isBetterHighlight(streak, highlights.bestStroopStreak, 'descending')) {
       highlights.bestStroopStreak = createHighlight(value, streak);
+    }
+  }
+
+  if (value.gameId === 'cps-test') {
+    const peakCPS = readNumber(value.stats?.peakCPS);
+    const longestStreak = readNumber(value.stats?.longestStreak);
+    const inputMode = value.stats?.inputMode;
+
+    if (isBetterHighlight(value.score, highlights.bestCps, 'descending')) {
+      highlights.bestCps = createHighlight(value);
+    }
+
+    if (isBetterHighlight(peakCPS, highlights.peakCps, 'descending')) {
+      highlights.peakCps = createHighlight(value, peakCPS);
+    }
+
+    if (isBetterHighlight(longestStreak, highlights.longestCpsStreak, 'descending')) {
+      highlights.longestCpsStreak = createHighlight(value, longestStreak);
+    }
+
+    if (inputMode === 'alternating' && isBetterHighlight(value.score, highlights.bestAlternatingCps, 'descending')) {
+      highlights.bestAlternatingCps = createHighlight(value);
     }
   }
 

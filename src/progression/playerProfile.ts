@@ -95,6 +95,24 @@ export function getPlayerHighlights(scores: LeaderboardEntry[]): PlayerHighlight
       'stroop-test',
       'bestCombo',
     )[0],
+    bestCps: sortScoresByMetric(
+      scores.filter((score) => score.gameId === 'cps-test'),
+      'cps-test',
+    )[0],
+    peakCps: sortScoresByMetric(
+      scores.filter((score) => score.gameId === 'cps-test' && score.stats?.peakCPS !== undefined),
+      'cps-test',
+      'peakCPS',
+    )[0],
+    longestCpsStreak: sortScoresByMetric(
+      scores.filter((score) => score.gameId === 'cps-test' && score.stats?.longestStreak !== undefined),
+      'cps-test',
+      'longestStreak',
+    )[0],
+    bestAlternatingCps: sortScoresByMetric(
+      scores.filter((score) => score.gameId === 'cps-test' && score.stats?.inputMode === 'alternating'),
+      'cps-test',
+    )[0],
   };
 }
 
@@ -139,6 +157,10 @@ export function buildPlayerProfileSummary(profile: LocalProfile): PlayerProfileS
       bestStroopScore: highlights.bestStroopScore ?? profile.highlights.bestStroopScore,
       bestStroopAccuracy: highlights.bestStroopAccuracy ?? profile.highlights.bestStroopAccuracy,
       bestStroopStreak: highlights.bestStroopStreak ?? profile.highlights.bestStroopStreak,
+      bestCps: highlights.bestCps ?? profile.highlights.bestCps,
+      peakCps: highlights.peakCps ?? profile.highlights.peakCps,
+      longestCpsStreak: highlights.longestCpsStreak ?? profile.highlights.longestCpsStreak,
+      bestAlternatingCps: highlights.bestAlternatingCps ?? profile.highlights.bestAlternatingCps,
     },
   };
 }

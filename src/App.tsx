@@ -11,6 +11,7 @@ import { games } from './data/games';
 import { questDefinitions } from './data/quests';
 import { AimTestGame } from './games/AimTestGame';
 import { ColorMemoryGame } from './games/ColorMemoryGame';
+import { CpsTestGame } from './games/CpsTestGame';
 import { MemoryTestGame } from './games/MemoryTestGame';
 import { ReactionTimeGame } from './games/ReactionTimeGame';
 import { SymbolMatchGame } from './games/SymbolMatchGame';
@@ -37,6 +38,7 @@ const categoryFilters: Array<{ id: GameTag | 'hardcore'; label: string; tags: Ga
   { id: 'typing', label: 'Typing', tags: ['typing'] },
   { id: 'timing', label: 'Timing', tags: ['timing'] },
   { id: 'brain', label: 'Brain', tags: ['brain'] },
+  { id: 'arcade', label: 'Arcade', tags: ['arcade'] },
   { id: 'mobile', label: 'Mobile', tags: ['mobile'] },
   { id: 'casual', label: 'Casual', tags: ['casual'] },
   { id: 'hardcore', label: 'Hardcore', tags: ['challenge', 'desktop'] },
@@ -62,6 +64,8 @@ function renderGame(gameId: GameId, onScore: (score: ScoreInput) => void) {
       return <TimeSenseGame onScore={onScore} />;
     case 'stroop-test':
       return <StroopTestGame onScore={onScore} />;
+    case 'cps-test':
+      return <CpsTestGame onScore={onScore} />;
   }
 }
 

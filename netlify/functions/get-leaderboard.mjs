@@ -13,10 +13,31 @@ function readLimit(value) {
 }
 
 function readDurationSeconds(value, gameId) {
-  const fallback = gameId === 'time-sense' ? 10 : 30;
-  const allowed = gameId === 'time-sense' ? [10, 20, 30, 60] : gameId === 'stroop-test' ? [30, 60] : [15, 30, 60, 90];
+  const fallback = gameId === 'time-sense' ? 10 : gameId === 'cps-test' ? 5 : 30;
+  const allowed =
+    gameId === 'time-sense'
+      ? [10, 20, 30, 60]
+      : gameId === 'stroop-test'
+        ? [30, 60]
+        : gameId === 'cps-test'
+          ? [1, 5, 10, 30, 60]
+          : [15, 30, 60, 90];
   const parsed = Number.parseInt(value ?? String(fallback), 10);
   return allowed.includes(parsed) ? parsed : fallback;
+}
+
+function readCpsInputMode(value) {
+  return value === 'space' || value === 'alternating' ? value : 'normal';
+}
+
+function getLeaderboardScope(gameId, durationSeconds, inputMode) {
+  if (gameId === 'cps-test') {
+    if (inputMode === 'alternating') return `${durationSeconds}s-alt`;
+    if (inputMode === 'space') return `${durationSeconds}s-space`;
+    return `${durationSeconds}s`;
+  }
+
+  return `duration:${durationSeconds}`;
 }
 
 function getMetricExpression(metric) {
@@ -48,9 +69,10 @@ export async function handler(event) {
 
     const metric = getMetric(gameId, params.metric ?? 'score');
     const limit = readLimit(params.limit);
-    const usesDurationScope = gameId === 'typing-speed' || gameId === 'time-sense' || gameId === 'stroop-test';
+    const usesDurationScope = gameId === 'typing-speed' || gameId === 'time-sense' || gameId === 'stroop-test' || gameId === 'cps-test';
     const durationSeconds = usesDurationScope ? readDurationSeconds(params.durationSeconds, gameId) : undefined;
-    const leaderboardScope = usesDurationScope ? `duration:${durationSeconds}` : 'default';
+    const inputMode = gameId === 'cps-test' ? readCpsInputMode(params.inputMode) : undefined;
+    const leaderboardScope = usesDurationScope ? getLeaderboardScope(gameId, durationSeconds, inputMode) : 'default';
     const metricExpression = getMetricExpression(metric);
     const direction = metric?.direction === 'ascending' ? 'ASC' : 'DESC';
     const query = `
@@ -69,6 +91,7 @@ export async function handler(event) {
         gameId,
         metric: params.metric ?? 'score',
         durationSeconds,
+        inputMode,
         limit,
         entries: [],
         scores: [],
@@ -84,6 +107,7 @@ export async function handler(event) {
       gameId,
       metric: params.metric ?? 'score',
       durationSeconds,
+      inputMode,
       limit,
       entries: rows.map(mapScoreRow),
       scores: rows.map(mapScoreRow),

@@ -13,6 +13,7 @@ export function calculateScoreXp(entry: Pick<LeaderboardEntry, 'gameId' | 'score
     'word-memory': Math.min(45, Math.round(entry.score / 180)),
     'time-sense': Math.min(45, Math.round(entry.score / 30)),
     'stroop-test': Math.min(45, Math.round(entry.score / 260)),
+    'cps-test': Math.min(45, Math.round(entry.score * 3)),
   };
 
   return 10 + Math.max(0, bonusByGame[entry.gameId] ?? 0);

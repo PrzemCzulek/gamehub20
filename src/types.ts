@@ -7,7 +7,8 @@ export type GameId =
   | 'aim-test'
   | 'word-memory'
   | 'time-sense'
-  | 'stroop-test';
+  | 'stroop-test'
+  | 'cps-test';
 
 export type ScoreDirection = 'ascending' | 'descending';
 export type MobileSupport = 'ready' | 'limited' | 'desktop-only';
@@ -23,7 +24,8 @@ export type GameTag =
   | 'challenge'
   | 'casual'
   | 'timing'
-  | 'brain';
+  | 'brain'
+  | 'arcade';
 
 export type ScoreStats = {
   accuracy?: number;
@@ -63,6 +65,14 @@ export type ScoreStats = {
   isPerfect?: number;
   correctAnswers?: number;
   conflictAccuracy?: number;
+  cps?: number;
+  peakCPS?: number;
+  totalClicks?: number;
+  consistency?: number;
+  burst?: number;
+  overheatTime?: number;
+  inputMode?: string;
+  longestStreak?: number;
 };
 
 export type LeaderboardEntry = {
@@ -129,6 +139,10 @@ export type LocalProfile = {
     bestStroopScore?: LeaderboardEntry;
     bestStroopAccuracy?: LeaderboardEntry;
     bestStroopStreak?: LeaderboardEntry;
+    bestCps?: LeaderboardEntry;
+    peakCps?: LeaderboardEntry;
+    longestCpsStreak?: LeaderboardEntry;
+    bestAlternatingCps?: LeaderboardEntry;
   };
 };
 
@@ -145,6 +159,10 @@ export type PlayerHighlights = {
   bestStroopScore?: LeaderboardEntry;
   bestStroopAccuracy?: LeaderboardEntry;
   bestStroopStreak?: LeaderboardEntry;
+  bestCps?: LeaderboardEntry;
+  peakCps?: LeaderboardEntry;
+  longestCpsStreak?: LeaderboardEntry;
+  bestAlternatingCps?: LeaderboardEntry;
 };
 
 export type PlayerAchievementSummary = {

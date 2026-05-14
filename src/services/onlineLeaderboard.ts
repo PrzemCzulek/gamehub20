@@ -54,6 +54,7 @@ export async function getOnlineLeaderboard(
   metric = 'score',
   limit = 15,
   durationSeconds?: number,
+  inputMode?: string,
 ): Promise<LeaderboardEntry[]> {
   const params = new URLSearchParams({
     gameId,
@@ -63,6 +64,10 @@ export async function getOnlineLeaderboard(
 
   if (durationSeconds !== undefined) {
     params.set('durationSeconds', String(durationSeconds));
+  }
+
+  if (inputMode) {
+    params.set('inputMode', inputMode);
   }
 
   const response = await fetch(`/.netlify/functions/get-leaderboard?${params.toString()}`);

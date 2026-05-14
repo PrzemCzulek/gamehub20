@@ -37,7 +37,8 @@ export type ProgressionEventType =
     | 'word_memory_finished'
     | 'symbol_match_finished'
     | 'time_sense_finished'
-    | 'stroop_finished';
+    | 'stroop_finished'
+    | 'cps_finished';
 
 export type ProgressionEvent = {
   id: string;

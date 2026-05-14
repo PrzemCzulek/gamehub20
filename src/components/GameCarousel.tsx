@@ -20,6 +20,7 @@ const gameVisuals: Record<GameId, string> = {
   'word-memory': 'Aa',
   'time-sense': '◷',
   'stroop-test': 'RGB',
+  'cps-test': 'CPS',
 };
 
 const mobileSupportMeta: Record<MobileSupport, { label: string; className: string }> = {

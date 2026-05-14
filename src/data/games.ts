@@ -128,6 +128,21 @@ export const games: GameConfig[] = [
       { id: 'averageReactionMs', label: 'Śr. reakcja', direction: 'ascending', source: 'stats', statKey: 'averageReactionMs', valueType: 'ms' },
     ],
   },
+  {
+    id: 'cps-test',
+    title: 'CPS Test',
+    description: 'Mechanical speed benchmark.',
+    scoreDirection: 'descending',
+    scoreName: 'CPS',
+    mobileSupport: 'ready',
+    tags: ['speed', 'reflex', 'arcade', 'mobile', 'desktop'],
+    metrics: [
+      { id: 'score', label: 'CPS', direction: 'descending', source: 'score', suffix: 'CPS' },
+      { id: 'peakCPS', label: 'Peak', direction: 'descending', source: 'stats', statKey: 'peakCPS', suffix: 'CPS' },
+      { id: 'totalClicks', label: 'Clicks', direction: 'descending', source: 'stats', statKey: 'totalClicks' },
+      { id: 'consistency', label: 'Consistency', direction: 'descending', source: 'stats', statKey: 'consistency', valueType: 'percent' },
+    ],
+  },
 ];
 
 export function getGameConfig(gameId: GameId): GameConfig {

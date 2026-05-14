@@ -78,6 +78,15 @@ export const games = {
       averageReactionMs: { source: 'stats', statKey: 'averageReactionMs', direction: 'ascending' },
     },
   },
+  'cps-test': {
+    scoreDirection: 'descending',
+    metrics: {
+      score: { source: 'score', direction: 'descending' },
+      peakCPS: { source: 'stats', statKey: 'peakCPS', direction: 'descending' },
+      totalClicks: { source: 'stats', statKey: 'totalClicks', direction: 'descending' },
+      consistency: { source: 'stats', statKey: 'consistency', direction: 'descending' },
+    },
+  },
 };
 
 export function getGame(gameId) {

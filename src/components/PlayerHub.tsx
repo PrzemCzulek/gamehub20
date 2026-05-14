@@ -173,6 +173,9 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
       accent: 'teal' as const,
     },
     { label: 'Stroop streak', value: summary.highlights.bestStroopStreak?.stats?.bestCombo !== undefined ? `x${summary.highlights.bestStroopStreak.stats.bestCombo}` : undefined, accent: 'violet' as const },
+    { label: 'Best CPS', value: summary.highlights.bestCps?.scoreLabel, accent: 'cyan' as const },
+    { label: 'Peak CPS', value: summary.highlights.peakCps?.stats?.peakCPS !== undefined ? `${summary.highlights.peakCps.stats.peakCPS} CPS` : undefined, accent: 'teal' as const },
+    { label: 'Alt CPS', value: summary.highlights.bestAlternatingCps?.scoreLabel, accent: 'violet' as const },
   ];
 
   useEffect(() => {
