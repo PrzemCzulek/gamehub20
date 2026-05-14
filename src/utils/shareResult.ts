@@ -22,18 +22,24 @@ function getSiteUrl(url?: string): string {
 export function buildShareText(payload: ShareResultPayload): string {
   const game = getGameConfig(payload.gameId);
   const mode = payload.modeLabel ? ` (${payload.modeLabel})` : '';
-  const metric = payload.metricLabel ?? game.scoreName;
   const url = getSiteUrl(payload.url);
 
-  if (payload.gameId === 'reaction-time') {
-    return `Pobij moje ${payload.scoreLabel} w ${game.title}${mode} na Game Hub 2.0. ${url}`;
+  return `Nie pobijesz mojego wyniku: ${payload.scoreLabel} w ${game.title}${mode} na Game Hub 2.0.\nSpróbuj: ${url}`;
+}
+
+export async function copyShareText(payload: ShareResultPayload): Promise<ShareResultOutcome> {
+  const text = buildShareText(payload);
+
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return { ok: true, method: 'clipboard', text };
+    }
+  } catch (error) {
+    return { ok: false, method: 'manual', text, error };
   }
 
-  if (payload.gameId === 'cps-test') {
-    return `Wbij więcej niż ${payload.scoreLabel} w ${game.title}${mode} na Game Hub 2.0. ${url}`;
-  }
-
-  return `Nie możesz pobić mojego wyniku ${payload.scoreLabel} (${metric}) w ${game.title}${mode} na Game Hub 2.0? ${url}`;
+  return { ok: false, method: 'manual', text };
 }
 
 export async function shareResult(payload: ShareResultPayload): Promise<ShareResultOutcome> {
@@ -52,15 +58,6 @@ export async function shareResult(payload: ShareResultPayload): Promise<ShareRes
     }
   }
 
-  try {
-    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return { ok: true, method: 'clipboard', text };
-    }
-  } catch (error) {
-    return { ok: false, method: 'manual', text, error };
-  }
-
-  return { ok: false, method: 'manual', text };
+  return copyShareText(payload);
 }
 
