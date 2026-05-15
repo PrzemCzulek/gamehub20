@@ -1,4 +1,4 @@
-import { getDatabaseUrl, getSql, initializeDatabase, mapScoreRow } from './lib/db.mjs';
+import { getDatabaseUrl, getSql, mapScoreRow } from './lib/db.mjs';
 import { getGame, getMetric } from './lib/games.mjs';
 import { handleOptions, json } from './lib/http.mjs';
 
@@ -105,12 +105,28 @@ export async function handler(event) {
     const metricExpression = getMetricExpression(metric);
     const direction = metric?.direction === 'ascending' ? 'ASC' : 'DESC';
     const query = `
+      WITH eligible_scores AS (
+        SELECT
+          *,
+          ${metricExpression} AS metric_value
+        FROM scores
+        WHERE game_id = $1
+          AND leaderboard_scope = $2
+      ),
+      ranked_scores AS (
+        SELECT
+          *,
+          ROW_NUMBER() OVER (
+            PARTITION BY COALESCE(player_id, 'legacy:' || player_name), game_id, leaderboard_scope
+            ORDER BY metric_value ${direction}, created_at DESC, id DESC
+          ) AS player_scope_rank
+        FROM eligible_scores
+        WHERE metric_value IS NOT NULL
+      )
       SELECT *
-      FROM scores
-      WHERE game_id = $1
-        AND leaderboard_scope = $2
-        AND ${metricExpression} IS NOT NULL
-      ORDER BY ${metricExpression} ${direction}, created_at DESC
+      FROM ranked_scores
+      WHERE player_scope_rank = 1
+      ORDER BY metric_value ${direction}, created_at DESC, id DESC
       LIMIT $3
     `;
 
@@ -130,7 +146,6 @@ export async function handler(event) {
       });
     }
 
-    await initializeDatabase();
     const sql = getSql();
     const rows = await sql.query(query, [gameId, leaderboardScope, limit]);
 
@@ -146,10 +161,10 @@ export async function handler(event) {
       scores: rows.map(mapScoreRow),
     });
   } catch (error) {
-    console.error('FUNCTION ERROR', error);
-    return json(500, {
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
+    console.error('get-leaderboard unavailable', error);
+    return json(200, {
+      error: 'leaderboard_unavailable',
+      details: error instanceof Error ? error.message : String(error),
       entries: [],
       scores: [],
     });
