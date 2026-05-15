@@ -82,39 +82,30 @@ export function MetaPanel({ profile, onReset, revision }: MetaPanelProps) {
 
   return (
     <section className="relative" data-revision={revision}>
-      <div className="grid gap-2 rounded-lg border border-cyan-300/18 bg-slate-950/68 p-2.5 shadow-[0_0_24px_rgba(34,211,238,0.09)] backdrop-blur sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center lg:min-w-[24rem]">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-violet-300/30 bg-violet-300/10 text-sm font-black text-violet-100 shadow-[0_0_18px_rgba(168,85,247,0.18)]">
+      <div className="flex min-w-0 items-center gap-2 rounded-full border border-cyan-300/14 bg-slate-950/58 px-2 py-1 shadow-[0_0_18px_rgba(34,211,238,0.07)] backdrop-blur md:min-w-[23rem]">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-violet-300/30 bg-violet-300/10 text-xs font-black text-violet-100 shadow-[0_0_14px_rgba(168,85,247,0.14)]">
               {summary.displayName.slice(0, 1).toUpperCase() || 'G'}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex min-w-0 items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-[0.58rem] font-semibold uppercase tracking-wide text-cyan-200">PROFIL GRACZA</p>
-                  <h2 className="truncate text-sm font-bold text-white">{summary.displayName}</h2>
-                </div>
-                <span className="shrink-0 rounded-full border border-violet-300/25 px-2 py-0.5 text-[0.62rem] font-semibold text-violet-100">L{summary.level}</span>
+              <div className="flex min-w-0 items-center gap-1.5">
+                <h2 className="truncate text-xs font-black text-white sm:text-sm">{summary.displayName}</h2>
+                <span className="shrink-0 rounded-full border border-violet-300/25 px-1.5 py-0.5 text-[0.56rem] font-black text-violet-100">L{summary.level}</span>
               </div>
-
-              <div className="mt-1.5">
-                <div className="flex items-center justify-between text-[0.62rem] text-slate-300">
-                  <span>XP {summary.xp}</span>
-                  <span>{summary.levelProgressPercent}%</span>
-                </div>
-                <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/10">
+              <div className="mt-1 flex items-center gap-2">
+                <div className="h-1 w-16 overflow-hidden rounded-full bg-white/10 sm:w-24">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-cyan-300 via-teal-300 to-violet-300 shadow-[0_0_12px_rgba(45,212,191,0.5)]"
                     style={{ width: `${summary.levelProgressPercent}%` }}
                   />
                 </div>
+                <span className="hidden text-[0.58rem] font-bold text-slate-400 sm:inline">XP {summary.xp}</span>
               </div>
             </div>
-          </div>
 
           {(dailyQuest || allDailyClaimed) && (
             <div
-              className={`mt-2 rounded-md border px-2 py-1.5 transition ${
+              className={`hidden min-w-[7rem] rounded-full border px-2 py-1 transition sm:block ${
                 allDailyClaimed
                   ? 'border-teal-300/20 bg-teal-300/[0.07]'
                   : dailyReady
@@ -122,14 +113,14 @@ export function MetaPanel({ profile, onReset, revision }: MetaPanelProps) {
                     : 'border-cyan-300/10 bg-cyan-300/[0.05]'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <span className="shrink-0 text-[0.6rem] font-black uppercase tracking-wide text-cyan-100">
+              <div className="flex items-center gap-1.5">
+                <span className="shrink-0 text-[0.54rem] font-black uppercase tracking-wide text-cyan-100">
                   {dailyReady ? 'Nagroda' : 'Daily'}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-[0.7rem] text-white">
+                <span className="min-w-0 flex-1 truncate text-[0.62rem] text-white">
                   {allDailyClaimed ? 'Wszystkie questy ukończone' : dailyQuest?.title}
                 </span>
-                <span className={allDailyClaimed ? 'text-[0.65rem] text-teal-100' : 'text-[0.65rem] text-cyan-100'}>
+                <span className={allDailyClaimed ? 'text-[0.58rem] text-teal-100' : 'text-[0.58rem] text-cyan-100'}>
                   {allDailyClaimed ? 'OK' : `${dailyValue}/${dailyGoal}`}
                 </span>
               </div>
@@ -149,14 +140,9 @@ export function MetaPanel({ profile, onReset, revision }: MetaPanelProps) {
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-2 sm:flex-col sm:items-end">
-          <div className="hidden text-right text-[0.65rem] leading-4 text-slate-400 sm:block">
-            <div>Gry: <span className="font-semibold text-white">{summary.gamesPlayed}</span></div>
-            <div>Odblokowane: <span className="font-semibold text-white">{summary.achievementsUnlocked}/{summary.achievementsTotal}</span></div>
-          </div>
           <button
             aria-label="Ustawienia"
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-black/25 text-base text-slate-200 transition hover:border-cyan-300/30 hover:bg-cyan-300/10"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/25 text-sm text-slate-200 transition hover:border-cyan-300/30 hover:bg-cyan-300/10"
             onClick={() => {
               playNormalClickSound();
               setSettingsOpen((value) => !value);
@@ -165,7 +151,6 @@ export function MetaPanel({ profile, onReset, revision }: MetaPanelProps) {
           >
             ⚙
           </button>
-        </div>
       </div>
 
       {settingsOpen && (

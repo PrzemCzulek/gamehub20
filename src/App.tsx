@@ -184,18 +184,25 @@ function TopBar({
   readyRewardsCount: number;
   revision: number;
 }) {
+  const contextLabel = activeView === 'game' ? `Game · ${activeGameTitle}` : activeView === 'profile' ? 'Profile' : 'Lobby';
+
   return (
-    <header className="sticky top-0 z-30 border-b border-cyan-300/10 bg-slate-950/86 shadow-[0_10px_34px_rgba(2,6,23,0.26)] backdrop-blur-xl">
-      <div className="mx-auto grid w-full max-w-7xl gap-2 px-3 py-1.5 sm:px-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:px-8">
-        <div className="flex min-w-0 flex-wrap items-center gap-4">
-          <button className="text-left" onClick={() => onViewChange('home')} type="button">
-            <span className="block text-sm font-black uppercase tracking-[0.28em] text-teal-200">GAME HUB 2.0</span>
-            <span className="mt-0.5 block text-[0.6rem] font-bold uppercase tracking-[0.2em] text-slate-500">Skill Arcade Network</span>
+    <header className="sticky top-0 z-30 border-b border-cyan-300/10 bg-slate-950/82 shadow-[0_8px_26px_rgba(2,6,23,0.22)] backdrop-blur-lg">
+      <div className="mx-auto grid w-full max-w-7xl gap-2 px-3 py-1 sm:px-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center lg:px-8">
+        <div className="flex min-w-0 flex-wrap items-center gap-2.5 sm:gap-3">
+          <button className="flex min-w-0 items-center gap-2 text-left" onClick={() => onViewChange('home')} type="button">
+            <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg border border-cyan-300/25 bg-cyan-300/10 shadow-[0_0_16px_rgba(34,211,238,0.16)]">
+              <img alt="" className="h-full w-full object-cover" src="/logogh.png" />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-black uppercase tracking-[0.22em] text-teal-200">GAME HUB 2.0</span>
+              <span className="mt-0.5 hidden truncate text-[0.56rem] font-bold uppercase tracking-[0.18em] text-slate-500 sm:block">Skill Arcade Network</span>
+            </span>
           </button>
-          <nav className="flex flex-wrap gap-1.5 rounded-full border border-white/10 bg-white/[0.025] p-1">
+          <nav className="flex shrink-0 flex-wrap gap-1 rounded-full border border-white/10 bg-white/[0.025] p-0.5">
             {(['home', 'profile'] as const).map((view) => (
               <button
-                className={`relative rounded-full border px-3 py-1.5 text-[0.68rem] font-bold uppercase tracking-wide transition duration-200 ${
+                className={`relative rounded-full border px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-wide transition duration-200 sm:px-3 ${
                   activeView === view
                     ? 'border-cyan-300/50 bg-cyan-300/15 text-cyan-100 shadow-[0_0_16px_rgba(34,211,238,0.18)] after:absolute after:inset-x-3 after:-bottom-1 after:h-px after:bg-cyan-300 after:shadow-[0_0_10px_rgba(34,211,238,0.8)]'
                     : 'border-transparent text-slate-400 hover:border-cyan-300/20 hover:bg-cyan-300/5 hover:text-white'
@@ -212,12 +219,10 @@ function TopBar({
                 )}
               </button>
             ))}
-            {activeView === 'game' && (
-              <span className="rounded-full border border-violet-300/25 bg-violet-300/10 px-3 py-1.5 text-[0.68rem] font-bold uppercase tracking-wide text-violet-100 shadow-[0_0_14px_rgba(168,85,247,0.12)]">
-                {activeGameTitle}
-              </span>
-            )}
           </nav>
+          <span className="max-w-[11rem] truncate rounded-full border border-violet-300/20 bg-violet-300/[0.07] px-2.5 py-1 text-[0.6rem] font-black uppercase tracking-wide text-violet-100 sm:max-w-[16rem]">
+            {contextLabel}
+          </span>
         </div>
         <MetaPanel onReset={onReset} profile={profile} revision={revision} />
       </div>
