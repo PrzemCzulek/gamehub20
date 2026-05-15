@@ -201,6 +201,7 @@ export type AchievementUnlock = {
   achievementId: string;
   unlockedAt: string;
   eventId?: string;
+  source?: 'event' | 'retroactive';
 };
 
 export type PlayerProgression = {

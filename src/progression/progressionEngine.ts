@@ -1,6 +1,7 @@
-import { evaluateAchievements } from './achievements';
+import { evaluateAchievements, evaluateRetroactiveAchievements } from './achievements';
 import { resetGameProgressData, updateGameProgressFromScore } from './gameProgress';
 import { getQuestProgressStorage, questStorageKeys, updateQuestProgress } from './quests';
+import type { LocalProfile } from '../types';
 import type { AchievementUnlock, PlayerProgression, ProgressionEvent, ProgressionResult, QuestProgress } from './types';
 import { getMainAccountXp, getPlayerProgressionNumbers, resetMainMetaRewardXp } from './xp';
 
@@ -92,6 +93,27 @@ export function processProgressionEvent(event: ProgressionEvent): ProgressionRes
     newlyCompletedQuests: questResult.newlyCompletedQuests,
     personalBestImproved: questResult.personalBestImproved,
   };
+}
+
+export function syncRetroactiveAchievements(profile: LocalProfile): AchievementUnlock[] {
+  const currentUnlocks = getAchievementUnlocks();
+  const previousIds = new Set(currentUnlocks.map((unlock) => unlock.achievementId));
+  const nextUnlocks = evaluateRetroactiveAchievements(currentUnlocks, profile);
+  const retroUnlocks = nextUnlocks.filter((unlock) => !previousIds.has(unlock.achievementId));
+
+  if (retroUnlocks.length > 0) {
+    writeJson(ACHIEVEMENT_UNLOCKS_KEY, nextUnlocks);
+  }
+
+  if (import.meta.env.DEV) {
+    console.debug('Retroactive achievement sync', {
+      checked: nextUnlocks.length,
+      unlocked: retroUnlocks.length,
+      ids: retroUnlocks.map((unlock) => unlock.achievementId),
+    });
+  }
+
+  return retroUnlocks;
 }
 
 export function resetProgressionData(): void {

@@ -24,7 +24,7 @@ import { WordMemoryGame } from './games/WordMemoryGame';
 import { createProgressionEvent } from './progression/events';
 import { claimGameMilestone } from './progression/gameProgress';
 import { claimQuestReward } from './progression/quests';
-import { getQuestProgress, processProgressionEvent } from './progression/progressionEngine';
+import { getQuestProgress, processProgressionEvent, syncRetroactiveAchievements } from './progression/progressionEngine';
 import { getRewardStatus, rewardStateChangedEvent } from './progression/rewardHelpers';
 import { preloadAudio } from './services/audio';
 import { submitOnlineScore } from './services/onlineLeaderboard';
@@ -363,6 +363,17 @@ export default function App() {
     const savedScore = saveScore(score);
     const progressionEvent = createProgressionEvent(savedScore);
     const progressionResult = processProgressionEvent(progressionEvent);
+    const retroAchievementUnlocks = syncRetroactiveAchievements(getProfile());
+
+    if (retroAchievementUnlocks.length > 0) {
+      pushFeedback({
+        type: 'achievement',
+        title: retroAchievementUnlocks.length === 1 ? 'ACHIEVEMENT' : 'ACHIEVEMENTS',
+        message: retroAchievementUnlocks.length === 1 ? 'Zaległe trofeum' : `${retroAchievementUnlocks.length} zaległych`,
+        detail: 'Retro sync',
+        priority: 'high',
+      });
+    }
 
     pushFeedback({
       type: 'xp',

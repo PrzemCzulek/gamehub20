@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { pushFeedback } from './feedback/feedbackQueue';
 import { achievementDefinitions } from '../data/achievements';
 import { getCosmetic, type CosmeticType } from '../data/cosmetics';
@@ -8,7 +8,7 @@ import { questDefinitions } from '../data/quests';
 import { rewardDefinitions, type RewardDefinition } from '../data/rewards';
 import { buildPlayerProfileSummary, emptyValueLabel } from '../progression/playerProfile';
 import { getQuestStreak } from '../progression/quests';
-import { getAchievementUnlocks, getQuestProgress } from '../progression/progressionEngine';
+import { getAchievementUnlocks, getQuestProgress, syncRetroactiveAchievements } from '../progression/progressionEngine';
 import { claimReward, equipCosmetic, getEquippedCosmetics, getRewardStatus, unequipCosmetic } from '../progression/rewardHelpers';
 import { playNormalClickSound } from '../services/audio';
 import type { AchievementDefinition, AchievementRarity } from '../progression/types';
@@ -417,6 +417,8 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
   const [rewardRevision, setRewardRevision] = useState(0);
   const [rewardFilter, setRewardFilter] = useState<RewardFilter>('all');
   const [achievementFilter, setAchievementFilter] = useState<AchievementFilter>('all');
+  const [achievementRevision, setAchievementRevision] = useState(0);
+  const retroSyncToastKeyRef = useRef<string>('');
   const summary = buildPlayerProfileSummary(profile);
   const gameProgressById = useMemo(() => new Map(summary.gameProgressSummary.map((entry) => [entry.gameId, entry])), [summary.gameProgressSummary]);
   const questProgress = getQuestProgress();
@@ -516,13 +518,30 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
 
   useEffect(() => setDraftName(profile.playerName), [profile.playerName]);
   useEffect(() => {
+    const retroUnlocks = syncRetroactiveAchievements(profile);
+    if (retroUnlocks.length === 0) return;
+
+    setAchievementRevision((value) => value + 1);
+    const toastKey = retroUnlocks.map((unlock) => unlock.achievementId).sort().join('|');
+    if (retroSyncToastKeyRef.current === toastKey) return;
+
+    retroSyncToastKeyRef.current = toastKey;
+    pushFeedback({
+      type: 'achievement',
+      title: retroUnlocks.length === 1 ? 'ACHIEVEMENT' : 'ACHIEVEMENTS',
+      message: retroUnlocks.length === 1 ? 'Zaległe trofeum' : `${retroUnlocks.length} zaległych`,
+      detail: 'Retro sync',
+      priority: 'high',
+    });
+  }, [profile, revision]);
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') setActiveQuestHintId(null); };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-slate-950/42 p-3 shadow-[0_0_45px_rgba(34,211,238,0.07)] sm:p-5" data-revision={`${revision}-${rewardRevision}`}>
+    <section className="rounded-3xl border border-white/10 bg-slate-950/42 p-3 shadow-[0_0_45px_rgba(34,211,238,0.07)] sm:p-5" data-revision={`${revision}-${rewardRevision}-${achievementRevision}`}>
       <div className={`relative overflow-hidden rounded-3xl border border-cyan-300/12 bg-black/22 p-4 sm:p-5 ${equippedFrame?.className ?? ''}`}>
         <div className="pointer-events-none absolute -left-24 -top-24 h-56 w-56 rounded-full bg-cyan-300/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 right-0 h-56 w-56 rounded-full bg-violet-300/10 blur-3xl" />
@@ -549,3 +568,4 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
     </section>
   );
 }
+
