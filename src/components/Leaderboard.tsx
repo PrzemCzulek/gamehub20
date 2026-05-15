@@ -487,7 +487,7 @@ function FallbackProfileContent({ entry, gameId, metric, profileError }: { entry
         <span className="mt-1 block text-xs text-slate-400">{getGameTitle(gameId)} / {getMetricLabel(gameId, metric)}</span>
       </div>
       <div className="mt-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-        <p className="text-sm font-semibold text-cyan-100">{profileError ?? 'Profil publiczny niedostępny'}</p>
+        <p className="text-sm font-semibold text-cyan-100">{profileError ?? 'Profil jeszcze niezsynchronizowany'}</p>
         <p className="mt-1 text-xs leading-5 text-slate-400">
           {profileError ? 'Spróbuj ponownie później.' : 'Dane pojawią się po kolejnym wyniku online.'}
         </p>

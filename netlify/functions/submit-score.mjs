@@ -142,6 +142,168 @@ function isBetterScore(game, nextScore, currentScore) {
   return game.scoreDirection === 'ascending' ? nextScore < currentScore : nextScore > currentScore;
 }
 
+function isUniqueConflict(error) {
+  const code = error && typeof error === 'object' ? error.code : undefined;
+  const message = error instanceof Error ? error.message : String(error ?? '');
+
+  return code === '23505' || message.includes('duplicate key') || message.includes('scores_player_game_scope_unique_idx');
+}
+
+async function safeInitializeDatabase() {
+  try {
+    await initializeDatabase();
+  } catch (error) {
+    console.warn('submit-score db init skipped', error instanceof Error ? error.message : String(error));
+  }
+}
+
+async function selectExistingScore(sql, value, leaderboardScope) {
+  const [row] = await sql.query(
+    `
+      SELECT *
+      FROM scores
+      WHERE player_id = $1
+        AND game_id = $2
+        AND leaderboard_scope = $3
+      LIMIT 1
+    `,
+    [value.playerId, value.gameId, leaderboardScope],
+  );
+
+  return row;
+}
+
+async function selectNameScopedScore(sql, value, leaderboardScope) {
+  const [row] = await sql.query(
+    `
+      SELECT *
+      FROM scores
+      WHERE player_name = $1
+        AND game_id = $2
+        AND leaderboard_scope = $3
+      ORDER BY created_at DESC
+      LIMIT 1
+    `,
+    [value.playerName, value.gameId, leaderboardScope],
+  );
+
+  return row;
+}
+
+async function insertScore(sql, values) {
+  const [row] = await sql.query(
+    `INSERT INTO scores (
+          player_id,
+          player_name,
+          game_id,
+          score,
+          score_label,
+          stats,
+          meta,
+          xp_gained,
+          run_duration_ms,
+          created_at,
+          leaderboard_scope
+        ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $10, $11)
+        RETURNING *`,
+    values,
+  );
+
+  return row;
+}
+
+async function updateScore(sql, game, value, leaderboardScope, values) {
+  const betterCondition = game.scoreDirection === 'ascending' ? 'score > $4' : 'score < $4';
+  const [row] = await sql.query(
+    `UPDATE scores
+      SET
+        player_name = $2,
+        score = $4,
+        score_label = $5,
+        stats = $6::jsonb,
+        meta = $7::jsonb,
+        xp_gained = $8,
+        run_duration_ms = $9,
+        created_at = $10
+      WHERE player_id = $1
+        AND game_id = $3
+        AND leaderboard_scope = $11
+        AND ${betterCondition}
+      RETURNING *`,
+    values,
+  );
+
+  return row;
+}
+
+async function writeBestScore(sql, game, value, leaderboardScope, values) {
+  let existingRow = await selectExistingScore(sql, value, leaderboardScope);
+  let existingScore = existingRow ? Number(existingRow.score) : undefined;
+
+  debugSubmit({
+    stage: 'score_write_precheck',
+    game_id: value.gameId,
+    player_id: value.playerId,
+    score: value.score,
+    scoreDirection: game.scoreDirection,
+    leaderboard_scope: leaderboardScope,
+    existingScore,
+    existingFound: Boolean(existingRow),
+  });
+
+  if (existingRow) {
+    if (!isBetterScore(game, value.score, existingScore)) {
+      return { row: existingRow, updated: false, reason: 'not_better' };
+    }
+
+    const updatedRow = await updateScore(sql, game, value, leaderboardScope, values);
+    if (updatedRow) {
+      return { row: updatedRow, updated: true, mode: 'updated_best', reason: 'better_score' };
+    }
+
+    existingRow = await selectExistingScore(sql, value, leaderboardScope);
+    return { row: existingRow, updated: false, reason: 'not_better' };
+  }
+
+  try {
+    const insertedRow = await insertScore(sql, values);
+    return { row: insertedRow, updated: true, mode: 'inserted_best', reason: 'new_best' };
+  } catch (error) {
+    if (!isUniqueConflict(error)) {
+      throw error;
+    }
+
+    debugSubmit({
+      stage: 'insert_conflict_fallback',
+      game_id: value.gameId,
+      player_id: value.playerId,
+      score: value.score,
+      leaderboard_scope: leaderboardScope,
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    existingRow = await selectExistingScore(sql, value, leaderboardScope);
+    existingScore = existingRow ? Number(existingRow.score) : undefined;
+
+    if (!existingRow) {
+      const nameScopedRow = await selectNameScopedScore(sql, value, leaderboardScope);
+      return { row: nameScopedRow, updated: false, reason: nameScopedRow ? 'name_scoped_conflict' : 'conflict_unresolved' };
+    }
+
+    if (!isBetterScore(game, value.score, existingScore)) {
+      return { row: existingRow, updated: false, reason: 'not_better_after_conflict' };
+    }
+
+    const updatedRow = await updateScore(sql, game, value, leaderboardScope, values);
+    if (updatedRow) {
+      return { row: updatedRow, updated: true, mode: 'updated_best', reason: 'better_score_after_conflict' };
+    }
+
+    existingRow = await selectExistingScore(sql, value, leaderboardScope);
+    return { row: existingRow, updated: false, reason: 'not_better_after_conflict' };
+  }
+}
+
 function getTypingDifficulty(stats) {
   return stats?.difficulty === 'hard' ? 'hard' : 'normal';
 }
@@ -479,35 +641,10 @@ export async function handler(event) {
       });
     }
 
-    await initializeDatabase();
+    await safeInitializeDatabase();
     const sql = getSql();
     const leaderboardScope = getLeaderboardScope(value);
     await upsertPlayerProfile(sql, value);
-    const [existingRow] = await sql.query(
-      `
-        SELECT *
-        FROM scores
-        WHERE player_id = $1
-          AND game_id = $2
-          AND leaderboard_scope = $3
-        LIMIT 1
-      `,
-      [value.playerId, value.gameId, leaderboardScope],
-    );
-    const existingScore = existingRow ? Number(existingRow.score) : undefined;
-    const shouldUpdate = !existingRow || isBetterScore(game, value.score, existingScore);
-
-    debugSubmit({
-      stage: 'upsert_precheck',
-      game_id: value.gameId,
-      player_id: value.playerId,
-      score: value.score,
-      scoreDirection: game.scoreDirection,
-      leaderboard_scope: leaderboardScope,
-      existingScore,
-      shouldUpdate,
-      reason: existingRow ? (shouldUpdate ? 'better_score' : 'not_best') : 'new_best',
-    });
 
     const values = [
       value.playerId,
@@ -523,106 +660,61 @@ export async function handler(event) {
       leaderboardScope,
     ];
 
-    const [row] = await sql.query(
-      `INSERT INTO scores (
-            player_id,
-            player_name,
-            game_id,
-            score,
-            score_label,
-            stats,
-            meta,
-            xp_gained,
-            run_duration_ms,
-            created_at,
-            leaderboard_scope
-          ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $10, $11)
-          ON CONFLICT (player_id, game_id, leaderboard_scope) DO UPDATE
-          SET
-            player_name = EXCLUDED.player_name,
-            score = EXCLUDED.score,
-            score_label = EXCLUDED.score_label,
-            stats = EXCLUDED.stats,
-            meta = EXCLUDED.meta,
-            xp_gained = EXCLUDED.xp_gained,
-            run_duration_ms = EXCLUDED.run_duration_ms,
-            created_at = EXCLUDED.created_at
-          WHERE ${
-            game.scoreDirection === 'ascending'
-              ? 'EXCLUDED.score < scores.score'
-              : 'EXCLUDED.score > scores.score'
-          }
-          RETURNING *`,
-      values,
-    );
+    const writeResult = await writeBestScore(sql, game, value, leaderboardScope, values);
 
-    if (!row) {
-      const [currentRow] = await sql.query(
-        `
-          SELECT *
-          FROM scores
-          WHERE player_id = $1
-            AND game_id = $2
-            AND leaderboard_scope = $3
-          LIMIT 1
-        `,
-        [value.playerId, value.gameId, leaderboardScope],
-      );
-      const fallbackRow = currentRow ?? existingRow;
-
-      if (!fallbackRow) {
-        debugSubmit({
-          stage: 'upsert_missing_row',
-          game_id: value.gameId,
-          player_id: value.playerId,
-          leaderboard_scope: leaderboardScope,
-          score: value.score,
-        });
-        return json(409, {
-          ok: false,
-          error: 'Score conflict could not be resolved',
-        });
-      }
-
-      const entry = mapScoreRow(fallbackRow);
-
+    if (!writeResult.row) {
       debugSubmit({
-        stage: 'upsert_result',
+        stage: 'score_write_missing_row',
+        game_id: value.gameId,
+        player_id: value.playerId,
+        leaderboard_scope: leaderboardScope,
+        score: value.score,
+      });
+      return json(200, {
+        ok: true,
+        updated: false,
+        reason: 'conflict_unresolved',
+      });
+    }
+
+    const entry = mapScoreRow(writeResult.row);
+
+    if (!writeResult.updated) {
+      debugSubmit({
+        stage: 'score_write_result',
         game_id: value.gameId,
         player_id: value.playerId,
         score: value.score,
         scoreDirection: game.scoreDirection,
         leaderboard_scope: leaderboardScope,
         updated: false,
-        reason: 'not_better',
+        reason: writeResult.reason,
       });
 
       return json(200, {
         ok: true,
         updated: false,
-        reason: 'not_better',
+        reason: writeResult.reason ?? 'not_better',
         entry,
         score: entry,
       });
     }
 
-    const entry = mapScoreRow(row);
-    const inserted = !existingRow;
     debugSubmit({
-      stage: 'upsert_result',
+      stage: 'score_write_result',
       game_id: value.gameId,
       player_id: value.playerId,
       score: value.score,
       scoreDirection: game.scoreDirection,
       leaderboard_scope: leaderboardScope,
       updated: true,
-      reason: inserted ? 'inserted_or_conflict_inserted' : 'better_score',
+      reason: writeResult.reason,
     });
 
     return json(200, {
       ok: true,
       updated: true,
-      mode: inserted ? 'inserted_best' : 'updated_best',
+      mode: writeResult.mode ?? 'updated_best',
       entry,
       score: entry,
     });
