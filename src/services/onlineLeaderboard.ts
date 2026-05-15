@@ -1,4 +1,6 @@
 import type { GameId, LeaderboardEntry } from '../types';
+import { achievementDefinitions } from '../data/achievements';
+import { getAchievementUnlocks } from '../progression/progressionEngine';
 import { getEquippedCosmetics } from '../progression/rewardHelpers';
 import { getPlayerDeviceOrigin, touchPlayerDeviceOrigin } from './storage';
 import { getDeviceType } from '../utils/device';
@@ -45,6 +47,8 @@ export async function submitOnlineScore(scoreEntry: LeaderboardEntry): Promise<L
     body: JSON.stringify({
       ...scoreEntry,
       equippedCosmetics: getEquippedCosmetics(),
+      achievementsUnlocked: getAchievementUnlocks().length,
+      achievementsTotal: achievementDefinitions.length,
       createdOnDevice: deviceOrigin.createdOnDevice ?? getPlayerDeviceOrigin().createdOnDevice,
       lastSeenDevice: deviceOrigin.lastSeenDevice,
     }),

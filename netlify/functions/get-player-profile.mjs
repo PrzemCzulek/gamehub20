@@ -38,9 +38,17 @@ export async function handler(event) {
       return json(404, { ok: false, error: 'Profile not found' });
     }
 
+    const profile = mapPlayerProfileRow(row);
+
     return json(200, {
       ok: true,
-      profile: mapPlayerProfileRow(row),
+      profile: {
+        ...profile,
+        achievements: {
+          unlocked: profile.achievementsUnlocked,
+          total: profile.achievementsTotal,
+        },
+      },
     });
   } catch (error) {
     console.error('FUNCTION ERROR', error);

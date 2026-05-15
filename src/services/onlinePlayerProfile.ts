@@ -20,6 +20,10 @@ export type OnlinePlayerProfile = {
   bestGame?: GameId;
   achievementsUnlocked: number;
   achievementsTotal: number;
+  achievements?: {
+    unlocked: number;
+    total: number;
+  };
   equippedCosmetics?: LocalProfile['equippedCosmetics'];
   createdOnDevice?: DeviceType;
   lastSeenDevice?: DeviceType;

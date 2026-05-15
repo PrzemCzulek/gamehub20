@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { getGameConfig } from '../data/games';
+import { achievementDefinitions } from '../data/achievements';
 import { aimModeChangedEvent, aimModeOptions, readStoredAimMode, storeAimMode } from '../data/aimModes';
 import {
   type CpsInputMode,
@@ -394,6 +395,8 @@ function OnlineProfileContent({ profile }: { profile: OnlinePlayerProfile }) {
   const equippedTitle = getCosmetic(profile.equippedCosmetics?.title, 'title');
   const equippedBadge = getCosmetic(profile.equippedCosmetics?.badge, 'badge');
   const equippedFrame = getCosmetic(profile.equippedCosmetics?.frame, 'frame');
+  const achievementTotal = (profile.achievements?.total ?? profile.achievementsTotal) > 0 ? (profile.achievements?.total ?? profile.achievementsTotal) : achievementDefinitions.length;
+  const achievementUnlocked = Math.max(0, profile.achievements?.unlocked ?? profile.achievementsUnlocked ?? 0);
   const highlights = [
     { label: 'Reaction', value: profile.highlights.bestReactionTime?.scoreLabel },
     { label: 'WPM', value: profile.highlights.bestTypingWpm?.scoreLabel },
@@ -421,7 +424,7 @@ function OnlineProfileContent({ profile }: { profile: OnlinePlayerProfile }) {
         <span className="rounded-full border border-violet-300/35 bg-violet-300/10 px-2 py-1 text-[0.65rem] font-black text-violet-100">L{profile.level}</span>
       </div>
       <ProfileStatsGrid
-        achievementLabel={`${profile.achievementsUnlocked}/${profile.achievementsTotal}`}
+        achievementLabel={`${achievementUnlocked}/${achievementTotal}`}
         favoriteGame={profile.favoriteGame}
         gamesPlayed={profile.gamesPlayed}
         xp={profile.xp}

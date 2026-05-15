@@ -67,6 +67,8 @@ function validateScore(payload) {
   if (!isPlainObject(payload.equippedCosmetics)) errors.push('equippedCosmetics must be an object');
   if (payload.createdOnDevice !== undefined && !sanitizeDeviceType(payload.createdOnDevice)) errors.push('createdOnDevice is invalid');
   if (payload.lastSeenDevice !== undefined && !sanitizeDeviceType(payload.lastSeenDevice)) errors.push('lastSeenDevice is invalid');
+  if (payload.achievementsUnlocked !== undefined && readNumber(payload.achievementsUnlocked) === undefined) errors.push('achievementsUnlocked must be a finite number');
+  if (payload.achievementsTotal !== undefined && readNumber(payload.achievementsTotal) === undefined) errors.push('achievementsTotal must be a finite number');
 
   try {
     if (JSON.stringify(payload.stats ?? {}).length > 20000) errors.push('stats payload is too large');
@@ -92,6 +94,8 @@ function validateScore(payload) {
       stats: payload.stats ?? {},
       meta: payload.meta ?? {},
       equippedCosmetics: sanitizeEquippedCosmetics(payload.equippedCosmetics),
+      achievementsUnlocked: readNumber(payload.achievementsUnlocked),
+      achievementsTotal: readNumber(payload.achievementsTotal),
       createdOnDevice: sanitizeDeviceType(payload.createdOnDevice),
       lastSeenDevice: sanitizeDeviceType(payload.lastSeenDevice),
       xpGained: readNumber(payload.xpGained),
@@ -281,8 +285,8 @@ async function upsertPlayerProfile(sql, value) {
   const nextHighlights = mergeHighlights(existingProfile?.highlights ?? {}, value);
   const favoriteGame = existingProfile?.favorite_game ?? value.gameId;
   const bestGame = existingProfile?.best_game ?? value.gameId;
-  const achievementsUnlocked = Number(existingProfile?.achievements_unlocked ?? 0);
-  const achievementsTotal = Number(existingProfile?.achievements_total ?? 0);
+  const achievementsUnlocked = value.achievementsUnlocked ?? Number(existingProfile?.achievements_unlocked ?? 0);
+  const achievementsTotal = value.achievementsTotal ?? Number(existingProfile?.achievements_total ?? 0);
   const nextEquippedCosmetics = value.equippedCosmetics ?? existingProfile?.equipped_cosmetics ?? {};
   const nextCreatedOnDevice = existingProfile?.created_on_device ?? value.createdOnDevice ?? value.lastSeenDevice ?? null;
   const nextLastSeenDevice = value.lastSeenDevice ?? existingProfile?.last_seen_device ?? value.createdOnDevice ?? null;
@@ -315,8 +319,14 @@ async function upsertPlayerProfile(sql, value) {
         total_score_entries = player_profiles.total_score_entries + 1,
         favorite_game = COALESCE(player_profiles.favorite_game, EXCLUDED.favorite_game),
         best_game = COALESCE(player_profiles.best_game, EXCLUDED.best_game),
-        achievements_unlocked = player_profiles.achievements_unlocked,
-        achievements_total = player_profiles.achievements_total,
+        achievements_unlocked = CASE
+          WHEN EXCLUDED.achievements_unlocked > 0 THEN EXCLUDED.achievements_unlocked
+          ELSE player_profiles.achievements_unlocked
+        END,
+        achievements_total = CASE
+          WHEN EXCLUDED.achievements_total > 0 THEN EXCLUDED.achievements_total
+          ELSE player_profiles.achievements_total
+        END,
         highlights = EXCLUDED.highlights,
         equipped_cosmetics = CASE
           WHEN EXCLUDED.equipped_cosmetics = '{}'::jsonb THEN player_profiles.equipped_cosmetics
