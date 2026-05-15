@@ -174,6 +174,22 @@ export const games: GameConfig[] = [
       { id: 'deviation', label: 'Deviation', direction: 'ascending', source: 'stats', statKey: 'deviation' },
     ],
   },
+  {
+    id: 'search-sum',
+    title: 'Search Sum',
+    description: 'Memory number puzzle.',
+    scoreDirection: 'descending',
+    scoreName: 'punkty',
+    mobileSupport: 'ready',
+    tags: ['memory', 'logic', 'focus', 'casual', 'mobile'],
+    metrics: [
+      { id: 'score', label: 'Score', direction: 'descending', source: 'score', suffix: 'pkt' },
+      { id: 'roundsCompleted', label: 'Rounds', direction: 'descending', source: 'stats', statKey: 'roundsCompleted' },
+      { id: 'attempts', label: 'Attempts', direction: 'ascending', source: 'stats', statKey: 'attempts' },
+      { id: 'elapsedTime', label: 'Time', direction: 'ascending', source: 'stats', statKey: 'elapsedTime', suffix: 's' },
+      { id: 'efficiency', label: 'Efficiency', direction: 'descending', source: 'stats', statKey: 'efficiency', valueType: 'percent' },
+    ],
+  },
 ];
 
 export function getGameConfig(gameId: GameId): GameConfig {

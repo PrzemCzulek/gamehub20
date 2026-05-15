@@ -22,6 +22,7 @@ const gameVisuals: Record<GameId, string> = {
   'stroop-test': 'RGB',
   'cps-test': 'CPS',
   'shape-precision': 'SHP',
+  'search-sum': 'SUM',
   'flappy-ball': '●',
 };
 

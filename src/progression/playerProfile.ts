@@ -134,6 +134,15 @@ export function getPlayerHighlights(scores: LeaderboardEntry[]): PlayerHighlight
       scores.filter((score) => score.gameId === 'shape-precision' && score.stats?.shape === 'star'),
       'shape-precision',
     )[0],
+    bestSearchSumScore: sortScoresByMetric(
+      scores.filter((score) => score.gameId === 'search-sum'),
+      'search-sum',
+    )[0],
+    bestSearchSumEfficiency: sortScoresByMetric(
+      scores.filter((score) => score.gameId === 'search-sum' && score.stats?.efficiency !== undefined),
+      'search-sum',
+      'efficiency',
+    )[0],
   };
 }
 
@@ -192,6 +201,8 @@ export function buildPlayerProfileSummary(profile: LocalProfile): PlayerProfileS
       bestShapeAccuracy: highlights.bestShapeAccuracy ?? profile.highlights.bestShapeAccuracy,
       bestCircle: highlights.bestCircle ?? profile.highlights.bestCircle,
       bestStar: highlights.bestStar ?? profile.highlights.bestStar,
+      bestSearchSumScore: highlights.bestSearchSumScore ?? profile.highlights.bestSearchSumScore,
+      bestSearchSumEfficiency: highlights.bestSearchSumEfficiency ?? profile.highlights.bestSearchSumEfficiency,
     },
   };
 }

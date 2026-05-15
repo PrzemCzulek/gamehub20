@@ -74,6 +74,7 @@ const gameGlyphs: Record<GameId, string> = {
   'cps-test': 'CPS',
   'flappy-ball': 'FLP',
   'shape-precision': 'SHP',
+  'search-sum': 'SUM',
 };
 
 const rewardRarityStyles: Record<RewardRarity, { card: string; badge: string; fill: string; glow: string }> = {
@@ -550,6 +551,7 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
     { label: 'CPS', value: summary.highlights.bestCps?.scoreLabel, accent: 'teal' as Accent },
     { label: 'Flappy', value: summary.highlights.bestFlappyScore?.scoreLabel, accent: 'amber' as Accent },
     { label: 'Shape', value: summary.highlights.bestShapeAccuracy?.scoreLabel, accent: 'cyan' as Accent },
+    { label: 'Search', value: summary.highlights.bestSearchSumScore?.scoreLabel, accent: 'teal' as Accent },
     { label: 'Alt CPS', value: summary.highlights.bestAlternatingCps?.scoreLabel, accent: 'violet' as Accent },
   ];
 

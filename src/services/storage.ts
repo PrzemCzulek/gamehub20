@@ -344,6 +344,18 @@ function deriveStats(entry: Pick<LeaderboardEntry, 'gameId' | 'score' | 'meta' |
         deviation: baseStats.deviation ?? readMetaNumber(meta, 'deviation'),
         pointsCount: baseStats.pointsCount ?? readMetaNumber(meta, 'pointsCount'),
       };
+    case 'search-sum':
+      return {
+        ...baseStats,
+        roundsCompleted: baseStats.roundsCompleted ?? readMetaNumber(meta, 'roundsCompleted') ?? entry.score,
+        attempts: baseStats.attempts ?? readMetaNumber(meta, 'attempts'),
+        elapsedTime: baseStats.elapsedTime ?? readMetaNumber(meta, 'elapsedTime'),
+        durationMs: baseStats.durationMs ?? entry.runDurationMs,
+        efficiency: baseStats.efficiency ?? readMetaNumber(meta, 'efficiency'),
+        bestTargetStreak: baseStats.bestTargetStreak ?? readMetaNumber(meta, 'bestTargetStreak'),
+        overflows: baseStats.overflows ?? readMetaNumber(meta, 'overflows'),
+        cardsRevealed: baseStats.cardsRevealed ?? readMetaNumber(meta, 'cardsRevealed'),
+      };
   }
 }
 
@@ -648,6 +660,15 @@ export function getProfile(): LocalProfile {
       bestStar: sortScoresByMetric(
         playerScores.filter((score) => score.gameId === 'shape-precision' && score.stats?.shape === 'star'),
         'shape-precision',
+      )[0],
+      bestSearchSumScore: sortScoresByMetric(
+        playerScores.filter((score) => score.gameId === 'search-sum'),
+        'search-sum',
+      )[0],
+      bestSearchSumEfficiency: sortScoresByMetric(
+        playerScores.filter((score) => score.gameId === 'search-sum' && score.stats?.efficiency !== undefined),
+        'search-sum',
+        'efficiency',
       )[0],
     },
   };

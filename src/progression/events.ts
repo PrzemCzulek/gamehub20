@@ -16,6 +16,7 @@ const eventTypeByGame = {
   'cps-test': 'cps_finished',
   'flappy-ball': 'flappy_finished',
   'shape-precision': 'shape_precision_finished',
+  'search-sum': 'search_sum_finished',
 } as const satisfies Record<LeaderboardEntry['gameId'], ProgressionEventType>;
 
 function createEventId(scoreEntry: LeaderboardEntry): string {

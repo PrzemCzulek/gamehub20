@@ -52,6 +52,8 @@ export type OnlinePlayerProfile = {
     bestShapeAccuracy?: OnlineProfileHighlight;
     bestCircle?: OnlineProfileHighlight;
     bestStar?: OnlineProfileHighlight;
+    bestSearchSumScore?: OnlineProfileHighlight;
+    bestSearchSumEfficiency?: OnlineProfileHighlight;
   };
   updatedAt?: string;
 };

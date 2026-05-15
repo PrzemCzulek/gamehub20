@@ -16,6 +16,7 @@ export function calculateScoreXp(entry: Pick<LeaderboardEntry, 'gameId' | 'score
     'cps-test': Math.min(45, Math.round(entry.score * 3)),
     'flappy-ball': Math.min(45, Math.round(entry.score * 3 + (entry.stats?.survivedTimeSeconds ?? 0) / 4)),
     'shape-precision': Math.min(45, Math.round(entry.score / 2)),
+    'search-sum': Math.min(45, Math.round(entry.score / 400)),
   };
 
   return 10 + Math.max(0, bonusByGame[entry.gameId] ?? 0);

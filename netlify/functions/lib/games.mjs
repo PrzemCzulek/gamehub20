@@ -107,6 +107,16 @@ export const games = {
       deviation: { source: 'stats', statKey: 'deviation', direction: 'ascending' },
     },
   },
+  'search-sum': {
+    scoreDirection: 'descending',
+    metrics: {
+      score: { source: 'score', direction: 'descending' },
+      roundsCompleted: { source: 'stats', statKey: 'roundsCompleted', direction: 'descending' },
+      attempts: { source: 'stats', statKey: 'attempts', direction: 'ascending' },
+      elapsedTime: { source: 'stats', statKey: 'elapsedTime', direction: 'ascending' },
+      efficiency: { source: 'stats', statKey: 'efficiency', direction: 'descending' },
+    },
+  },
 };
 
 export function getGame(gameId) {

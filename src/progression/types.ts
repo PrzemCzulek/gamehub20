@@ -40,7 +40,8 @@ export type ProgressionEventType =
   | 'stroop_finished'
   | 'cps_finished'
   | 'flappy_finished'
-  | 'shape_precision_finished';
+  | 'shape_precision_finished'
+  | 'search_sum_finished';
 
 export type ProgressionEvent = {
   id: string;

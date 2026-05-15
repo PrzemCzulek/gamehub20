@@ -16,6 +16,7 @@ import { CpsTestGame } from './games/CpsTestGame';
 import { FlappyBallGame } from './games/FlappyBallGame';
 import { MemoryTestGame } from './games/MemoryTestGame';
 import { ReactionTimeGame } from './games/ReactionTimeGame';
+import { SearchSumGame } from './games/SearchSumGame';
 import { ShapePrecisionGame } from './games/ShapePrecisionGame';
 import { SymbolMatchGame } from './games/SymbolMatchGame';
 import { StroopTestGame } from './games/StroopTestGame';
@@ -125,6 +126,8 @@ function renderGame(gameId: GameId, onScore: (score: ScoreInput) => void) {
       return <FlappyBallGame onScore={onScore} />;
     case 'shape-precision':
       return <ShapePrecisionGame onScore={onScore} />;
+    case 'search-sum':
+      return <SearchSumGame onScore={onScore} />;
   }
 }
 

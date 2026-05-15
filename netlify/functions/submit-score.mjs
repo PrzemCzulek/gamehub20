@@ -307,6 +307,18 @@ function mergeHighlights(currentHighlights, value) {
     }
   }
 
+  if (value.gameId === 'search-sum') {
+    const efficiency = readNumber(value.stats?.efficiency);
+
+    if (isBetterHighlight(value.score, highlights.bestSearchSumScore, 'descending')) {
+      highlights.bestSearchSumScore = createHighlight(value);
+    }
+
+    if (isBetterHighlight(efficiency, highlights.bestSearchSumEfficiency, 'descending')) {
+      highlights.bestSearchSumEfficiency = createHighlight(value, efficiency);
+    }
+  }
+
   return highlights;
 }
 

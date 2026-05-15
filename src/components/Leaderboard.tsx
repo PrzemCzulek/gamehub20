@@ -65,6 +65,14 @@ const shapeMetricLabels: Record<string, string> = {
   deviation: 'Deviation',
 };
 
+const searchSumMetricLabels: Record<string, string> = {
+  score: 'Score',
+  roundsCompleted: 'Rounds',
+  attempts: 'Attempts',
+  elapsedTime: 'Time',
+  efficiency: 'Efficiency',
+};
+
 function getDeviceLabel(device?: DeviceType): string | undefined {
   if (device === 'mobile') return 'Mobile';
   if (device === 'tablet') return 'Tablet';
@@ -183,6 +191,7 @@ function getMetricLabel(gameId: GameId, metric: LeaderboardMetric): string {
   if (gameId === 'cps-test') return cpsMetricLabels[metric.id] ?? metric.label;
   if (gameId === 'aim-test') return aimMetricLabels[metric.id] ?? metric.label;
   if (gameId === 'shape-precision') return shapeMetricLabels[metric.id] ?? metric.label;
+  if (gameId === 'search-sum') return searchSumMetricLabels[metric.id] ?? metric.label;
   return metric.label;
 }
 
@@ -228,6 +237,11 @@ function getSecondaryInfo(entry: LeaderboardEntry, gameId: GameId, localAttempts
     if (stats.shape !== undefined) info.push(String(stats.shape));
     if (stats.drawingTimeMs !== undefined) info.push(`${(stats.drawingTimeMs / 1000).toFixed(1)}s`);
     if (stats.smoothness !== undefined) info.push(`smooth ${formatPercent(stats.smoothness)}`);
+  }
+  if (gameId === 'search-sum') {
+    if (stats.roundsCompleted !== undefined) info.push(`${stats.roundsCompleted} rund`);
+    if (stats.attempts !== undefined) info.push(`${stats.attempts} prób`);
+    if (stats.efficiency !== undefined) info.push(`eff ${formatPercent(stats.efficiency)}`);
   }
 
   if (gameId === 'reaction-time' && localAttempts && localAttempts > 1) info.push(`Próby lokalnie ${localAttempts}`);

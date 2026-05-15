@@ -10,7 +10,8 @@ export type GameId =
   | 'stroop-test'
   | 'cps-test'
   | 'flappy-ball'
-  | 'shape-precision';
+  | 'shape-precision'
+  | 'search-sum';
 
 export type ScoreDirection = 'ascending' | 'descending';
 export type MobileSupport = 'ready' | 'limited' | 'desktop-only';
@@ -28,6 +29,7 @@ export type GameTag =
   | 'casual'
   | 'timing'
   | 'brain'
+  | 'logic'
   | 'arcade';
 
 export type ScoreStats = {
@@ -91,6 +93,12 @@ export type ScoreStats = {
   smoothness?: number;
   deviation?: number;
   pointsCount?: number;
+  roundsCompleted?: number;
+  attempts?: number;
+  elapsedTime?: number;
+  bestTargetStreak?: number;
+  overflows?: number;
+  cardsRevealed?: number;
 };
 
 export type LeaderboardEntry = {
@@ -177,6 +185,8 @@ export type LocalProfile = {
     bestShapeAccuracy?: LeaderboardEntry;
     bestCircle?: LeaderboardEntry;
     bestStar?: LeaderboardEntry;
+    bestSearchSumScore?: LeaderboardEntry;
+    bestSearchSumEfficiency?: LeaderboardEntry;
   };
 };
 
@@ -202,6 +212,8 @@ export type PlayerHighlights = {
   bestShapeAccuracy?: LeaderboardEntry;
   bestCircle?: LeaderboardEntry;
   bestStar?: LeaderboardEntry;
+  bestSearchSumScore?: LeaderboardEntry;
+  bestSearchSumEfficiency?: LeaderboardEntry;
 };
 
 export type PlayerAchievementSummary = {
