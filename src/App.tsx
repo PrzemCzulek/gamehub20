@@ -592,16 +592,23 @@ export default function App() {
         <div className="view-fade">
           {activeView === 'home' && (
             <div className="space-y-4 sm:space-y-5">
-              <section className="relative overflow-hidden rounded-2xl border border-cyan-300/10 bg-slate-950/50 p-4 shadow-[0_0_45px_rgba(34,211,238,0.06)] sm:p-5">
+              {filteredGames.length > 0 ? (
+                <GameCarousel activeGameId={activeGameId} games={filteredGames} onOpenGame={handleOpenGame} onSelectGame={setActiveGameId} />
+              ) : (
+                <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-6 text-center text-sm text-slate-400">Brak gier w tej kategorii.</div>
+              )}
+              <CategoryFoundation categories={categoryOptions} selectedCategory={selectedCategory} onSelect={setSelectedCategory} />
+
+              <section className="relative overflow-hidden rounded-2xl border border-cyan-300/10 bg-slate-950/50 p-3.5 shadow-[0_0_34px_rgba(34,211,238,0.055)] sm:p-4">
                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(34,211,238,0.18),transparent_22rem),radial-gradient(circle_at_92%_20%,rgba(168,85,247,0.16),transparent_20rem)]" />
-                <div className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-center">
+                <div className="relative grid gap-3 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-center">
                   <div>
                     <div className="inline-flex rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.22em] text-cyan-100">
                       Lobby command
                     </div>
-                    <h1 className="mt-3 max-w-3xl text-3xl font-black tracking-tight text-white sm:text-4xl">Arcade Skill Lobby</h1>
+                    <h1 className="mt-2 max-w-3xl text-2xl font-black tracking-tight text-white sm:text-3xl">Arcade Skill Lobby</h1>
                     <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">Wybierz grę. Pobij rekord. Zgarnij progres.</p>
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <div className="mt-3 flex flex-wrap gap-2">
                       <button className="rounded-md bg-cyan-300 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-cyan-100" onClick={() => handleOpenGame(recommendedGame.id)} type="button">Graj teraz</button>
                       <button className="rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-bold text-slate-200 transition hover:border-cyan-300/30 hover:text-white" onClick={() => setActiveView('profile')} type="button">Profil</button>
                       <button className="rounded-md border border-violet-300/20 bg-violet-300/[0.07] px-4 py-2 text-sm font-bold text-violet-100 transition hover:border-violet-200/40" onClick={() => setActiveView('profile')} type="button">Questy</button>
@@ -625,13 +632,6 @@ export default function App() {
                   </div>
                 </div>
               </section>
-
-              {filteredGames.length > 0 ? (
-                <GameCarousel activeGameId={activeGameId} games={filteredGames} onOpenGame={handleOpenGame} onSelectGame={setActiveGameId} />
-              ) : (
-                <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-6 text-center text-sm text-slate-400">Brak gier w tej kategorii.</div>
-              )}
-              <CategoryFoundation categories={categoryOptions} selectedCategory={selectedCategory} onSelect={setSelectedCategory} />
 
               <section className="grid gap-3 lg:grid-cols-3">
                 <div className="rounded-xl border border-white/10 bg-black/20 p-4">
@@ -669,7 +669,7 @@ export default function App() {
                     onClick={() => setActiveView('home')}
                     type="button"
                   >
-                    â† Lobby
+                    ← Lobby
                   </button>
                   <div className="min-w-0">
                     <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-slate-500">
