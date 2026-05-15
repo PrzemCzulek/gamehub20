@@ -45,6 +45,16 @@ function readNumber(value) {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
+function normalizeSubmittedScore(gameId, score) {
+  if (score === undefined) return undefined;
+
+  if (gameId === 'shape-precision') {
+    return Math.round(score <= 100 ? score * 100 : score);
+  }
+
+  return score;
+}
+
 function getDurationSeconds(stats) {
   return readNumber(stats?.selectedDuration) ?? readNumber(stats?.durationSeconds);
 }
@@ -68,6 +78,7 @@ function validateScore(payload) {
   const username = typeof payload.username === 'string' ? payload.username.trim() : playerName;
   const gameId = typeof payload.gameId === 'string' ? payload.gameId : '';
   const score = readNumber(payload.score);
+  const normalizedScore = normalizeSubmittedScore(gameId, score);
   const scoreLabel = typeof payload.scoreLabel === 'string' ? payload.scoreLabel.trim() : '';
 
   if (!playerId) errors.push('playerId is required');
@@ -95,10 +106,10 @@ function validateScore(payload) {
     errors.push('stats/meta must be JSON serializable');
   }
 
-  if (score !== undefined) {
-    if (gameId === 'typing-speed' && score > 300) errors.push('typing-speed score is too high');
-    if (gameId === 'reaction-time' && score < 50) errors.push('reaction-time score is too low');
-    if (gameId === 'aim-test' && score < 0) errors.push('aim-test score cannot be negative');
+  if (normalizedScore !== undefined) {
+    if (gameId === 'typing-speed' && normalizedScore > 300) errors.push('typing-speed score is too high');
+    if (gameId === 'reaction-time' && normalizedScore < 50) errors.push('reaction-time score is too low');
+    if (gameId === 'aim-test' && normalizedScore < 0) errors.push('aim-test score cannot be negative');
   }
 
   return {
@@ -108,7 +119,7 @@ function validateScore(payload) {
       playerName,
       username,
       gameId,
-      score,
+      score: normalizedScore,
       scoreLabel,
       stats: payload.stats ?? {},
       meta: payload.meta ?? {},

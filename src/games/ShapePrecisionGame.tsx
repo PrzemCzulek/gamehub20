@@ -186,6 +186,21 @@ function evaluateShape(points: Point[], shape: ShapeId): ShapeResult {
 }
 
 function getPointerPoint(event: PointerEvent<SVGSVGElement>, element: SVGSVGElement): Point {
+  const matrix = element.getScreenCTM();
+
+  if (matrix) {
+    const point = element.createSVGPoint();
+    point.x = event.clientX;
+    point.y = event.clientY;
+    const local = point.matrixTransform(matrix.inverse());
+
+    return {
+      x: local.x,
+      y: local.y,
+      t: performance.now(),
+    };
+  }
+
   const rect = element.getBoundingClientRect();
   return {
     x: ((event.clientX - rect.left) / Math.max(1, rect.width)) * 100,
@@ -210,6 +225,7 @@ export function ShapePrecisionGame({ onScore }: { onScore: (score: ScoreInput) =
   const [isPointerDown, setIsPointerDown] = useState(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const idealPath = useMemo(() => idealPointsToPath(selectedShape), [selectedShape]);
+  const livePoint = points[points.length - 1];
 
   useEffect(() => {
     function handleShapeChange() {
@@ -247,13 +263,14 @@ export function ShapePrecisionGame({ onScore }: { onScore: (score: ScoreInput) =
     }
 
     const nextResult = evaluateShape(finalPoints, selectedShape);
+    const score = Math.round(nextResult.accuracy * 100);
     setResult(nextResult);
     setPhase('result');
     setIsPointerDown(false);
 
     onScore({
       gameId: 'shape-precision',
-      score: nextResult.accuracy,
+      score,
       scoreLabel: `${nextResult.accuracy.toFixed(2)}%`,
       stats: {
         shape: selectedShape,
@@ -286,7 +303,7 @@ export function ShapePrecisionGame({ onScore }: { onScore: (score: ScoreInput) =
     const nextPoint = getPointerPoint(event, svgRef.current);
     setPoints((current) => {
       const previous = current[current.length - 1];
-      if (previous && Math.hypot(previous.x - nextPoint.x, previous.y - nextPoint.y) < 0.55) return current;
+      if (previous && Math.hypot(previous.x - nextPoint.x, previous.y - nextPoint.y) < 0.45) return current;
       return [...current, nextPoint].slice(-700);
     });
   }
@@ -329,17 +346,19 @@ export function ShapePrecisionGame({ onScore }: { onScore: (score: ScoreInput) =
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(34,211,238,0.13),transparent_38%),radial-gradient(circle_at_70%_75%,rgba(168,85,247,0.12),transparent_34%)]" />
         <svg
           aria-label="Shape Precision drawing area"
-          className="relative block h-[440px] w-full touch-none select-none"
+          className="relative block h-[440px] w-full cursor-crosshair touch-none select-none"
           onPointerCancel={handlePointerUp}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           ref={svgRef}
+          style={{ touchAction: 'none' }}
           viewBox="0 0 100 100"
         >
           <polyline fill="none" points={idealPath} stroke="rgba(148, 163, 184, 0.26)" strokeDasharray="1.8 2.4" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.1" vectorEffect="non-scaling-stroke" />
           <polyline fill="none" points={pointsToPath(points)} stroke="rgba(34, 211, 238, 0.18)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="8" vectorEffect="non-scaling-stroke" />
           <polyline fill="none" points={pointsToPath(points)} stroke="rgb(103, 232, 249)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.25" vectorEffect="non-scaling-stroke" />
+          {phase === 'drawing' && livePoint && <circle cx={livePoint.x} cy={livePoint.y} fill="rgb(255,255,255)" r="1.8" stroke="rgb(103,232,249)" strokeWidth="1.2" vectorEffect="non-scaling-stroke" />}
         </svg>
 
         {phase === 'idle' && (
@@ -381,3 +400,4 @@ export function ShapePrecisionGame({ onScore }: { onScore: (score: ScoreInput) =
     </div>
   );
 }
+

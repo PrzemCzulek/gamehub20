@@ -338,7 +338,7 @@ function deriveStats(entry: Pick<LeaderboardEntry, 'gameId' | 'score' | 'meta' |
       return {
         ...baseStats,
         shape: baseStats.shape ?? (typeof meta?.shape === 'string' ? meta.shape : undefined),
-        accuracy: baseStats.accuracy ?? entry.score,
+        accuracy: baseStats.accuracy ?? (entry.score > 100 ? entry.score / 100 : entry.score),
         drawingTimeMs: baseStats.drawingTimeMs ?? readMetaNumber(meta, 'drawingTimeMs') ?? entry.runDurationMs,
         smoothness: baseStats.smoothness ?? readMetaNumber(meta, 'smoothness'),
         deviation: baseStats.deviation ?? readMetaNumber(meta, 'deviation'),
