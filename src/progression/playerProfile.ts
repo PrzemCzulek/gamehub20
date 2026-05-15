@@ -122,6 +122,18 @@ export function getPlayerHighlights(scores: LeaderboardEntry[]): PlayerHighlight
       'flappy-ball',
       'survivedTimeSeconds',
     )[0],
+    bestShapeAccuracy: sortScoresByMetric(
+      scores.filter((score) => score.gameId === 'shape-precision'),
+      'shape-precision',
+    )[0],
+    bestCircle: sortScoresByMetric(
+      scores.filter((score) => score.gameId === 'shape-precision' && score.stats?.shape === 'circle'),
+      'shape-precision',
+    )[0],
+    bestStar: sortScoresByMetric(
+      scores.filter((score) => score.gameId === 'shape-precision' && score.stats?.shape === 'star'),
+      'shape-precision',
+    )[0],
   };
 }
 
@@ -177,6 +189,9 @@ export function buildPlayerProfileSummary(profile: LocalProfile): PlayerProfileS
       bestAlternatingCps: highlights.bestAlternatingCps ?? profile.highlights.bestAlternatingCps,
       bestFlappyScore: highlights.bestFlappyScore ?? profile.highlights.bestFlappyScore,
       bestFlappyTime: highlights.bestFlappyTime ?? profile.highlights.bestFlappyTime,
+      bestShapeAccuracy: highlights.bestShapeAccuracy ?? profile.highlights.bestShapeAccuracy,
+      bestCircle: highlights.bestCircle ?? profile.highlights.bestCircle,
+      bestStar: highlights.bestStar ?? profile.highlights.bestStar,
     },
   };
 }

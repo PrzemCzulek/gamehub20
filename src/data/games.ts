@@ -159,6 +159,21 @@ export const games: GameConfig[] = [
       { id: 'efficiency', label: 'Efektywność', direction: 'descending', source: 'stats', statKey: 'efficiency', valueType: 'percent' },
     ],
   },
+  {
+    id: 'shape-precision',
+    title: 'Shape Precision',
+    description: 'Draw accuracy.',
+    scoreDirection: 'descending',
+    scoreName: 'accuracy',
+    mobileSupport: 'ready',
+    tags: ['precision', 'focus', 'casual', 'mobile'],
+    metrics: [
+      { id: 'score', label: 'Accuracy', direction: 'descending', source: 'score', valueType: 'percent' },
+      { id: 'drawingTimeMs', label: 'Time', direction: 'ascending', source: 'stats', statKey: 'drawingTimeMs', valueType: 'ms' },
+      { id: 'smoothness', label: 'Smoothness', direction: 'descending', source: 'stats', statKey: 'smoothness', valueType: 'percent' },
+      { id: 'deviation', label: 'Deviation', direction: 'ascending', source: 'stats', statKey: 'deviation' },
+    ],
+  },
 ];
 
 export function getGameConfig(gameId: GameId): GameConfig {

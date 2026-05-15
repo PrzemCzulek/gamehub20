@@ -334,6 +334,16 @@ function deriveStats(entry: Pick<LeaderboardEntry, 'gameId' | 'score' | 'meta' |
         bestCombo: baseStats.bestCombo ?? entry.score,
         efficiency: baseStats.efficiency ?? readMetaNumber(meta, 'efficiency'),
       };
+    case 'shape-precision':
+      return {
+        ...baseStats,
+        shape: baseStats.shape ?? (typeof meta?.shape === 'string' ? meta.shape : undefined),
+        accuracy: baseStats.accuracy ?? entry.score,
+        drawingTimeMs: baseStats.drawingTimeMs ?? readMetaNumber(meta, 'drawingTimeMs') ?? entry.runDurationMs,
+        smoothness: baseStats.smoothness ?? readMetaNumber(meta, 'smoothness'),
+        deviation: baseStats.deviation ?? readMetaNumber(meta, 'deviation'),
+        pointsCount: baseStats.pointsCount ?? readMetaNumber(meta, 'pointsCount'),
+      };
   }
 }
 
@@ -626,6 +636,18 @@ export function getProfile(): LocalProfile {
         playerScores.filter((score) => score.gameId === 'flappy-ball' && score.stats?.survivedTimeSeconds !== undefined),
         'flappy-ball',
         'survivedTimeSeconds',
+      )[0],
+      bestShapeAccuracy: sortScoresByMetric(
+        playerScores.filter((score) => score.gameId === 'shape-precision'),
+        'shape-precision',
+      )[0],
+      bestCircle: sortScoresByMetric(
+        playerScores.filter((score) => score.gameId === 'shape-precision' && score.stats?.shape === 'circle'),
+        'shape-precision',
+      )[0],
+      bestStar: sortScoresByMetric(
+        playerScores.filter((score) => score.gameId === 'shape-precision' && score.stats?.shape === 'star'),
+        'shape-precision',
       )[0],
     },
   };

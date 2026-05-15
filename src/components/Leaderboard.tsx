@@ -12,6 +12,7 @@ import {
   storeCpsSettings,
 } from '../data/cpsModes';
 import { getCosmetic } from '../data/cosmetics';
+import { readStoredShapePrecisionShape, shapePrecisionShapeChangedEvent, shapePrecisionShapes, storeShapePrecisionShape, type ShapePrecisionShape } from '../data/shapePrecision';
 import { readStoredStroopDuration, storeStroopDuration, stroopDurationChangedEvent, stroopDurationOptions } from '../data/stroopDurations';
 import { readStoredTimeSenseDuration, storeTimeSenseDuration, timeSenseDurationChangedEvent, timeSenseDurationOptions } from '../data/timeSenseDurations';
 import { readStoredTypingDuration, storeTypingDuration, typingDurationChangedEvent, typingDurationOptions } from '../data/typingDurations';
@@ -55,6 +56,13 @@ const cpsMetricLabels: Record<string, string> = {
   peakCPS: 'Peak',
   totalClicks: 'Clicks',
   consistency: 'Consistency',
+};
+
+const shapeMetricLabels: Record<string, string> = {
+  score: 'Accuracy',
+  drawingTimeMs: 'Time',
+  smoothness: 'Smooth',
+  deviation: 'Deviation',
 };
 
 function getDeviceLabel(device?: DeviceType): string | undefined {
@@ -174,6 +182,7 @@ function getMetricLabel(gameId: GameId, metric: LeaderboardMetric): string {
   if (gameId === 'stroop-test') return stroopMetricLabels[metric.id] ?? metric.label;
   if (gameId === 'cps-test') return cpsMetricLabels[metric.id] ?? metric.label;
   if (gameId === 'aim-test') return aimMetricLabels[metric.id] ?? metric.label;
+  if (gameId === 'shape-precision') return shapeMetricLabels[metric.id] ?? metric.label;
   return metric.label;
 }
 
@@ -214,6 +223,11 @@ function getSecondaryInfo(entry: LeaderboardEntry, gameId: GameId, localAttempts
   if (gameId === 'flappy-ball') {
     if (stats.survivedTimeSeconds !== undefined) info.push(`${stats.survivedTimeSeconds}s`);
     if (stats.flaps !== undefined) info.push(`${stats.flaps} flaps`);
+  }
+  if (gameId === 'shape-precision') {
+    if (stats.shape !== undefined) info.push(String(stats.shape));
+    if (stats.drawingTimeMs !== undefined) info.push(`${(stats.drawingTimeMs / 1000).toFixed(1)}s`);
+    if (stats.smoothness !== undefined) info.push(`smooth ${formatPercent(stats.smoothness)}`);
   }
 
   if (gameId === 'reaction-time' && localAttempts && localAttempts > 1) info.push(`Próby lokalnie ${localAttempts}`);
@@ -488,6 +502,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   const [stroopDuration, setStroopDuration] = useState(readStoredStroopDuration);
   const [cpsSettings, setCpsSettings] = useState(readStoredCpsSettings);
   const [aimMode, setAimMode] = useState(readStoredAimMode);
+  const [shapePrecisionShape, setShapePrecisionShape] = useState<ShapePrecisionShape>(readStoredShapePrecisionShape);
   const [onlineEntries, setOnlineEntries] = useState<LeaderboardEntry[]>([]);
   const [onlineError, setOnlineError] = useState<string | null>(null);
   const [onlineLoading, setOnlineLoading] = useState(false);
@@ -509,6 +524,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   const isStroop = gameId === 'stroop-test';
   const isCps = gameId === 'cps-test';
   const isAim = gameId === 'aim-test';
+  const isShapePrecision = gameId === 'shape-precision';
   const hasDurationFilter = isTypingSpeed || isTimeSense || isStroop || isCps;
   const activeDuration = isCps ? cpsSettings.durationSeconds : isStroop ? stroopDuration : isTimeSense ? timeSenseDuration : typingDuration;
   const durationOptions = isCps ? cpsDurationOptions : isStroop ? stroopDurationOptions : isTimeSense ? timeSenseDurationOptions : typingDurationOptions;
@@ -532,8 +548,10 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
           })
         : isAim
           ? entries.filter((entry) => (entry.stats?.mode ?? '30s') === aimMode)
-        : entries,
-    [activeDuration, aimMode, cpsSettings.inputMode, entries, hasDurationFilter, isAim, isCps, isTypingSpeed, typingDifficulty],
+        : isShapePrecision
+          ? entries.filter((entry) => (entry.stats?.shape ?? 'circle') === shapePrecisionShape)
+          : entries,
+    [activeDuration, aimMode, cpsSettings.inputMode, entries, hasDurationFilter, isAim, isCps, isShapePrecision, isTypingSpeed, shapePrecisionShape, typingDifficulty],
   );
   const localAttemptsByPlayer = useMemo(() => {
     return filteredEntries.reduce<Record<string, number>>((acc, entry) => {
@@ -647,6 +665,21 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
   }, [isAim]);
 
   useEffect(() => {
+    if (!isShapePrecision) return;
+
+    function handleShapeChange() {
+      setShapePrecisionShape(readStoredShapePrecisionShape());
+      setActiveProfileKey(null);
+    }
+
+    window.addEventListener(shapePrecisionShapeChangedEvent, handleShapeChange);
+
+    return () => {
+      window.removeEventListener(shapePrecisionShapeChangedEvent, handleShapeChange);
+    };
+  }, [isShapePrecision]);
+
+  useEffect(() => {
     if (source !== 'online') return;
 
     let ignore = false;
@@ -661,6 +694,7 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
       isCps ? cpsSettings.inputMode : undefined,
       isAim ? aimMode : undefined,
       isTypingSpeed ? typingDifficulty : undefined,
+      isShapePrecision ? shapePrecisionShape : undefined,
     )
       .then((results) => {
         if (!ignore) setOnlineEntries(results);
@@ -688,7 +722,9 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
     hasDurationFilter,
     isAim,
     isCps,
+    isShapePrecision,
     isTypingSpeed,
+    shapePrecisionShape,
     source,
     typingDifficulty,
   ]);
@@ -789,6 +825,14 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
     playNormalClickSound();
     storeAimMode(nextMode);
     setAimMode(nextMode);
+    setMetricId('score');
+    setActiveProfileKey(null);
+  }
+
+  function handleShapeChange(nextShape: ShapePrecisionShape) {
+    playNormalClickSound();
+    storeShapePrecisionShape(nextShape);
+    setShapePrecisionShape(nextShape);
     setMetricId('score');
     setActiveProfileKey(null);
   }
@@ -923,6 +967,29 @@ export function Leaderboard({ gameId, entries }: LeaderboardProps) {
                 type="button"
               >
                 {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isShapePrecision && (
+        <div className="mt-4">
+          <p className="text-[0.65rem] font-black uppercase tracking-[0.2em] text-slate-400">Shape</p>
+          <div className="mt-2 flex flex-wrap gap-1 rounded-lg border border-white/10 bg-black/25 p-1">
+            {shapePrecisionShapes.map((shape) => (
+              <button
+                aria-pressed={shapePrecisionShape === shape.id}
+                className={`min-w-16 flex-1 rounded-md px-2 py-2 text-xs font-black transition duration-200 hover:scale-[1.02] ${
+                  shapePrecisionShape === shape.id
+                    ? 'bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.22)]'
+                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                }`}
+                key={shape.id}
+                onClick={() => handleShapeChange(shape.id)}
+                type="button"
+              >
+                {shape.label}
               </button>
             ))}
           </div>

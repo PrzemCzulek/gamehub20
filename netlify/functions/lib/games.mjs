@@ -98,6 +98,15 @@ export const games = {
       efficiency: { source: 'stats', statKey: 'efficiency', direction: 'descending' },
     },
   },
+  'shape-precision': {
+    scoreDirection: 'descending',
+    metrics: {
+      score: { source: 'score', direction: 'descending' },
+      drawingTimeMs: { source: 'stats', statKey: 'drawingTimeMs', direction: 'ascending' },
+      smoothness: { source: 'stats', statKey: 'smoothness', direction: 'descending' },
+      deviation: { source: 'stats', statKey: 'deviation', direction: 'ascending' },
+    },
+  },
 };
 
 export function getGame(gameId) {

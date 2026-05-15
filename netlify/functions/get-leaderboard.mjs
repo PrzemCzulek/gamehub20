@@ -34,11 +34,15 @@ function readAimMode(value) {
   return value === '15s' || value === 'infinity' ? value : '30s';
 }
 
+function readShape(value) {
+  return value === 'square' || value === 'triangle' || value === 'star' ? value : 'circle';
+}
+
 function readTypingDifficulty(value) {
   return value === 'hard' ? 'hard' : 'normal';
 }
 
-function getLeaderboardScope(gameId, durationSeconds, inputMode, aimMode, typingDifficulty) {
+function getLeaderboardScope(gameId, durationSeconds, inputMode, aimMode, typingDifficulty, shape) {
   if (gameId === 'cps-test') {
     if (inputMode === 'alternating') return `${durationSeconds}s-alt`;
     if (inputMode === 'space') return `${durationSeconds}s-space`;
@@ -47,6 +51,10 @@ function getLeaderboardScope(gameId, durationSeconds, inputMode, aimMode, typing
 
   if (gameId === 'aim-test') {
     return `mode:${aimMode}`;
+  }
+
+  if (gameId === 'shape-precision') {
+    return `shape:${shape}`;
   }
 
   if (gameId === 'typing-speed') {
@@ -87,11 +95,13 @@ export async function handler(event) {
     const limit = readLimit(params.limit);
     const usesDurationScope = gameId === 'typing-speed' || gameId === 'time-sense' || gameId === 'stroop-test' || gameId === 'cps-test';
     const usesModeScope = gameId === 'aim-test';
+    const usesShapeScope = gameId === 'shape-precision';
     const durationSeconds = usesDurationScope ? readDurationSeconds(params.durationSeconds, gameId) : undefined;
     const inputMode = gameId === 'cps-test' ? readCpsInputMode(params.inputMode) : undefined;
     const aimMode = usesModeScope ? readAimMode(params.mode) : undefined;
+    const shape = usesShapeScope ? readShape(params.shape) : undefined;
     const typingDifficulty = gameId === 'typing-speed' ? readTypingDifficulty(params.difficulty) : undefined;
-    const leaderboardScope = usesDurationScope || usesModeScope ? getLeaderboardScope(gameId, durationSeconds, inputMode, aimMode, typingDifficulty) : 'default';
+    const leaderboardScope = usesDurationScope || usesModeScope || usesShapeScope ? getLeaderboardScope(gameId, durationSeconds, inputMode, aimMode, typingDifficulty, shape) : 'default';
     const metricExpression = getMetricExpression(metric);
     const direction = metric?.direction === 'ascending' ? 'ASC' : 'DESC';
     const query = `
@@ -112,6 +122,7 @@ export async function handler(event) {
         durationSeconds,
         inputMode,
         mode: aimMode,
+        shape,
         limit,
         entries: [],
         scores: [],
@@ -129,6 +140,7 @@ export async function handler(event) {
       durationSeconds,
       inputMode,
       mode: aimMode,
+      shape,
       limit,
       entries: rows.map(mapScoreRow),
       scores: rows.map(mapScoreRow),

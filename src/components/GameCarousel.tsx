@@ -21,6 +21,7 @@ const gameVisuals: Record<GameId, string> = {
   'time-sense': '◷',
   'stroop-test': 'RGB',
   'cps-test': 'CPS',
+  'shape-precision': 'SHP',
   'flappy-ball': '●',
 };
 

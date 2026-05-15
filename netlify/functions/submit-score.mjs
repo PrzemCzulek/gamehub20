@@ -57,6 +57,10 @@ function getAimMode(stats) {
   return stats?.mode === '15s' || stats?.mode === 'infinity' ? stats.mode : '30s';
 }
 
+function getShapePrecisionShape(stats) {
+  return stats?.shape === 'square' || stats?.shape === 'triangle' || stats?.shape === 'star' ? stats.shape : 'circle';
+}
+
 function validateScore(payload) {
   const errors = [];
   const playerId = typeof payload.playerId === 'string' ? payload.playerId.trim() : '';
@@ -142,6 +146,10 @@ function getLeaderboardScope(value) {
 
   if (value.gameId === 'aim-test') {
     return `mode:${getAimMode(value.stats)}`;
+  }
+
+  if (value.gameId === 'shape-precision') {
+    return `shape:${getShapePrecisionShape(value.stats)}`;
   }
 
   if (value.gameId !== 'typing-speed' && value.gameId !== 'time-sense' && value.gameId !== 'stroop-test') {
@@ -282,6 +290,20 @@ function mergeHighlights(currentHighlights, value) {
 
     if (isBetterHighlight(survivedTimeSeconds, highlights.bestFlappyTime, 'descending')) {
       highlights.bestFlappyTime = createHighlight(value, survivedTimeSeconds);
+    }
+  }
+
+  if (value.gameId === 'shape-precision') {
+    if (isBetterHighlight(value.score, highlights.bestShapeAccuracy, 'descending')) {
+      highlights.bestShapeAccuracy = createHighlight(value);
+    }
+
+    if (value.stats?.shape === 'circle' && isBetterHighlight(value.score, highlights.bestCircle, 'descending')) {
+      highlights.bestCircle = createHighlight(value);
+    }
+
+    if (value.stats?.shape === 'star' && isBetterHighlight(value.score, highlights.bestStar, 'descending')) {
+      highlights.bestStar = createHighlight(value);
     }
   }
 

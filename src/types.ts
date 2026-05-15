@@ -9,7 +9,8 @@ export type GameId =
   | 'time-sense'
   | 'stroop-test'
   | 'cps-test'
-  | 'flappy-ball';
+  | 'flappy-ball'
+  | 'shape-precision';
 
 export type ScoreDirection = 'ascending' | 'descending';
 export type MobileSupport = 'ready' | 'limited' | 'desktop-only';
@@ -85,6 +86,11 @@ export type ScoreStats = {
   flaps?: number;
   survivedTimeSeconds?: number;
   efficiency?: number;
+  shape?: string;
+  drawingTimeMs?: number;
+  smoothness?: number;
+  deviation?: number;
+  pointsCount?: number;
 };
 
 export type LeaderboardEntry = {
@@ -168,6 +174,9 @@ export type LocalProfile = {
     bestAlternatingCps?: LeaderboardEntry;
     bestFlappyScore?: LeaderboardEntry;
     bestFlappyTime?: LeaderboardEntry;
+    bestShapeAccuracy?: LeaderboardEntry;
+    bestCircle?: LeaderboardEntry;
+    bestStar?: LeaderboardEntry;
   };
 };
 
@@ -190,6 +199,9 @@ export type PlayerHighlights = {
   bestAlternatingCps?: LeaderboardEntry;
   bestFlappyScore?: LeaderboardEntry;
   bestFlappyTime?: LeaderboardEntry;
+  bestShapeAccuracy?: LeaderboardEntry;
+  bestCircle?: LeaderboardEntry;
+  bestStar?: LeaderboardEntry;
 };
 
 export type PlayerAchievementSummary = {

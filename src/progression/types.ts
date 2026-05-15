@@ -34,12 +34,13 @@ export type ProgressionEventType =
   | 'aim_finished'
   | 'memory_finished'
   | 'color_memory_finished'
-    | 'word_memory_finished'
-    | 'symbol_match_finished'
-    | 'time_sense_finished'
-    | 'stroop_finished'
-    | 'cps_finished'
-    | 'flappy_finished';
+  | 'word_memory_finished'
+  | 'symbol_match_finished'
+  | 'time_sense_finished'
+  | 'stroop_finished'
+  | 'cps_finished'
+  | 'flappy_finished'
+  | 'shape_precision_finished';
 
 export type ProgressionEvent = {
   id: string;

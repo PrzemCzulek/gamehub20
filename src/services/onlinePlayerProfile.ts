@@ -49,6 +49,9 @@ export type OnlinePlayerProfile = {
     bestAlternatingCps?: OnlineProfileHighlight;
     bestFlappyScore?: OnlineProfileHighlight;
     bestFlappyTime?: OnlineProfileHighlight;
+    bestShapeAccuracy?: OnlineProfileHighlight;
+    bestCircle?: OnlineProfileHighlight;
+    bestStar?: OnlineProfileHighlight;
   };
   updatedAt?: string;
 };
