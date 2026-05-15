@@ -11,6 +11,8 @@ import { getQuestStreak } from '../progression/quests';
 import { getAchievementUnlocks, getQuestProgress, syncRetroactiveAchievements } from '../progression/progressionEngine';
 import { claimReward, equipCosmetic, getEquippedCosmetics, getRewardStatus, unequipCosmetic } from '../progression/rewardHelpers';
 import { playNormalClickSound } from '../services/audio';
+import { claimLegacyScores, fetchLegacyScoreCount } from '../services/legacyScores';
+import { findLegacyScoresForPlayer } from '../services/storage';
 import type { AchievementDefinition, AchievementRarity } from '../progression/types';
 import type { DeviceType, GameId, LocalProfile, PlayerGameProgressSummary, PlayerProfileSummary, ScoreStats } from '../types';
 import { formatPercent } from '../utils/format';
@@ -410,6 +412,71 @@ function GameLevelCard({ gameProgress, onMilestoneClaim }: { gameProgress: Playe
   );
 }
 
+function LegacyScoresPanel({
+  canClaim,
+  claimStatus,
+  count,
+  error,
+  onCancel,
+  onClaim,
+  username,
+}: {
+  canClaim: boolean;
+  claimStatus: 'idle' | 'confirm' | 'claiming' | 'done' | 'error';
+  count: number;
+  error: string | null;
+  onCancel: () => void;
+  onClaim: () => void;
+  username: string;
+}) {
+  if (claimStatus === 'done') {
+    return (
+      <section className="rounded-2xl border border-teal-300/20 bg-teal-300/[0.045] p-4">
+        <h3 className="text-xs font-black uppercase tracking-[0.22em] text-teal-100">Stare wyniki</h3>
+        <p className="mt-2 text-sm text-slate-300">Wyniki połączone z profilem.</p>
+      </section>
+    );
+  }
+
+  if (count <= 0) return null;
+
+  const isConfirming = claimStatus === 'confirm';
+  const isClaiming = claimStatus === 'claiming';
+
+  return (
+    <section className={`rounded-2xl border p-4 ${isConfirming ? 'border-amber-200/35 bg-amber-200/[0.055]' : 'border-cyan-300/18 bg-cyan-300/[0.045]'}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100">Stare wyniki</h3>
+          <p className="mt-2 text-sm text-slate-300">
+            {isConfirming ? 'Połączyć stare wyniki?' : `Wykryto ${count} starych wyników dla nicku ${username}.`}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            {isConfirming ? `Ta akcja przypisze wyniki z nickiem ${username} do obecnego profilu ID.` : 'To przypisze stare wyniki do obecnego profilu.'}
+          </p>
+          {!canClaim && <p className="mt-2 text-xs text-amber-100">Claim wymaga nowego ID profilu gh2_.</p>}
+          {error && <p className="mt-2 text-xs text-rose-200">{error}</p>}
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {isConfirming && (
+            <button className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-slate-300 transition hover:bg-white/10" onClick={onCancel} type="button">
+              Anuluj
+            </button>
+          )}
+          <button
+            className="rounded-xl bg-cyan-300 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-slate-950 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={!canClaim || isClaiming}
+            onClick={onClaim}
+            type="button"
+          >
+            {isClaiming ? 'Łączenie...' : isConfirming ? 'Połącz' : 'Połącz z profilem'}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, revision }: PlayerHubProps) {
   const [activeTab, setActiveTab] = useState<PlayerHubTab>('stats');
   const [draftName, setDraftName] = useState(profile.playerName);
@@ -418,6 +485,9 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
   const [rewardFilter, setRewardFilter] = useState<RewardFilter>('all');
   const [achievementFilter, setAchievementFilter] = useState<AchievementFilter>('all');
   const [achievementRevision, setAchievementRevision] = useState(0);
+  const [legacyScoreCount, setLegacyScoreCount] = useState(0);
+  const [legacyClaimStatus, setLegacyClaimStatus] = useState<'idle' | 'confirm' | 'claiming' | 'done' | 'error'>('idle');
+  const [legacyClaimError, setLegacyClaimError] = useState<string | null>(null);
   const retroSyncToastKeyRef = useRef<string>('');
   const summary = buildPlayerProfileSummary(profile);
   const gameProgressById = useMemo(() => new Map(summary.gameProgressSummary.map((entry) => [entry.gameId, entry])), [summary.gameProgressSummary]);
@@ -449,6 +519,7 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
   const equippedBadge = getCosmetic(equippedCosmetics.badge, 'badge');
   const equippedFrame = getCosmetic(equippedCosmetics.frame, 'frame');
   const deviceLabel = getDeviceLabel(summary.lastSeenDevice ?? summary.createdOnDevice);
+  const canClaimLegacyOnline = profile.playerId.startsWith('gh2_');
   const mostPlayedGameTitle = getGameTitle(summary.favoriteGame);
   const bestGameTitle = getGameTitle(summary.bestGame);
   const nextRewardPreview = readyRewards[0] ?? lockedRewards[0];
@@ -515,8 +586,71 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
       refreshRewards();
     }
   };
+  const handleLegacyClaim = async () => {
+    playNormalClickSound();
+
+    if (legacyClaimStatus !== 'confirm') {
+      setLegacyClaimError(null);
+      setLegacyClaimStatus('confirm');
+      return;
+    }
+
+    setLegacyClaimStatus('claiming');
+    setLegacyClaimError(null);
+
+    try {
+      const result = await claimLegacyScores(profile.playerId, profile.playerName);
+      setLegacyScoreCount(0);
+      setLegacyClaimStatus('done');
+      pushFeedback({
+        type: 'reward',
+        title: result.updated > 0 ? 'WYNIKI POŁĄCZONE' : 'STARE WYNIKI',
+        message: result.updated > 0 ? `Przypisano ${result.updated}` : 'Brak wyników',
+        detail: result.skippedConflicts > 0 ? `${result.skippedConflicts} pominięto` : undefined,
+        priority: result.updated > 0 ? 'high' : 'medium',
+      });
+    } catch (error) {
+      setLegacyClaimStatus('error');
+      setLegacyClaimError(error instanceof Error ? error.message : 'Nie udało się połączyć wyników.');
+    }
+  };
 
   useEffect(() => setDraftName(profile.playerName), [profile.playerName]);
+  useEffect(() => {
+    let cancelled = false;
+    const localLegacyCount = findLegacyScoresForPlayer(profile.playerName).length;
+
+    setLegacyClaimError(null);
+    setLegacyClaimStatus((current) => (current === 'done' ? current : 'idle'));
+
+    if (!canClaimLegacyOnline) {
+      setLegacyScoreCount(localLegacyCount);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    fetchLegacyScoreCount(profile.playerName, profile.playerId)
+      .then((onlineCount) => {
+        if (!cancelled) setLegacyScoreCount(Math.max(localLegacyCount, onlineCount));
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setLegacyScoreCount(localLegacyCount);
+          if (import.meta.env.DEV) {
+            console.debug('Legacy score dry run failed', {
+              playerId: profile.playerId,
+              username: profile.playerName,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canClaimLegacyOnline, profile.playerId, profile.playerName, revision]);
   useEffect(() => {
     const retroUnlocks = syncRetroactiveAchievements(profile);
     if (retroUnlocks.length === 0) return;
@@ -556,7 +690,7 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
       </div>
 
       <div className="mt-5">
-        {activeTab === 'stats' && <div className="space-y-5"><section><div className="mb-3 flex items-center justify-between gap-3"><h3 className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100">Top highlights</h3><span className="text-xs text-slate-500">Best: {bestGameTitle}</span></div><div className="grid gap-3 lg:grid-cols-3">{topHighlights.map((item) => <HighlightCard accent={item.accent} icon={item.icon} key={item.label} label={item.label} primary={item.value} />)}</div><div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{extraHighlights.map((item) => <CompactStat accent={item.accent} key={item.label} label={item.label} value={item.value} />)}</div></section><section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]"><div className="rounded-2xl border border-white/10 bg-black/18 p-4"><div className="mb-3 flex items-center justify-between gap-3"><h3 className="text-xs font-black uppercase tracking-[0.22em] text-slate-300">Best scores</h3><span className="text-xs text-slate-500">{summary.totalScoreEntries} entries</span></div><div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">{games.map((game) => <BestScoreTile gameId={game.id} key={game.id} metric={game.scoreName} title={game.title} value={profile.bestScores[game.id]?.scoreLabel} />)}</div></div><form className="rounded-2xl border border-white/10 bg-black/18 p-4" onSubmit={(event) => { event.preventDefault(); playNormalClickSound(); onRename(draftName); }}><h3 className="text-xs font-black uppercase tracking-[0.22em] text-slate-300">Identity</h3><input className="mt-3 w-full rounded-md border border-white/10 bg-black/25 px-3 py-2 text-sm text-white placeholder:text-slate-500" maxLength={24} onChange={(event) => setDraftName(event.target.value)} placeholder="Nick" value={draftName} /><button className="mt-2 w-full rounded-md bg-teal-300 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-teal-200" type="submit">Zmień nick</button></form></section><section className="rounded-2xl border border-cyan-300/10 bg-black/18 p-4"><div className="mb-3 flex flex-wrap items-end justify-between gap-2"><h3 className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100">Game levels</h3>{summary.topGameLevels.length > 0 && <span className="text-xs text-slate-500">Top: {summary.topGameLevels[0].gameTitle} Lv. {summary.topGameLevels[0].level}</span>}</div><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{summary.gameProgressSummary.map((gameProgress) => <GameLevelCard gameProgress={gameProgress} key={gameProgress.gameId} onMilestoneClaim={onMilestoneClaim} />)}</div></section></div>}
+        {activeTab === 'stats' && <div className="space-y-5"><section><div className="mb-3 flex items-center justify-between gap-3"><h3 className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100">Top highlights</h3><span className="text-xs text-slate-500">Best: {bestGameTitle}</span></div><div className="grid gap-3 lg:grid-cols-3">{topHighlights.map((item) => <HighlightCard accent={item.accent} icon={item.icon} key={item.label} label={item.label} primary={item.value} />)}</div><div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{extraHighlights.map((item) => <CompactStat accent={item.accent} key={item.label} label={item.label} value={item.value} />)}</div></section><section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]"><div className="rounded-2xl border border-white/10 bg-black/18 p-4"><div className="mb-3 flex items-center justify-between gap-3"><h3 className="text-xs font-black uppercase tracking-[0.22em] text-slate-300">Best scores</h3><span className="text-xs text-slate-500">{summary.totalScoreEntries} entries</span></div><div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">{games.map((game) => <BestScoreTile gameId={game.id} key={game.id} metric={game.scoreName} title={game.title} value={profile.bestScores[game.id]?.scoreLabel} />)}</div></div><form className="rounded-2xl border border-white/10 bg-black/18 p-4" onSubmit={(event) => { event.preventDefault(); playNormalClickSound(); onRename(draftName); }}><h3 className="text-xs font-black uppercase tracking-[0.22em] text-slate-300">Identity</h3><input className="mt-3 w-full rounded-md border border-white/10 bg-black/25 px-3 py-2 text-sm text-white placeholder:text-slate-500" maxLength={24} onChange={(event) => setDraftName(event.target.value)} placeholder="Nick" value={draftName} /><button className="mt-2 w-full rounded-md bg-teal-300 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-teal-200" type="submit">Zmień nick</button></form></section><LegacyScoresPanel canClaim={canClaimLegacyOnline} claimStatus={legacyClaimStatus} count={legacyScoreCount} error={legacyClaimError} onCancel={() => { playNormalClickSound(); setLegacyClaimStatus('idle'); }} onClaim={handleLegacyClaim} username={profile.playerName} /><section className="rounded-2xl border border-cyan-300/10 bg-black/18 p-4"><div className="mb-3 flex flex-wrap items-end justify-between gap-2"><h3 className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100">Game levels</h3>{summary.topGameLevels.length > 0 && <span className="text-xs text-slate-500">Top: {summary.topGameLevels[0].gameTitle} Lv. {summary.topGameLevels[0].level}</span>}</div><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{summary.gameProgressSummary.map((gameProgress) => <GameLevelCard gameProgress={gameProgress} key={gameProgress.gameId} onMilestoneClaim={onMilestoneClaim} />)}</div></section></div>}
 
         {activeTab === 'rewards' && <div className="space-y-4"><RewardsIdentityShowcase deviceLabel={deviceLabel} displayName={summary.displayName} equippedBadge={equippedBadge} equippedFrame={equippedFrame} equippedTitle={equippedTitle} level={summary.level} readyCount={readyRewards.length} xpPercent={summary.levelProgressPercent} />{readyRewards.length > 0 && <section className="rounded-3xl border border-cyan-300/30 bg-cyan-300/[0.055] p-3 shadow-[0_0_30px_rgba(34,211,238,0.14)]"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Ready to claim</h3><p className="mt-0.5 text-xs text-slate-400">Reward drop waiting.</p></div>{readyRewards.length > 1 && <button className="rounded-xl bg-cyan-300 px-3 py-1.5 text-xs font-black uppercase tracking-[0.14em] text-slate-950 transition hover:bg-cyan-100" onClick={handleClaimAll} type="button">Claim all</button>}</div><div className="mt-3 grid items-start gap-2.5 md:grid-cols-2 xl:grid-cols-3">{readyRewards.map((reward) => <PrestigeRewardCard key={reward.id} onClaim={handleClaimReward} onEquip={handleEquipReward} onUnequip={handleUnequipReward} progress={getRewardProgress(reward, gameProgressById)} reward={reward} />)}</div></section>}<section className="rounded-3xl border border-white/10 bg-black/18 p-3"><div className="sticky top-2 z-10 -mx-1 -mt-1 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-slate-950/90 p-2 backdrop-blur"><h3 className="text-xs font-black uppercase tracking-[0.16em] text-slate-200">Prestige track</h3><div className="flex flex-wrap gap-1.5">{rewardFilters.map((filter) => <button className={`rounded-full border px-2 py-0.5 text-[0.58rem] font-black uppercase tracking-[0.12em] transition ${rewardFilter === filter.id ? 'border-cyan-300 bg-cyan-300 text-slate-950' : 'border-white/10 bg-white/[0.03] text-slate-400 hover:border-cyan-300/30 hover:text-cyan-100'}`} key={filter.id} onClick={() => { playNormalClickSound(); setRewardFilter(filter.id); }} type="button">{filter.label}</button>)}</div></div>{filteredRewards.length === 0 ? <p className="mt-3 rounded-xl border border-dashed border-white/10 p-4 text-sm text-slate-500">Brak rewardów w tym filtrze.</p> : <div className="mt-3 grid items-start gap-2.5 md:grid-cols-2 xl:grid-cols-3">{filteredRewards.map((reward) => <PrestigeRewardCard key={reward.id} onClaim={handleClaimReward} onEquip={handleEquipReward} onUnequip={handleUnequipReward} progress={getRewardProgress(reward, gameProgressById)} reward={reward} />)}</div>}</section></div>}
         {activeTab === 'achievements' && <div className="space-y-4"><section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4"><div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.055] p-4"><span className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100">Unlocked</span><strong className="mt-2 block text-3xl font-black text-white">{unlockedIds.size}/{achievementDefinitions.length}</strong><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-cyan-300 transition-all duration-700 shadow-[0_0_16px_rgba(34,211,238,0.5)]" style={{ width: `${achievementCompletionPercent}%` }} /></div></div><CompactStat accent="violet" label="Completion" value={`${achievementCompletionPercent}%`} /><CompactStat accent="amber" label="Latest" value={latestAchievement?.title} /><CompactStat accent="teal" label="Top rarity" value={favoriteAchievementRarity.toUpperCase()} /></section><section className="sticky top-2 z-10 -mx-1 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-slate-950/90 p-2 backdrop-blur"><h3 className="text-xs font-black uppercase tracking-[0.18em] text-slate-200">Trophy grid</h3><div className="flex flex-wrap gap-1.5">{achievementFilters.map((filter) => <button className={`rounded-full border px-2 py-0.5 text-[0.58rem] font-black uppercase tracking-[0.12em] transition ${achievementFilter === filter.id ? 'border-cyan-300 bg-cyan-300 text-slate-950' : 'border-white/10 bg-white/[0.03] text-slate-400 hover:border-cyan-300/30 hover:text-cyan-100'}`} key={filter.id} onClick={() => { playNormalClickSound(); setAchievementFilter(filter.id); }} type="button">{filter.label}</button>)}</div></section>{filteredAchievements.length === 0 ? <p className="rounded-xl border border-dashed border-white/10 p-4 text-sm text-slate-500">Brak achievementów w tym filtrze.</p> : <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">{filteredAchievements.map((achievement) => { const unlocked = unlockedIds.has(achievement.id); const unlock = unlockById.get(achievement.id); const rarityKey = achievement.rarity === 'hidden' ? 'mythic' : achievement.rarity; const rarityStyle = achievementRarityStyles[rarityKey]; const progress = getAchievementProgress(achievement, summary, profile); const progressPercent = unlocked ? 100 : progress.percent; return <article className={`group relative overflow-hidden rounded-2xl border p-3.5 transition duration-200 hover:-translate-y-0.5 ${unlocked ? `${rarityStyle.card} achievement-shine` : 'border-white/10 bg-black/20 opacity-75 hover:opacity-95'}`} key={achievement.id}><div className={`pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full blur-2xl ${unlocked ? 'bg-white/10' : 'bg-white/[0.035]'}`} /><div className="relative flex items-start justify-between gap-3"><div className="flex min-w-0 items-start gap-2.5"><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-black/25 text-[0.62rem] font-black ${unlocked ? rarityStyle.icon : 'text-slate-500'}`}>{achievement.icon ?? 'ACH'}</span><div className="min-w-0"><h3 className="truncate text-sm font-black text-white">{achievement.title}</h3><div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5"><span className={`rounded-full border px-2 py-0.5 text-[0.55rem] font-black uppercase tracking-[0.12em] ${rarityStyle.badge}`}>{achievement.rarity}</span>{achievement.gameId && <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[0.55rem] font-black uppercase tracking-[0.12em] text-slate-400">{gameGlyphs[achievement.gameId]}</span>}</div></div></div><span className={`shrink-0 rounded-full border px-2 py-0.5 text-[0.55rem] font-black uppercase tracking-[0.12em] ${unlocked ? 'border-teal-300/30 bg-teal-300/10 text-teal-100' : 'border-white/10 bg-white/[0.035] text-slate-500'}`}>{unlocked ? 'Unlocked' : 'Locked'}</span></div><p className="relative mt-3 min-h-[2rem] text-xs leading-4 text-slate-400">{achievement.description}</p><div className="relative mt-3"><div className="flex items-center justify-between gap-2 text-[0.62rem] font-black uppercase tracking-[0.12em]"><span className={unlocked ? 'text-cyan-100' : 'text-slate-500'}>{unlocked ? 'Claimed trophy' : achievement.targetLabel ?? 'Target'}</span><span className="text-slate-500">{unlocked ? formatDate(unlock?.unlockedAt) : progress.label}</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10"><div className={`h-full rounded-full transition-all duration-700 ${unlocked ? rarityStyle.fill : 'bg-slate-500/60'}`} style={{ width: `${progressPercent}%` }} /></div></div><div className="relative mt-3 flex items-center justify-between gap-2 text-[0.62rem] uppercase tracking-[0.12em] text-slate-500"><span>{achievement.category}</span><span>+{achievement.xpReward ?? 0} XP</span></div></article>; })}</section>}</div>}
