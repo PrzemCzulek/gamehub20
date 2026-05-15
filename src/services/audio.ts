@@ -1,24 +1,25 @@
 const AUDIO_ENABLED_KEY = 'gameHubAudioEnabled';
 const AUDIO_VOLUME_KEY = 'gameHubAudioVolume';
 const CLICK_SOUND_PATH = '/audio/ui-click.mp3';
-const HOVER_SOUND_PATH = '/audio/ui-hover.mp3';
+const CLICK2_SOUND_PATH = '/audio/ui-click2.mp3';
 const NORMAL_CLICK_SOUND_PATH = '/audio/ui-click-normal.mp3';
 const CLICK_COOLDOWN_MS = 80;
+const CLICK2_COOLDOWN_MS = 80;
 const NORMAL_CLICK_COOLDOWN_MS = 80;
-const HOVER_COOLDOWN_MS = 120;
 const DEFAULT_VOLUME = 0.35;
 const CLICK_POOL_SIZE = 6;
+const CLICK2_POOL_SIZE = 4;
 const NORMAL_CLICK_POOL_SIZE = 4;
-const HOVER_POOL_SIZE = 2;
 
 let clickPool: HTMLAudioElement[] | null = null;
+let click2Pool: HTMLAudioElement[] | null = null;
 let normalClickPool: HTMLAudioElement[] | null = null;
-let hoverPool: HTMLAudioElement[] | null = null;
 let clickStartedAt = new WeakMap<HTMLAudioElement, number>();
+let click2StartedAt = new WeakMap<HTMLAudioElement, number>();
 let normalClickStartedAt = new WeakMap<HTMLAudioElement, number>();
 let lastClickAt = 0;
+let lastClick2At = 0;
 let lastNormalClickAt = 0;
-let lastHoverAt = 0;
 
 function clampVolume(value: number): number {
   if (!Number.isFinite(value)) return DEFAULT_VOLUME;
@@ -34,10 +35,10 @@ function applyVolumeToPools(): void {
   clickPool?.forEach((audio) => {
     audio.volume = volume;
   });
-  normalClickPool?.forEach((audio) => {
+  click2Pool?.forEach((audio) => {
     audio.volume = volume;
   });
-  hoverPool?.forEach((audio) => {
+  normalClickPool?.forEach((audio) => {
     audio.volume = volume;
   });
 }
@@ -64,38 +65,14 @@ function getClickPool(): HTMLAudioElement[] {
   return clickPool;
 }
 
-function getHoverPool(): HTMLAudioElement[] {
-  hoverPool ??= createAudioPool(HOVER_SOUND_PATH, HOVER_POOL_SIZE);
-  return hoverPool;
+function getClick2Pool(): HTMLAudioElement[] {
+  click2Pool ??= createAudioPool(CLICK2_SOUND_PATH, CLICK2_POOL_SIZE);
+  return click2Pool;
 }
 
 function getNormalClickPool(): HTMLAudioElement[] {
   normalClickPool ??= createAudioPool(NORMAL_CLICK_SOUND_PATH, NORMAL_CLICK_POOL_SIZE);
   return normalClickPool;
-}
-
-function playFromPool(pool: HTMLAudioElement[]): void {
-  if (!getAudioEnabled()) {
-    return;
-  }
-
-  const audio = pool.find((item) => item.paused || item.ended);
-
-  if (!audio) {
-    return;
-  }
-
-  try {
-    audio.volume = getEffectiveVolume();
-    audio.currentTime = 0;
-    const result = audio.play();
-
-    if (result) {
-      result.catch(() => undefined);
-    }
-  } catch {
-    return;
-  }
 }
 
 function playClickFromPool(
@@ -191,8 +168,8 @@ export function toggleAudioEnabled(): boolean {
 export function preloadAudio(): void {
   try {
     getClickPool().forEach((audio) => audio.load());
+    getClick2Pool().forEach((audio) => audio.load());
     getNormalClickPool().forEach((audio) => audio.load());
-    getHoverPool().forEach((audio) => audio.load());
   } catch {
     return;
   }
@@ -210,13 +187,8 @@ export function playNormalClickSound(): void {
   }, NORMAL_CLICK_COOLDOWN_MS);
 }
 
-export function playHoverSound(): void {
-  const now = performance.now();
-
-  if (now - lastHoverAt < HOVER_COOLDOWN_MS) {
-    return;
-  }
-
-  lastHoverAt = now;
-  playFromPool(getHoverPool());
+export function playClick2Sound(): void {
+  playClickFromPool(getClick2Pool(), click2StartedAt, lastClick2At, (value) => {
+    lastClick2At = value;
+  }, CLICK2_COOLDOWN_MS);
 }

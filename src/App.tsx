@@ -26,7 +26,7 @@ import { claimGameMilestone } from './progression/gameProgress';
 import { claimQuestReward } from './progression/quests';
 import { getQuestProgress, processProgressionEvent, syncRetroactiveAchievements } from './progression/progressionEngine';
 import { getRewardStatus, rewardStateChangedEvent } from './progression/rewardHelpers';
-import { preloadAudio } from './services/audio';
+import { playClick2Sound, preloadAudio } from './services/audio';
 import { submitOnlineScore } from './services/onlineLeaderboard';
 import { getLeaderboard, getProfile, hasValidPlayerName, resetLocalData, saveScore, setPlayerName } from './services/storage';
 import type { GameId, GameTag, LocalProfile, ScoreInput } from './types';
@@ -190,7 +190,10 @@ function TopBar({
     <header className="sticky top-0 z-30 border-b border-cyan-300/10 bg-slate-950/82 shadow-[0_8px_26px_rgba(2,6,23,0.22)] backdrop-blur-lg">
       <div className="mx-auto grid w-full max-w-7xl gap-2 px-3 py-1 sm:px-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center lg:px-8">
         <div className="flex min-w-0 flex-wrap items-center gap-2.5 sm:gap-3">
-          <button className="flex min-w-0 items-center gap-2 text-left" onClick={() => onViewChange('home')} type="button">
+          <button className="flex min-w-0 items-center gap-2 text-left" onClick={() => {
+            playClick2Sound();
+            onViewChange('home');
+          }} type="button">
             <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg border border-cyan-300/25 bg-cyan-300/10 shadow-[0_0_16px_rgba(34,211,238,0.16)]">
               <img alt="" className="h-full w-full object-cover" src="/logogh.png" />
             </span>
@@ -208,7 +211,10 @@ function TopBar({
                     : 'border-transparent text-slate-400 hover:border-cyan-300/20 hover:bg-cyan-300/5 hover:text-white'
                 }`}
                 key={view}
-                onClick={() => onViewChange(view)}
+                onClick={() => {
+                  playClick2Sound();
+                  onViewChange(view);
+                }}
                 type="button"
               >
                 {view === 'home' ? 'Home' : 'Profil'}
@@ -247,7 +253,10 @@ function CategoryFoundation({ categories, selectedCategory, onSelect }: { catego
               ? 'border-cyan-300 bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.24)] after:absolute after:inset-x-3 after:-bottom-1 after:h-px after:bg-white/80'
               : 'border-white/10 bg-black/15 text-slate-300 hover:border-cyan-300/25 hover:bg-cyan-300/10 hover:text-white'
           }`}
-          onClick={() => onSelect(null)}
+          onClick={() => {
+            playClick2Sound();
+            onSelect(null);
+          }}
           type="button"
         >
           Wszystkie <span className="opacity-60">{games.length}</span>
@@ -260,7 +269,10 @@ function CategoryFoundation({ categories, selectedCategory, onSelect }: { catego
                   : 'border-white/10 bg-black/20 text-slate-300 hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-white'
               }`}
               key={category.id}
-              onClick={() => onSelect(selectedCategory === category.id ? null : category.id)}
+              onClick={() => {
+                playClick2Sound();
+                onSelect(selectedCategory === category.id ? null : category.id);
+              }}
               type="button"
             >
               {category.label} <span className="opacity-60">{category.count}</span>
@@ -671,7 +683,10 @@ export default function App() {
                 <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
                   <button
                     className="inline-flex w-fit items-center rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1.5 text-xs font-black uppercase tracking-[0.14em] text-cyan-100 transition hover:border-cyan-200/50 hover:bg-cyan-300/16"
-                    onClick={() => setActiveView('home')}
+                    onClick={() => {
+                      playClick2Sound();
+                      setActiveView('home');
+                    }}
                     type="button"
                   >
                     ← Lobby

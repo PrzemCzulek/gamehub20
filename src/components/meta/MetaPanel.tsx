@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { questDefinitions } from '../../data/quests';
 import { buildPlayerProfileSummary } from '../../progression/playerProfile';
 import { getQuestProgress } from '../../progression/progressionEngine';
@@ -16,6 +16,8 @@ export function MetaPanel({ profile, onReset, revision }: MetaPanelProps) {
   const [audioEnabled, setAudioEnabledState] = useState(getAudioEnabled);
   const [audioVolume, setAudioVolumeState] = useState(getAudioVolume);
   const [resetInput, setResetInput] = useState('');
+  const settingsButtonRef = useRef<HTMLButtonElement | null>(null);
+  const settingsPanelRef = useRef<HTMLDivElement | null>(null);
   const summary = buildPlayerProfileSummary(profile);
   const questProgress = getQuestProgress();
   const dailyQuests = questDefinitions.filter((quest) => quest.type === 'daily');
@@ -53,10 +55,26 @@ export function MetaPanel({ profile, onReset, revision }: MetaPanelProps) {
       }
     }
 
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (settingsPanelRef.current?.contains(target) || settingsButtonRef.current?.contains(target)) {
+        return;
+      }
+
+      setSettingsOpen(false);
+    }
+
     window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('pointerdown', handlePointerDown, true);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('pointerdown', handlePointerDown, true);
     };
   }, [settingsOpen]);
 
@@ -142,6 +160,7 @@ export function MetaPanel({ profile, onReset, revision }: MetaPanelProps) {
 
           <button
             aria-label="Ustawienia"
+          ref={settingsButtonRef}
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/25 text-sm text-slate-200 transition hover:border-cyan-300/30 hover:bg-cyan-300/10"
             onClick={() => {
               playNormalClickSound();
@@ -161,7 +180,7 @@ export function MetaPanel({ profile, onReset, revision }: MetaPanelProps) {
             onClick={() => setSettingsOpen(false)}
             type="button"
           />
-          <div className="feedback-toast absolute right-0 z-30 mt-2 w-full max-w-sm rounded-lg border border-white/10 bg-slate-950/95 p-4 shadow-[0_18px_60px_rgba(0,0,0,0.55)] backdrop-blur">
+          <div ref={settingsPanelRef} className="feedback-toast absolute right-0 z-30 mt-2 w-full max-w-sm rounded-lg border border-white/10 bg-slate-950/95 p-4 shadow-[0_18px_60px_rgba(0,0,0,0.55)] backdrop-blur">
             <h3 className="text-sm font-semibold text-white">Ustawienia</h3>
 
             <div className="mt-4 rounded-md border border-white/10 bg-black/25 p-3">

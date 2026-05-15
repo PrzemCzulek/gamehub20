@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { CSSProperties, KeyboardEvent } from 'react';
-import { playClickSound, playHoverSound } from '../services/audio';
+import { playClickSound } from '../services/audio';
 import type { GameConfig, GameId, MobileSupport } from '../types';
 
 type GameCarouselProps = {
@@ -173,7 +173,6 @@ export function GameCarousel({ games, activeGameId, onOpenGame, onSelectGame }: 
             aria-label="Poprzednia gra"
             className="flex h-10 w-10 items-center justify-center rounded-full border border-cyan-300/30 bg-cyan-300/10 text-2xl text-cyan-100 shadow-lg shadow-cyan-950/30 transition hover:bg-cyan-300/20"
             onClick={() => selectByDelta(-1)}
-            onMouseEnter={playHoverSound}
             type="button"
           >
             ‹
@@ -182,7 +181,6 @@ export function GameCarousel({ games, activeGameId, onOpenGame, onSelectGame }: 
             aria-label="Następna gra"
             className="flex h-10 w-10 items-center justify-center rounded-full border border-cyan-300/30 bg-cyan-300/10 text-2xl text-cyan-100 shadow-lg shadow-cyan-950/30 transition hover:bg-cyan-300/20"
             onClick={() => selectByDelta(1)}
-            onMouseEnter={playHoverSound}
             type="button"
           >
             ›
@@ -216,7 +214,6 @@ export function GameCarousel({ games, activeGameId, onOpenGame, onSelectGame }: 
               data-offset={offset}
               key={game.id}
               onClick={() => selectGame(game.id)}
-              onMouseEnter={playHoverSound}
               style={getCardStyle(offset)}
               type="button"
             >
@@ -276,7 +273,6 @@ export function GameCarousel({ games, activeGameId, onOpenGame, onSelectGame }: 
               }`}
               key={game.id}
               onClick={() => selectGame(game.id)}
-              onMouseEnter={playHoverSound}
               type="button"
             />
           );
