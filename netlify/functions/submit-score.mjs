@@ -45,14 +45,28 @@ function readNumber(value) {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
-function normalizeSubmittedScore(gameId, score) {
+function coerceScoreNumber(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim()) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : undefined;
+  }
+
+  return undefined;
+}
+
+function normalizeIncomingScore(gameId, rawScore, stats) {
+  const score = coerceScoreNumber(rawScore);
   if (score === undefined) return undefined;
 
   if (gameId === 'shape-precision') {
+    const accuracy = coerceScoreNumber(stats?.accuracy);
+    if (accuracy !== undefined) return Math.round(accuracy * 100);
+
     return Math.round(score <= 100 ? score * 100 : score);
   }
 
-  return score;
+  return Math.round(score);
 }
 
 function getDurationSeconds(stats) {
@@ -77,8 +91,8 @@ function validateScore(payload) {
   const playerName = typeof payload.playerName === 'string' ? payload.playerName.trim() : '';
   const username = typeof payload.username === 'string' ? payload.username.trim() : playerName;
   const gameId = typeof payload.gameId === 'string' ? payload.gameId : '';
-  const score = readNumber(payload.score);
-  const normalizedScore = normalizeSubmittedScore(gameId, score);
+  const rawScore = coerceScoreNumber(payload.score);
+  const normalizedScore = normalizeIncomingScore(gameId, payload.score, payload.stats);
   const scoreLabel = typeof payload.scoreLabel === 'string' ? payload.scoreLabel.trim() : '';
 
   if (!playerId) errors.push('playerId is required');
@@ -86,7 +100,7 @@ function validateScore(payload) {
   if (playerName.length > 24) errors.push('playerName must be 24 characters or less');
   if (payload.username !== undefined && (!username || username.length > 24)) errors.push('username must be 24 characters or less');
   if (!getGame(gameId)) errors.push('gameId is invalid');
-  if (score === undefined) errors.push('score must be a finite number');
+  if (normalizedScore === undefined) errors.push('score must be a finite number');
   if (!scoreLabel) errors.push('scoreLabel is required');
   if (!isPlainObject(payload.stats)) errors.push('stats must be an object');
   if (!isPlainObject(payload.meta)) errors.push('meta must be an object');
@@ -112,6 +126,16 @@ function validateScore(payload) {
     if (gameId === 'aim-test' && normalizedScore < 0) errors.push('aim-test score cannot be negative');
   }
 
+  if (gameId === 'shape-precision') {
+    debugSubmit({
+      stage: 'shape_score_normalized',
+      rawScore,
+      normalizedScore,
+      statsAccuracy: payload.stats?.accuracy,
+      leaderboard_scope: `shape:${getShapePrecisionShape(payload.stats ?? {})}`,
+    });
+  }
+
   return {
     errors,
     value: {
@@ -120,6 +144,7 @@ function validateScore(payload) {
       username,
       gameId,
       score: normalizedScore,
+      rawScore,
       scoreLabel,
       stats: payload.stats ?? {},
       meta: payload.meta ?? {},
@@ -644,6 +669,13 @@ export async function handler(event) {
     await safeInitializeDatabase();
     const sql = getSql();
     const leaderboardScope = getLeaderboardScope(value);
+    const normalizedScoreForWrite = normalizeIncomingScore(value.gameId, value.score, value.stats);
+
+    if (normalizedScoreForWrite === undefined) {
+      return json(400, { error: 'Validation failed', details: ['score must be a finite number'] });
+    }
+
+    value.score = normalizedScoreForWrite;
     await upsertPlayerProfile(sql, value);
 
     const values = [

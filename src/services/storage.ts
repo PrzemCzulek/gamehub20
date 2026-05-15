@@ -202,6 +202,18 @@ function readLastHistoryNumber(meta: Record<string, unknown> | undefined, key: s
   return lastEntry && typeof lastEntry === 'object' ? readNumber((lastEntry as Record<string, unknown>)[key]) : undefined;
 }
 
+function normalizeScoreForStorage(gameId: GameId, score: number, stats?: ScoreStats): number {
+  if (gameId === 'shape-precision') {
+    if (typeof stats?.accuracy === 'number' && Number.isFinite(stats.accuracy)) {
+      return Math.round(stats.accuracy * 100);
+    }
+
+    return Math.round(score <= 100 ? score * 100 : score);
+  }
+
+  return score;
+}
+
 function deriveStats(entry: Pick<LeaderboardEntry, 'gameId' | 'score' | 'meta' | 'stats' | 'runDurationMs'>): ScoreStats {
   const meta = entry.meta;
   const baseStats = entry.stats ?? {};
@@ -360,10 +372,12 @@ function deriveStats(entry: Pick<LeaderboardEntry, 'gameId' | 'score' | 'meta' |
 }
 
 function normalizeEntry(entry: LeaderboardEntry): LeaderboardEntry {
-  const stats = deriveStats(entry);
+  const normalizedScore = normalizeScoreForStorage(entry.gameId, entry.score, entry.stats);
+  const stats = deriveStats({ ...entry, score: normalizedScore });
   const runDurationMs = entry.runDurationMs ?? stats.durationMs;
   const normalizedEntry: LeaderboardEntry = {
     ...entry,
+    score: normalizedScore,
     playerId: entry.playerId,
     stats,
     runDurationMs,
@@ -507,6 +521,7 @@ export function saveScore(entry: ScoreInput): LeaderboardEntry {
     ...entry,
     playerId: entry.playerId ?? getPlayerId(),
     playerName,
+    score: normalizeScoreForStorage(entry.gameId, entry.score, entry.stats),
     createdAt: new Date().toISOString(),
   };
   const savedEntry = normalizeEntry(baseEntry);
