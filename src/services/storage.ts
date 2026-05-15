@@ -7,12 +7,15 @@ import type { DeviceType, GameId, LeaderboardEntry, LocalProfile, ScoreInput, Sc
 
 const PLAYER_KEY = 'game-hub:player-name';
 const PLAYER_ID_KEY = 'game-hub:player-id';
+const PLAYER_META_KEY = 'game-hub:player-profile-meta';
 const SCORES_KEY = 'game-hub:scores';
 const AUDIO_ENABLED_KEY = 'gameHubAudioEnabled';
 const DEVICE_ORIGIN_KEY = 'game-hub:player-device-origin';
 const RECENT_LIMIT = 5;
 const validGameIds = new Set<GameId>(games.map((game) => game.id));
 const validDeviceTypes = new Set<DeviceType>(['mobile', 'tablet', 'desktop']);
+let loggedPlayerIdDebug = false;
+let loggedLegacyMatchesDebug = false;
 
 function readJson<T>(key: string, fallback: T): T {
   try {
@@ -46,6 +49,45 @@ type PlayerDeviceOrigin = {
   createdOnDevice?: DeviceType;
   lastSeenDevice?: DeviceType;
 };
+
+type PlayerProfileMeta = {
+  createdAt: string;
+  lastSeenAt: string;
+};
+
+function getIsoNow(): string {
+  return new Date().toISOString();
+}
+
+function normalizeIsoDate(value: unknown): string | undefined {
+  return typeof value === 'string' && Number.isFinite(new Date(value).getTime()) ? new Date(value).toISOString() : undefined;
+}
+
+export function getPlayerProfileMeta(): PlayerProfileMeta {
+  const stored = readJson<Partial<PlayerProfileMeta>>(PLAYER_META_KEY, {});
+  const now = getIsoNow();
+  const meta: PlayerProfileMeta = {
+    createdAt: normalizeIsoDate(stored.createdAt) ?? now,
+    lastSeenAt: normalizeIsoDate(stored.lastSeenAt) ?? now,
+  };
+
+  if (!stored.createdAt || !stored.lastSeenAt) {
+    writeJson(PLAYER_META_KEY, meta);
+  }
+
+  return meta;
+}
+
+export function touchPlayerProfileMeta(): PlayerProfileMeta {
+  const current = getPlayerProfileMeta();
+  const next = {
+    createdAt: current.createdAt,
+    lastSeenAt: getIsoNow(),
+  };
+
+  writeJson(PLAYER_META_KEY, next);
+  return next;
+}
 
 function normalizeDeviceType(value: unknown): DeviceType | undefined {
   return typeof value === 'string' && validDeviceTypes.has(value as DeviceType) ? (value as DeviceType) : undefined;
@@ -100,15 +142,17 @@ function isLeaderboardEntry(value: unknown): value is LeaderboardEntry {
 }
 
 function createPlayerId(): string {
+  const randomPart = () => Math.random().toString(36).slice(2, 10);
+
   try {
     if ('randomUUID' in crypto) {
-      return crypto.randomUUID();
+      return `gh2_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
     }
   } catch {
-    return `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    return `gh2_${randomPart()}${Date.now().toString(36).slice(-4)}`;
   }
 
-  return `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `gh2_${randomPart()}${Date.now().toString(36).slice(-4)}`;
 }
 
 export function getPlayerId(): string {
@@ -116,16 +160,28 @@ export function getPlayerId(): string {
     const existingId = localStorage.getItem(PLAYER_ID_KEY);
 
     if (existingId) {
+      if (import.meta.env.DEV && !loggedPlayerIdDebug) {
+        console.debug('Player identity loaded', { playerId: existingId });
+        loggedPlayerIdDebug = true;
+      }
       return existingId;
     }
 
     const nextId = createPlayerId();
     localStorage.setItem(PLAYER_ID_KEY, nextId);
+    getPlayerProfileMeta();
+    getPlayerDeviceOrigin();
+    if (import.meta.env.DEV) {
+      console.debug('Player identity generated', { playerId: nextId });
+      loggedPlayerIdDebug = true;
+    }
     return nextId;
   } catch {
     return 'local-player';
   }
 }
+
+export const getOrCreatePlayerId = getPlayerId;
 
 function readNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
@@ -434,14 +490,32 @@ export function saveScore(entry: ScoreInput): LeaderboardEntry {
   const savedEntry = normalizeEntry(baseEntry);
 
   touchPlayerDeviceOrigin();
+  touchPlayerProfileMeta();
   writeJson(SCORES_KEY, [savedEntry, ...getScores()]);
   return savedEntry;
+}
+
+export function findLegacyScoresForPlayer(username = getPlayerName()): LeaderboardEntry[] {
+  const cleanUsername = username.trim();
+  const matches = cleanUsername ? getScores().filter((score) => !score.playerId && score.playerName === cleanUsername) : [];
+
+  if (import.meta.env.DEV && !loggedLegacyMatchesDebug) {
+    console.debug('Legacy score matches found', {
+      username: cleanUsername,
+      count: matches.length,
+      scoreIds: matches.map((score) => `${score.gameId}:${score.createdAt}`),
+    });
+    loggedLegacyMatchesDebug = true;
+  }
+
+  return matches;
 }
 
 export function resetLocalData(): void {
   try {
     localStorage.removeItem(PLAYER_KEY);
     localStorage.removeItem(PLAYER_ID_KEY);
+    localStorage.removeItem(PLAYER_META_KEY);
     localStorage.removeItem(SCORES_KEY);
     localStorage.removeItem(AUDIO_ENABLED_KEY);
     localStorage.removeItem(DEVICE_ORIGIN_KEY);
@@ -468,6 +542,7 @@ function getMostPlayedGame(scores: LeaderboardEntry[]): GameId | undefined {
 export function getProfile(): LocalProfile {
   const playerId = getPlayerId();
   const playerName = getPlayerName();
+  const profileMeta = touchPlayerProfileMeta();
   const playerScores = getScores().filter((score) => score.playerId === playerId || (!score.playerId && score.playerName === playerName));
   const bestScores: LocalProfile['bestScores'] = {};
 
@@ -490,10 +565,14 @@ export function getProfile(): LocalProfile {
     .filter(Boolean)
     .sort((a, b) => (b?.xpGained ?? 0) - (a?.xpGained ?? 0))[0]?.gameId;
   const deviceOrigin = getPlayerDeviceOrigin();
+  findLegacyScoresForPlayer(playerName);
 
   return {
     playerId,
     playerName,
+    username: playerName,
+    createdAt: profileMeta.createdAt,
+    lastSeenAt: profileMeta.lastSeenAt,
     level,
     xp,
     currentLevelXp,

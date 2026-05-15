@@ -128,6 +128,9 @@ export type GameConfig = {
 export type LocalProfile = {
   playerId: string;
   playerName: string;
+  username: string;
+  createdAt: string;
+  lastSeenAt: string;
   level: number;
   xp: number;
   currentLevelXp: number;
@@ -211,6 +214,9 @@ export type PlayerProfileSummary = {
   playerId: string;
   playerName: string;
   displayName: string;
+  username: string;
+  createdAt: string;
+  lastSeenAt: string;
   level: number;
   xp: number;
   currentLevelXp: number;

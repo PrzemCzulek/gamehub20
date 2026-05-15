@@ -137,7 +137,10 @@ export function buildPlayerProfileSummary(profile: LocalProfile): PlayerProfileS
   return {
     playerId: profile.playerId,
     playerName: profile.playerName,
+    username: profile.username,
     displayName: profile.playerName || emptyValueLabel,
+    createdAt: profile.createdAt,
+    lastSeenAt: profile.lastSeenAt,
     level: profile.level,
     xp: profile.xp,
     currentLevelXp: profile.currentLevelXp,

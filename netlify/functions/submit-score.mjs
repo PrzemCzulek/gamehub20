@@ -32,6 +32,15 @@ function sanitizeDeviceType(value) {
   return value === 'mobile' || value === 'tablet' || value === 'desktop' ? value : undefined;
 }
 
+function sanitizeIsoDate(value) {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date.toISOString() : undefined;
+}
+
 function readNumber(value) {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
@@ -52,6 +61,7 @@ function validateScore(payload) {
   const errors = [];
   const playerId = typeof payload.playerId === 'string' ? payload.playerId.trim() : '';
   const playerName = typeof payload.playerName === 'string' ? payload.playerName.trim() : '';
+  const username = typeof payload.username === 'string' ? payload.username.trim() : playerName;
   const gameId = typeof payload.gameId === 'string' ? payload.gameId : '';
   const score = readNumber(payload.score);
   const scoreLabel = typeof payload.scoreLabel === 'string' ? payload.scoreLabel.trim() : '';
@@ -59,6 +69,7 @@ function validateScore(payload) {
   if (!playerId) errors.push('playerId is required');
   if (!playerName) errors.push('playerName is required');
   if (playerName.length > 24) errors.push('playerName must be 24 characters or less');
+  if (payload.username !== undefined && (!username || username.length > 24)) errors.push('username must be 24 characters or less');
   if (!getGame(gameId)) errors.push('gameId is invalid');
   if (score === undefined) errors.push('score must be a finite number');
   if (!scoreLabel) errors.push('scoreLabel is required');
@@ -67,6 +78,9 @@ function validateScore(payload) {
   if (!isPlainObject(payload.equippedCosmetics)) errors.push('equippedCosmetics must be an object');
   if (payload.createdOnDevice !== undefined && !sanitizeDeviceType(payload.createdOnDevice)) errors.push('createdOnDevice is invalid');
   if (payload.lastSeenDevice !== undefined && !sanitizeDeviceType(payload.lastSeenDevice)) errors.push('lastSeenDevice is invalid');
+  if (payload.deviceType !== undefined && !sanitizeDeviceType(payload.deviceType)) errors.push('deviceType is invalid');
+  if (payload.profileCreatedAt !== undefined && !sanitizeIsoDate(payload.profileCreatedAt)) errors.push('profileCreatedAt is invalid');
+  if (payload.profileLastSeenAt !== undefined && !sanitizeIsoDate(payload.profileLastSeenAt)) errors.push('profileLastSeenAt is invalid');
   if (payload.achievementsUnlocked !== undefined && readNumber(payload.achievementsUnlocked) === undefined) errors.push('achievementsUnlocked must be a finite number');
   if (payload.achievementsTotal !== undefined && readNumber(payload.achievementsTotal) === undefined) errors.push('achievementsTotal must be a finite number');
 
@@ -88,6 +102,7 @@ function validateScore(payload) {
     value: {
       playerId,
       playerName,
+      username,
       gameId,
       score,
       scoreLabel,
@@ -97,7 +112,10 @@ function validateScore(payload) {
       achievementsUnlocked: readNumber(payload.achievementsUnlocked),
       achievementsTotal: readNumber(payload.achievementsTotal),
       createdOnDevice: sanitizeDeviceType(payload.createdOnDevice),
-      lastSeenDevice: sanitizeDeviceType(payload.lastSeenDevice),
+      lastSeenDevice: sanitizeDeviceType(payload.lastSeenDevice) ?? sanitizeDeviceType(payload.deviceType),
+      deviceType: sanitizeDeviceType(payload.deviceType),
+      profileCreatedAt: sanitizeIsoDate(payload.profileCreatedAt),
+      profileLastSeenAt: sanitizeIsoDate(payload.profileLastSeenAt),
       xpGained: readNumber(payload.xpGained),
       runDurationMs: readNumber(payload.runDurationMs),
       createdAt: Number.isFinite(new Date(payload.createdAt).getTime()) ? new Date(payload.createdAt).toISOString() : new Date().toISOString(),
@@ -290,6 +308,18 @@ async function upsertPlayerProfile(sql, value) {
   const nextEquippedCosmetics = value.equippedCosmetics ?? existingProfile?.equipped_cosmetics ?? {};
   const nextCreatedOnDevice = existingProfile?.created_on_device ?? value.createdOnDevice ?? value.lastSeenDevice ?? null;
   const nextLastSeenDevice = value.lastSeenDevice ?? existingProfile?.last_seen_device ?? value.createdOnDevice ?? null;
+  const nextProfileCreatedAt = existingProfile?.profile_created_at ?? value.profileCreatedAt ?? value.createdAt;
+  const nextProfileLastSeenAt = value.profileLastSeenAt ?? value.createdAt;
+
+  debugSubmit({
+    stage: 'profile_sync',
+    player_id: value.playerId,
+    username: value.username,
+    createdOnDevice: nextCreatedOnDevice,
+    lastSeenDevice: nextLastSeenDevice,
+    profileCreatedAt: nextProfileCreatedAt,
+    profileLastSeenAt: nextProfileLastSeenAt,
+  });
 
   const [profileRow] = await sql.query(
     `
@@ -308,8 +338,10 @@ async function upsertPlayerProfile(sql, value) {
         equipped_cosmetics,
         created_on_device,
         last_seen_device,
+        profile_created_at,
+        last_seen_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, 1, 1, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11, $12, NOW())
+      ) VALUES ($1, $2, $3, $4, 1, 1, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11, $12, $13, $14, NOW())
       ON CONFLICT (player_id) DO UPDATE
       SET
         player_name = EXCLUDED.player_name,
@@ -334,6 +366,8 @@ async function upsertPlayerProfile(sql, value) {
         END,
         created_on_device = COALESCE(player_profiles.created_on_device, EXCLUDED.created_on_device),
         last_seen_device = COALESCE(EXCLUDED.last_seen_device, player_profiles.last_seen_device),
+        profile_created_at = COALESCE(player_profiles.profile_created_at, EXCLUDED.profile_created_at),
+        last_seen_at = COALESCE(EXCLUDED.last_seen_at, NOW()),
         updated_at = NOW()
       RETURNING *
     `,
@@ -350,6 +384,8 @@ async function upsertPlayerProfile(sql, value) {
       JSON.stringify(nextEquippedCosmetics),
       nextCreatedOnDevice,
       nextLastSeenDevice,
+      nextProfileCreatedAt,
+      nextProfileLastSeenAt,
     ],
   );
 

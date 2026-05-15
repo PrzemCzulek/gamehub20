@@ -169,6 +169,8 @@ export async function initializeDatabase() {
             equipped_cosmetics JSONB DEFAULT '{}'::jsonb,
             created_on_device TEXT,
             last_seen_device TEXT,
+            profile_created_at TIMESTAMPTZ DEFAULT NOW(),
+            last_seen_at TIMESTAMPTZ DEFAULT NOW(),
             updated_at TIMESTAMPTZ DEFAULT NOW()
           )
         `),
@@ -176,6 +178,8 @@ export async function initializeDatabase() {
       .then(() => sql.query("ALTER TABLE player_profiles ADD COLUMN IF NOT EXISTS equipped_cosmetics JSONB DEFAULT '{}'::jsonb"))
       .then(() => sql.query('ALTER TABLE player_profiles ADD COLUMN IF NOT EXISTS created_on_device TEXT'))
       .then(() => sql.query('ALTER TABLE player_profiles ADD COLUMN IF NOT EXISTS last_seen_device TEXT'))
+      .then(() => sql.query('ALTER TABLE player_profiles ADD COLUMN IF NOT EXISTS profile_created_at TIMESTAMPTZ DEFAULT NOW()'))
+      .then(() => sql.query('ALTER TABLE player_profiles ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ DEFAULT NOW()'))
       .then(() => sql.query('CREATE INDEX IF NOT EXISTS player_profiles_updated_at_idx ON player_profiles (updated_at DESC)'))
       .catch((error) => {
         initializePromise = undefined;
@@ -209,6 +213,7 @@ export function mapPlayerProfileRow(row) {
   return {
     playerId: row.player_id,
     playerName: row.player_name,
+    username: row.player_name,
     level: Number(row.level ?? 1),
     xp: Number(row.xp ?? 0),
     gamesPlayed: Number(row.games_played ?? 0),
@@ -220,6 +225,8 @@ export function mapPlayerProfileRow(row) {
     equippedCosmetics: row.equipped_cosmetics ?? {},
     createdOnDevice: row.created_on_device ?? undefined,
     lastSeenDevice: row.last_seen_device ?? undefined,
+    createdAt: row.profile_created_at instanceof Date ? row.profile_created_at.toISOString() : row.profile_created_at,
+    lastSeenAt: row.last_seen_at instanceof Date ? row.last_seen_at.toISOString() : row.last_seen_at,
     highlights: row.highlights ?? {},
     updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : row.updated_at,
   };

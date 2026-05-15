@@ -12,6 +12,7 @@ export type OnlineProfileHighlight = {
 export type OnlinePlayerProfile = {
   playerId: string;
   playerName: string;
+  username?: string;
   level: number;
   xp: number;
   gamesPlayed: number;
@@ -27,6 +28,8 @@ export type OnlinePlayerProfile = {
   equippedCosmetics?: LocalProfile['equippedCosmetics'];
   createdOnDevice?: DeviceType;
   lastSeenDevice?: DeviceType;
+  createdAt?: string;
+  lastSeenAt?: string;
   highlights: {
     bestReactionTime?: OnlineProfileHighlight;
     bestTypingWpm?: OnlineProfileHighlight;

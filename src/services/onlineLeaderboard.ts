@@ -2,7 +2,7 @@ import type { GameId, LeaderboardEntry } from '../types';
 import { achievementDefinitions } from '../data/achievements';
 import { getAchievementUnlocks } from '../progression/progressionEngine';
 import { getEquippedCosmetics } from '../progression/rewardHelpers';
-import { getPlayerDeviceOrigin, touchPlayerDeviceOrigin } from './storage';
+import { getPlayerDeviceOrigin, getPlayerName, touchPlayerDeviceOrigin, touchPlayerProfileMeta } from './storage';
 import { getDeviceType } from '../utils/device';
 
 type OnlineLeaderboardResponse = {
@@ -39,6 +39,21 @@ async function readJsonResponse<T>(response: Response): Promise<T> {
 
 export async function submitOnlineScore(scoreEntry: LeaderboardEntry): Promise<LeaderboardEntry | undefined> {
   const deviceOrigin = touchPlayerDeviceOrigin(getDeviceType());
+  const profileMeta = touchPlayerProfileMeta();
+  const username = getPlayerName();
+
+  if (import.meta.env.DEV) {
+    console.debug('Online profile sync', {
+      playerId: scoreEntry.playerId,
+      username,
+      gameId: scoreEntry.gameId,
+      createdOnDevice: deviceOrigin.createdOnDevice,
+      lastSeenDevice: deviceOrigin.lastSeenDevice,
+      profileCreatedAt: profileMeta.createdAt,
+      profileLastSeenAt: profileMeta.lastSeenAt,
+    });
+  }
+
   const response = await fetch('/.netlify/functions/submit-score', {
     method: 'POST',
     headers: {
@@ -46,11 +61,15 @@ export async function submitOnlineScore(scoreEntry: LeaderboardEntry): Promise<L
     },
     body: JSON.stringify({
       ...scoreEntry,
+      username,
       equippedCosmetics: getEquippedCosmetics(),
       achievementsUnlocked: getAchievementUnlocks().length,
       achievementsTotal: achievementDefinitions.length,
       createdOnDevice: deviceOrigin.createdOnDevice ?? getPlayerDeviceOrigin().createdOnDevice,
       lastSeenDevice: deviceOrigin.lastSeenDevice,
+      deviceType: deviceOrigin.lastSeenDevice,
+      profileCreatedAt: profileMeta.createdAt,
+      profileLastSeenAt: profileMeta.lastSeenAt,
     }),
   });
   const data = await readJsonResponse<SubmitScoreResponse>(response);
