@@ -498,7 +498,7 @@ export async function handler(event) {
     const shouldUpdate = !existingRow || isBetterScore(game, value.score, existingScore);
 
     debugSubmit({
-      stage: 'upsert_decision',
+      stage: 'upsert_precheck',
       game_id: value.gameId,
       player_id: value.playerId,
       score: value.score,
@@ -508,18 +508,6 @@ export async function handler(event) {
       shouldUpdate,
       reason: existingRow ? (shouldUpdate ? 'better_score' : 'not_best') : 'new_best',
     });
-
-    if (existingRow && !shouldUpdate) {
-      const entry = mapScoreRow(existingRow);
-
-      return json(200, {
-        ok: true,
-        updated: false,
-        reason: 'not_best',
-        entry,
-        score: entry,
-      });
-    }
 
     const values = [
       value.playerId,
@@ -535,29 +523,8 @@ export async function handler(event) {
       leaderboardScope,
     ];
 
-    const [row] = existingRow
-      ? await sql.query(
-          `
-            UPDATE scores
-            SET
-              player_name = $2,
-              score = $4,
-              score_label = $5,
-              stats = $6::jsonb,
-              meta = $7::jsonb,
-              xp_gained = $8,
-              run_duration_ms = $9,
-              created_at = $10,
-              leaderboard_scope = $11
-            WHERE player_id = $1
-              AND game_id = $3
-              AND leaderboard_scope = $11
-            RETURNING *
-          `,
-          values,
-        )
-      : await sql.query(
-          `INSERT INTO scores (
+    const [row] = await sql.query(
+      `INSERT INTO scores (
             player_id,
             player_name,
             game_id,
@@ -570,15 +537,92 @@ export async function handler(event) {
             created_at,
             leaderboard_scope
           ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9, $10, $11)
+          ON CONFLICT (player_id, game_id, leaderboard_scope) DO UPDATE
+          SET
+            player_name = EXCLUDED.player_name,
+            score = EXCLUDED.score,
+            score_label = EXCLUDED.score_label,
+            stats = EXCLUDED.stats,
+            meta = EXCLUDED.meta,
+            xp_gained = EXCLUDED.xp_gained,
+            run_duration_ms = EXCLUDED.run_duration_ms,
+            created_at = EXCLUDED.created_at
+          WHERE ${
+            game.scoreDirection === 'ascending'
+              ? 'EXCLUDED.score < scores.score'
+              : 'EXCLUDED.score > scores.score'
+          }
           RETURNING *`,
-          values,
-        );
+      values,
+    );
+
+    if (!row) {
+      const [currentRow] = await sql.query(
+        `
+          SELECT *
+          FROM scores
+          WHERE player_id = $1
+            AND game_id = $2
+            AND leaderboard_scope = $3
+          LIMIT 1
+        `,
+        [value.playerId, value.gameId, leaderboardScope],
+      );
+      const fallbackRow = currentRow ?? existingRow;
+
+      if (!fallbackRow) {
+        debugSubmit({
+          stage: 'upsert_missing_row',
+          game_id: value.gameId,
+          player_id: value.playerId,
+          leaderboard_scope: leaderboardScope,
+          score: value.score,
+        });
+        return json(409, {
+          ok: false,
+          error: 'Score conflict could not be resolved',
+        });
+      }
+
+      const entry = mapScoreRow(fallbackRow);
+
+      debugSubmit({
+        stage: 'upsert_result',
+        game_id: value.gameId,
+        player_id: value.playerId,
+        score: value.score,
+        scoreDirection: game.scoreDirection,
+        leaderboard_scope: leaderboardScope,
+        updated: false,
+        reason: 'not_better',
+      });
+
+      return json(200, {
+        ok: true,
+        updated: false,
+        reason: 'not_better',
+        entry,
+        score: entry,
+      });
+    }
 
     const entry = mapScoreRow(row);
+    const inserted = !existingRow;
+    debugSubmit({
+      stage: 'upsert_result',
+      game_id: value.gameId,
+      player_id: value.playerId,
+      score: value.score,
+      scoreDirection: game.scoreDirection,
+      leaderboard_scope: leaderboardScope,
+      updated: true,
+      reason: inserted ? 'inserted_or_conflict_inserted' : 'better_score',
+    });
+
     return json(200, {
       ok: true,
       updated: true,
-      mode: existingRow ? 'updated_best' : 'inserted_best',
+      mode: inserted ? 'inserted_best' : 'updated_best',
       entry,
       score: entry,
     });
