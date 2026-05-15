@@ -10,7 +10,7 @@ export type FeedbackItem = {
   title: string;
   message: string;
   detail?: string;
-  rarity?: 'common' | 'rare' | 'epic' | 'legendary' | 'hidden';
+  rarity?: 'common' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'hidden';
   durationMs?: number;
 };
 

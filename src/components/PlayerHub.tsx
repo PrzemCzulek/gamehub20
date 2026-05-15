@@ -11,7 +11,8 @@ import { getQuestStreak } from '../progression/quests';
 import { getAchievementUnlocks, getQuestProgress } from '../progression/progressionEngine';
 import { claimReward, equipCosmetic, getEquippedCosmetics, getRewardStatus, unequipCosmetic } from '../progression/rewardHelpers';
 import { playNormalClickSound } from '../services/audio';
-import type { DeviceType, GameId, LocalProfile, PlayerGameProgressSummary } from '../types';
+import type { AchievementDefinition, AchievementRarity } from '../progression/types';
+import type { DeviceType, GameId, LocalProfile, PlayerGameProgressSummary, PlayerProfileSummary, ScoreStats } from '../types';
 import { formatPercent } from '../utils/format';
 
 type PlayerHubProps = {
@@ -24,6 +25,7 @@ type PlayerHubProps = {
 
 type PlayerHubTab = 'stats' | 'rewards' | 'achievements' | 'quests' | 'history';
 type RewardFilter = 'all' | 'ready' | 'owned' | 'locked' | 'titles' | 'badges' | 'frames';
+type AchievementFilter = 'all' | 'unlocked' | 'locked' | 'common' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'by_game';
 type RewardRarity = 'common' | 'rare' | 'epic' | 'legendary' | 'mythic';
 type Accent = 'cyan' | 'violet' | 'amber' | 'teal';
 
@@ -43,6 +45,18 @@ const rewardFilters: Array<{ id: RewardFilter; label: string }> = [
   { id: 'titles', label: 'Titles' },
   { id: 'badges', label: 'Badges' },
   { id: 'frames', label: 'Frames' },
+];
+
+const achievementFilters: Array<{ id: AchievementFilter; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'unlocked', label: 'Unlocked' },
+  { id: 'locked', label: 'Locked' },
+  { id: 'common', label: 'Common' },
+  { id: 'rare', label: 'Rare' },
+  { id: 'epic', label: 'Epic' },
+  { id: 'legendary', label: 'Legendary' },
+  { id: 'mythic', label: 'Mythic' },
+  { id: 'by_game', label: 'By game' },
 ];
 
 const gameGlyphs: Record<GameId, string> = {
@@ -65,6 +79,14 @@ const rewardRarityStyles: Record<RewardRarity, { card: string; badge: string; fi
   epic: { card: 'border-violet-300/30 bg-violet-300/[0.065]', badge: 'border-violet-300/40 bg-violet-300/10 text-violet-100', fill: 'bg-violet-300', glow: 'shadow-[0_0_24px_rgba(168,85,247,0.18)]' },
   legendary: { card: 'border-amber-200/35 bg-amber-200/[0.07]', badge: 'border-amber-200/45 bg-amber-200/10 text-amber-100', fill: 'bg-amber-200', glow: 'shadow-[0_0_26px_rgba(251,191,36,0.16)]' },
   mythic: { card: 'border-fuchsia-200/35 bg-fuchsia-300/[0.07]', badge: 'border-fuchsia-200/45 bg-fuchsia-300/10 text-fuchsia-100', fill: 'bg-gradient-to-r from-cyan-300 via-violet-300 to-amber-200', glow: 'shadow-[0_0_28px_rgba(217,70,239,0.16)]' },
+};
+
+const achievementRarityStyles: Record<Exclude<AchievementRarity, 'hidden'>, { card: string; badge: string; fill: string; icon: string }> = {
+  common: { card: 'border-slate-300/15 bg-slate-300/[0.035]', badge: 'border-slate-300/20 bg-slate-300/10 text-slate-200', fill: 'bg-slate-300', icon: 'text-slate-200' },
+  rare: { card: 'border-cyan-300/25 bg-cyan-300/[0.055] shadow-[0_0_18px_rgba(34,211,238,0.10)]', badge: 'border-cyan-300/35 bg-cyan-300/10 text-cyan-100', fill: 'bg-cyan-300', icon: 'text-cyan-100' },
+  epic: { card: 'border-violet-300/30 bg-violet-300/[0.065] shadow-[0_0_20px_rgba(168,85,247,0.12)]', badge: 'border-violet-300/40 bg-violet-300/10 text-violet-100', fill: 'bg-violet-300', icon: 'text-violet-100' },
+  legendary: { card: 'border-amber-200/35 bg-amber-200/[0.075] shadow-[0_0_24px_rgba(251,191,36,0.13)]', badge: 'border-amber-200/45 bg-amber-200/10 text-amber-100', fill: 'bg-amber-200', icon: 'text-amber-100' },
+  mythic: { card: 'border-fuchsia-200/35 bg-fuchsia-300/[0.075] shadow-[0_0_26px_rgba(217,70,239,0.14)]', badge: 'border-fuchsia-200/45 bg-fuchsia-300/10 text-fuchsia-100', fill: 'bg-gradient-to-r from-cyan-300 via-fuchsia-300 to-amber-200', icon: 'text-fuchsia-100' },
 };
 
 const questRarityStyles = {
@@ -132,6 +154,95 @@ function getRewardProgress(reward: RewardDefinition, gameProgressById: Map<GameI
   const current = reward.gameId ? gameProgressById.get(reward.gameId)?.level ?? 0 : 0;
   return { current, required, percent: required > 0 ? Math.min(100, Math.round((current / required) * 100)) : 0 };
 }
+
+function formatDate(value?: string): string | undefined {
+  if (!value) return undefined;
+  return new Intl.DateTimeFormat('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value));
+}
+
+function readStat(stats: ScoreStats | undefined, key: keyof ScoreStats): number {
+  const value = stats?.[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function getAchievementProgress(achievement: AchievementDefinition, summary: PlayerProfileSummary, profile: LocalProfile) {
+  const score = achievement.gameId ? profile.bestScores[achievement.gameId] : undefined;
+  const gameProgress = achievement.gameId ? summary.gameProgressSummary.find((entry) => entry.gameId === achievement.gameId) : undefined;
+
+  const build = (current: number, target: number, suffix = '') => ({
+    current,
+    target,
+    percent: target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0,
+    label: `${Math.min(current, target)}${suffix}/${target}${suffix}`,
+  });
+
+  switch (achievement.id) {
+    case 'global-level-10':
+      return build(summary.level, 10, ' LV');
+    case 'reaction-under-200':
+      return { current: score?.score ?? 999, target: 200, percent: score ? Math.min(100, Math.round((200 / Math.max(score.score, 1)) * 100)) : 0, label: score ? `${score.score} ms` : '< 200 ms' };
+    case 'typing-perfect-accuracy':
+      return build(readStat(score?.stats, 'accuracy'), 100, '%');
+    case 'typing-80-wpm':
+      return build(score?.score ?? 0, 80, ' WPM');
+    case 'typing-100-wpm':
+      return build(score?.score ?? 0, 100, ' WPM');
+    case 'typing-120-wpm':
+      return build(score?.score ?? 0, 120, ' WPM');
+    case 'typing-hard-complete':
+      return { current: 0, target: 1, percent: score?.stats?.difficulty === 'hard' ? 100 : 0, label: 'HARD mode' };
+    case 'typing-polish-mastery':
+      return build(score?.stats?.difficulty === 'hard' ? readStat(score.stats, 'accuracy') : 0, 98, '%');
+    case 'color-memory-95-best':
+      return build(Math.max(readStat(score?.stats, 'bestSimilarity'), readStat(score?.stats, 'avgSimilarity')), 95, '%');
+    case 'aim-perfect-accuracy':
+    case 'stroop-no-miss':
+    case 'word-memory-flawless':
+      return build(score && readStat(score.stats, 'misses') === 0 ? 1 : 0, 1);
+    case 'aim-infinity-survive-60':
+      return build(readStat(score?.stats, 'survivedTime'), 60, 's');
+    case 'aim-hp-recovered':
+      return build(readStat(score?.stats, 'hpRecovered'), 1);
+    case 'aim-30s-95-accuracy':
+      return build(readStat(score?.stats, 'accuracy'), 95, '%');
+    case 'aim-15s-combo-20':
+    case 'stroop-combo-20':
+      return build(Math.max(readStat(score?.stats, 'combo'), readStat(score?.stats, 'bestCombo'), readStat(score?.stats, 'longestStreak')), 20);
+    case 'symbol-match-low-move':
+      return { current: score?.score ?? 99, target: 10, percent: score ? Math.min(100, Math.round((10 / Math.max(score.score, 1)) * 100)) : 0, label: score ? `${score.score} moves` : '<= 10 moves' };
+    case 'flappy-score-10':
+      return build(score?.score ?? 0, 10);
+    case 'flappy-score-25':
+      return build(score?.score ?? 0, 25);
+    case 'flappy-score-50':
+      return build(score?.score ?? 0, 50);
+    case 'flappy-score-100':
+      return build(score?.score ?? 0, 100);
+    case 'flappy-survive-60':
+      return build(readStat(score?.stats, 'survivedTimeSeconds'), 60, 's');
+    case 'flappy-efficiency-70':
+      return build(readStat(score?.stats, 'efficiency'), 70, '%');
+    case 'cps-10':
+      return build(score?.score ?? 0, 10, ' CPS');
+    case 'cps-15':
+      return build(score?.score ?? 0, 15, ' CPS');
+    case 'cps-alternating-mastery':
+      return build(readStat(score?.stats, 'totalClicks'), 30);
+    case 'cps-endurance-30':
+      return build(readStat(score?.stats, 'totalClicks'), 200);
+    case 'stroop-fast-reaction':
+      return { current: readStat(score?.stats, 'averageReactionMs'), target: 650, percent: score ? Math.min(100, Math.round((650 / Math.max(readStat(score.stats, 'averageReactionMs'), 1)) * 100)) : 0, label: score ? `${readStat(score.stats, 'averageReactionMs')} ms` : '< 650 ms' };
+    case 'time-sense-perfect':
+      return build(readStat(score?.stats, 'isPerfect'), 1);
+    case 'time-sense-ultra-precision':
+      return { current: readStat(score?.stats, 'deviationMs'), target: 50, percent: score ? Math.min(100, Math.round((50 / Math.max(readStat(score.stats, 'deviationMs'), 1)) * 100)) : 0, label: score ? `${readStat(score.stats, 'deviationMs')} ms` : '<= 50 ms' };
+    case 'time-sense-low-deviation':
+      return { current: readStat(score?.stats, 'deviationMs'), target: 200, percent: score ? Math.min(100, Math.round((200 / Math.max(readStat(score.stats, 'deviationMs'), 1)) * 100)) : 0, label: score ? `${readStat(score.stats, 'deviationMs')} ms` : '<= 200 ms' };
+    default:
+      return { current: gameProgress?.level ?? 0, target: 1, percent: gameProgress ? 100 : 0, label: achievement.targetLabel ?? 'Target' };
+  }
+}
+
 function getQuestHint(quest: { description: string; seasonalTags?: string[] }): string {
   if (quest.description.includes('·')) return quest.description;
   const source = quest.seasonalTags?.[0];
@@ -301,6 +412,7 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
   const [activeQuestHintId, setActiveQuestHintId] = useState<string | null>(null);
   const [rewardRevision, setRewardRevision] = useState(0);
   const [rewardFilter, setRewardFilter] = useState<RewardFilter>('all');
+  const [achievementFilter, setAchievementFilter] = useState<AchievementFilter>('all');
   const summary = buildPlayerProfileSummary(profile);
   const gameProgressById = useMemo(() => new Map(summary.gameProgressSummary.map((entry) => [entry.gameId, entry])), [summary.gameProgressSummary]);
   const questProgress = getQuestProgress();
@@ -308,6 +420,22 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
   const achievementUnlocks = getAchievementUnlocks();
   const unlockById = new Map(achievementUnlocks.map((unlock) => [unlock.achievementId, unlock]));
   const unlockedIds = new Set(unlockById.keys());
+  const latestAchievementUnlock = [...achievementUnlocks].sort((a, b) => new Date(b.unlockedAt).getTime() - new Date(a.unlockedAt).getTime())[0];
+  const latestAchievement = latestAchievementUnlock ? achievementDefinitions.find((achievement) => achievement.id === latestAchievementUnlock.achievementId) : undefined;
+  const achievementCompletionPercent = achievementDefinitions.length > 0 ? Math.round((unlockedIds.size / achievementDefinitions.length) * 100) : 0;
+  const unlockedRarityCounts = achievementDefinitions.reduce<Record<string, number>>((counts, achievement) => {
+    if (unlockedIds.has(achievement.id)) counts[achievement.rarity] = (counts[achievement.rarity] ?? 0) + 1;
+    return counts;
+  }, {});
+  const favoriteAchievementRarity = Object.entries(unlockedRarityCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'none';
+  const filteredAchievements = achievementDefinitions.filter((achievement) => {
+    const unlocked = unlockedIds.has(achievement.id);
+    if (achievementFilter === 'all') return true;
+    if (achievementFilter === 'unlocked') return unlocked;
+    if (achievementFilter === 'locked') return !unlocked;
+    if (achievementFilter === 'by_game') return Boolean(achievement.gameId);
+    return achievement.rarity === achievementFilter;
+  });
   const readyRewards = rewardDefinitions.filter((reward) => getRewardStatus(reward) === 'ready');
   const lockedRewards = rewardDefinitions.filter((reward) => getRewardStatus(reward) === 'locked');
   const equippedCosmetics = getEquippedCosmetics();
@@ -408,7 +536,7 @@ export function PlayerHub({ onMilestoneClaim, onQuestClaim, onRename, profile, r
         {activeTab === 'stats' && <div className="space-y-5"><section><div className="mb-3 flex items-center justify-between gap-3"><h3 className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100">Top highlights</h3><span className="text-xs text-slate-500">Best: {bestGameTitle}</span></div><div className="grid gap-3 lg:grid-cols-3">{topHighlights.map((item) => <HighlightCard accent={item.accent} icon={item.icon} key={item.label} label={item.label} primary={item.value} />)}</div><div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{extraHighlights.map((item) => <CompactStat accent={item.accent} key={item.label} label={item.label} value={item.value} />)}</div></section><section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]"><div className="rounded-2xl border border-white/10 bg-black/18 p-4"><div className="mb-3 flex items-center justify-between gap-3"><h3 className="text-xs font-black uppercase tracking-[0.22em] text-slate-300">Best scores</h3><span className="text-xs text-slate-500">{summary.totalScoreEntries} entries</span></div><div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">{games.map((game) => <BestScoreTile gameId={game.id} key={game.id} metric={game.scoreName} title={game.title} value={profile.bestScores[game.id]?.scoreLabel} />)}</div></div><form className="rounded-2xl border border-white/10 bg-black/18 p-4" onSubmit={(event) => { event.preventDefault(); playNormalClickSound(); onRename(draftName); }}><h3 className="text-xs font-black uppercase tracking-[0.22em] text-slate-300">Identity</h3><input className="mt-3 w-full rounded-md border border-white/10 bg-black/25 px-3 py-2 text-sm text-white placeholder:text-slate-500" maxLength={24} onChange={(event) => setDraftName(event.target.value)} placeholder="Nick" value={draftName} /><button className="mt-2 w-full rounded-md bg-teal-300 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-teal-200" type="submit">Zmień nick</button></form></section><section className="rounded-2xl border border-cyan-300/10 bg-black/18 p-4"><div className="mb-3 flex flex-wrap items-end justify-between gap-2"><h3 className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100">Game levels</h3>{summary.topGameLevels.length > 0 && <span className="text-xs text-slate-500">Top: {summary.topGameLevels[0].gameTitle} Lv. {summary.topGameLevels[0].level}</span>}</div><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{summary.gameProgressSummary.map((gameProgress) => <GameLevelCard gameProgress={gameProgress} key={gameProgress.gameId} onMilestoneClaim={onMilestoneClaim} />)}</div></section></div>}
 
         {activeTab === 'rewards' && <div className="space-y-4"><RewardsIdentityShowcase deviceLabel={deviceLabel} displayName={summary.displayName} equippedBadge={equippedBadge} equippedFrame={equippedFrame} equippedTitle={equippedTitle} level={summary.level} readyCount={readyRewards.length} xpPercent={summary.levelProgressPercent} />{readyRewards.length > 0 && <section className="rounded-3xl border border-cyan-300/30 bg-cyan-300/[0.055] p-3 shadow-[0_0_30px_rgba(34,211,238,0.14)]"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Ready to claim</h3><p className="mt-0.5 text-xs text-slate-400">Reward drop waiting.</p></div>{readyRewards.length > 1 && <button className="rounded-xl bg-cyan-300 px-3 py-1.5 text-xs font-black uppercase tracking-[0.14em] text-slate-950 transition hover:bg-cyan-100" onClick={handleClaimAll} type="button">Claim all</button>}</div><div className="mt-3 grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">{readyRewards.map((reward) => <PrestigeRewardCard key={reward.id} onClaim={handleClaimReward} onEquip={handleEquipReward} onUnequip={handleUnequipReward} progress={getRewardProgress(reward, gameProgressById)} reward={reward} />)}</div></section>}<section className="rounded-3xl border border-white/10 bg-black/18 p-3"><div className="sticky top-2 z-10 -mx-1 -mt-1 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-slate-950/90 p-2 backdrop-blur"><h3 className="text-xs font-black uppercase tracking-[0.16em] text-slate-200">Prestige track</h3><div className="flex flex-wrap gap-1.5">{rewardFilters.map((filter) => <button className={`rounded-full border px-2 py-0.5 text-[0.58rem] font-black uppercase tracking-[0.12em] transition ${rewardFilter === filter.id ? 'border-cyan-300 bg-cyan-300 text-slate-950' : 'border-white/10 bg-white/[0.03] text-slate-400 hover:border-cyan-300/30 hover:text-cyan-100'}`} key={filter.id} onClick={() => { playNormalClickSound(); setRewardFilter(filter.id); }} type="button">{filter.label}</button>)}</div></div>{filteredRewards.length === 0 ? <p className="mt-3 rounded-xl border border-dashed border-white/10 p-4 text-sm text-slate-500">Brak rewardów w tym filtrze.</p> : <div className="mt-3 grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">{filteredRewards.map((reward) => <PrestigeRewardCard key={reward.id} onClaim={handleClaimReward} onEquip={handleEquipReward} onUnequip={handleUnequipReward} progress={getRewardProgress(reward, gameProgressById)} reward={reward} />)}</div>}</section></div>}
-        {activeTab === 'achievements' && <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">{achievementDefinitions.map((achievement) => { const unlocked = unlockedIds.has(achievement.id); const unlock = unlockById.get(achievement.id); return <div className={`relative overflow-hidden rounded-xl border p-3.5 transition duration-200 ${unlocked ? 'border-cyan-300/30 bg-cyan-300/[0.07] achievement-shine' : 'border-white/10 bg-black/20 opacity-70'}`} key={achievement.id}><div className="flex items-start justify-between gap-2"><h3 className="text-sm font-bold text-white">{achievement.title}</h3><span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[0.62rem] font-bold uppercase text-slate-300">{achievement.rarity}</span></div><p className="mt-2 text-xs leading-5 text-slate-400">{achievement.description}</p><div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs"><span className={`font-bold uppercase ${unlocked ? 'text-cyan-100' : 'text-slate-500'}`}>{unlocked ? 'Unlocked' : 'Locked'}</span>{unlock?.unlockedAt && <span className="text-slate-500">{new Intl.DateTimeFormat('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(unlock.unlockedAt))}</span>}</div></div>; })}</div>}
+        {activeTab === 'achievements' && <div className="space-y-4"><section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4"><div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.055] p-4"><span className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100">Unlocked</span><strong className="mt-2 block text-3xl font-black text-white">{unlockedIds.size}/{achievementDefinitions.length}</strong><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-cyan-300 transition-all duration-700 shadow-[0_0_16px_rgba(34,211,238,0.5)]" style={{ width: `${achievementCompletionPercent}%` }} /></div></div><CompactStat accent="violet" label="Completion" value={`${achievementCompletionPercent}%`} /><CompactStat accent="amber" label="Latest" value={latestAchievement?.title} /><CompactStat accent="teal" label="Top rarity" value={favoriteAchievementRarity.toUpperCase()} /></section><section className="sticky top-2 z-10 -mx-1 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-slate-950/90 p-2 backdrop-blur"><h3 className="text-xs font-black uppercase tracking-[0.18em] text-slate-200">Trophy grid</h3><div className="flex flex-wrap gap-1.5">{achievementFilters.map((filter) => <button className={`rounded-full border px-2 py-0.5 text-[0.58rem] font-black uppercase tracking-[0.12em] transition ${achievementFilter === filter.id ? 'border-cyan-300 bg-cyan-300 text-slate-950' : 'border-white/10 bg-white/[0.03] text-slate-400 hover:border-cyan-300/30 hover:text-cyan-100'}`} key={filter.id} onClick={() => { playNormalClickSound(); setAchievementFilter(filter.id); }} type="button">{filter.label}</button>)}</div></section>{filteredAchievements.length === 0 ? <p className="rounded-xl border border-dashed border-white/10 p-4 text-sm text-slate-500">Brak achievementów w tym filtrze.</p> : <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">{filteredAchievements.map((achievement) => { const unlocked = unlockedIds.has(achievement.id); const unlock = unlockById.get(achievement.id); const rarityKey = achievement.rarity === 'hidden' ? 'mythic' : achievement.rarity; const rarityStyle = achievementRarityStyles[rarityKey]; const progress = getAchievementProgress(achievement, summary, profile); const progressPercent = unlocked ? 100 : progress.percent; return <article className={`group relative overflow-hidden rounded-2xl border p-3.5 transition duration-200 hover:-translate-y-0.5 ${unlocked ? `${rarityStyle.card} achievement-shine` : 'border-white/10 bg-black/20 opacity-75 hover:opacity-95'}`} key={achievement.id}><div className={`pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full blur-2xl ${unlocked ? 'bg-white/10' : 'bg-white/[0.035]'}`} /><div className="relative flex items-start justify-between gap-3"><div className="flex min-w-0 items-start gap-2.5"><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-black/25 text-[0.62rem] font-black ${unlocked ? rarityStyle.icon : 'text-slate-500'}`}>{achievement.icon ?? 'ACH'}</span><div className="min-w-0"><h3 className="truncate text-sm font-black text-white">{achievement.title}</h3><div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5"><span className={`rounded-full border px-2 py-0.5 text-[0.55rem] font-black uppercase tracking-[0.12em] ${rarityStyle.badge}`}>{achievement.rarity}</span>{achievement.gameId && <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[0.55rem] font-black uppercase tracking-[0.12em] text-slate-400">{gameGlyphs[achievement.gameId]}</span>}</div></div></div><span className={`shrink-0 rounded-full border px-2 py-0.5 text-[0.55rem] font-black uppercase tracking-[0.12em] ${unlocked ? 'border-teal-300/30 bg-teal-300/10 text-teal-100' : 'border-white/10 bg-white/[0.035] text-slate-500'}`}>{unlocked ? 'Unlocked' : 'Locked'}</span></div><p className="relative mt-3 min-h-[2rem] text-xs leading-4 text-slate-400">{achievement.description}</p><div className="relative mt-3"><div className="flex items-center justify-between gap-2 text-[0.62rem] font-black uppercase tracking-[0.12em]"><span className={unlocked ? 'text-cyan-100' : 'text-slate-500'}>{unlocked ? 'Claimed trophy' : achievement.targetLabel ?? 'Target'}</span><span className="text-slate-500">{unlocked ? formatDate(unlock?.unlockedAt) : progress.label}</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10"><div className={`h-full rounded-full transition-all duration-700 ${unlocked ? rarityStyle.fill : 'bg-slate-500/60'}`} style={{ width: `${progressPercent}%` }} /></div></div><div className="relative mt-3 flex items-center justify-between gap-2 text-[0.62rem] uppercase tracking-[0.12em] text-slate-500"><span>{achievement.category}</span><span>+{achievement.xpReward ?? 0} XP</span></div></article>; })}</section>}</div>}
 
         {activeTab === 'quests' && <div className="space-y-3"><div className="grid gap-2 text-sm sm:grid-cols-2"><CompactStat accent="cyan" label="Daily streak" value={`${questStreak.currentStreak} dni`} /><CompactStat accent="violet" label="Best streak" value={`${questStreak.bestStreak} dni`} /></div><div className="grid gap-3 lg:grid-cols-2">{(['daily', 'weekly'] as const).map((type) => <div className="rounded-2xl border border-white/10 bg-black/15 p-3.5" key={type}><div className="flex flex-wrap items-end justify-between gap-2"><h3 className="text-xs font-black uppercase tracking-[0.2em] text-cyan-100">{type === 'daily' ? 'Daily quests' : 'Weekly quests'}</h3><span className="text-xs text-slate-500">{getQuestResetLabel(type)}</span></div><div className="mt-3 space-y-2">{questDefinitions.filter((quest) => quest.type === type).map((quest) => { const progress = questProgress.find((item) => item.questId === quest.id); const value = progress?.progress ?? 0; const percent = Math.min(100, Math.round((value / quest.target.amount) * 100)); const claimed = Boolean(progress?.isClaimed || progress?.claimedAt); const ready = Boolean(progress?.completed && !claimed); const statusLabel = claimed ? 'ODEBRANE' : ready ? 'ODBIERZ' : 'W TRAKCIE'; const questHint = getQuestHint(quest); return <div className={`group relative rounded-xl border px-3 py-3 transition duration-200 hover:-translate-y-0.5 ${claimed ? 'border-white/5 bg-black/20 opacity-65' : ready ? `${questRarityStyles[quest.rarity]} quest-reward-ready` : questRarityStyles[quest.rarity]}`} key={quest.id}><div className="flex items-start justify-between gap-3 text-sm"><span className="flex min-w-0 items-center gap-2 font-semibold text-white"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-white/10 bg-black/25 text-xs">{quest.icon ?? 'Q'}</span><span className="min-w-0 truncate">{quest.title}</span><button aria-expanded={activeQuestHintId === quest.id} aria-label={`Opis questa: ${quest.title}`} className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-cyan-200/20 bg-cyan-200/[0.06] text-[0.65rem] font-black text-cyan-100/80 transition hover:border-cyan-200/45 hover:bg-cyan-200/12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200" onClick={(event) => { event.stopPropagation(); setActiveQuestHintId((current) => (current === quest.id ? null : quest.id)); }} title={questHint} type="button">i</button></span><span className="shrink-0 text-cyan-100">{value}/{quest.target.amount}</span></div><div className={`pointer-events-none absolute left-3 top-11 z-30 max-w-[260px] rounded-lg border border-cyan-200/20 bg-slate-950/95 px-3 py-2 text-xs leading-relaxed text-slate-200 shadow-[0_0_24px_rgba(34,211,238,0.16)] backdrop-blur ${activeQuestHintId === quest.id ? 'hidden sm:block' : 'hidden group-hover:block group-focus-within:block'}`} role="tooltip">{questHint}</div>{activeQuestHintId === quest.id && <p className="mt-2 rounded-lg border border-cyan-200/15 bg-cyan-200/[0.055] px-3 py-2 text-xs leading-relaxed text-slate-200 sm:hidden">{questHint}</p>}<div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs"><div className="flex min-w-0 flex-wrap items-center gap-1.5"><span className="rounded-full border border-amber-200/25 bg-amber-200/10 px-2 py-0.5 font-semibold uppercase text-amber-100">{quest.rarity} · +{quest.rewardXp} XP</span><span className="rounded-full border border-cyan-200/15 bg-cyan-200/[0.06] px-2 py-0.5 font-semibold uppercase text-cyan-100/80">{questCategoryLabels[quest.category] ?? quest.category}</span></div><span className={`font-bold uppercase ${claimed ? 'text-slate-400' : ready ? 'text-cyan-100' : 'text-slate-500'}`}>{claimed ? '✓ Odebrano' : statusLabel}</span></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10"><div className={`h-full rounded-full transition-all duration-300 ${ready ? 'bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,0.65)]' : claimed ? 'bg-teal-300/50' : 'bg-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.45)]'}`} style={{ width: `${percent}%` }} /></div>{ready && progress && <button className="quest-claim-button mt-3 w-full rounded-md bg-cyan-300 px-3 py-2 text-xs font-extrabold uppercase tracking-[0.16em] text-slate-950 shadow-[0_0_22px_rgba(34,211,238,0.35)] transition duration-200 hover:scale-[1.015] hover:bg-cyan-100" onClick={() => { playNormalClickSound(); onQuestClaim(quest.id, progress.periodId); }} type="button">Odbierz nagrodę</button>}</div>; })}</div></div>)}</div></div>}
 

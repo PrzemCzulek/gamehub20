@@ -169,8 +169,21 @@ export type QuestStreak = {
   lastActiveDay?: string;
 };
 
-export type AchievementRarity = 'common' | 'rare' | 'epic' | 'legendary' | 'hidden';
-export type AchievementCategory = 'progression' | 'flawless' | 'high_skill' | 'hidden' | 'rare' | 'insane';
+export type AchievementRarity = 'common' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'hidden';
+export type AchievementCategory =
+  | 'progression'
+  | 'flawless'
+  | 'high_skill'
+  | 'hidden'
+  | 'rare'
+  | 'insane'
+  | 'speed'
+  | 'precision'
+  | 'survival'
+  | 'mastery'
+  | 'arcade'
+  | 'focus'
+  | 'consistency';
 
 export type AchievementDefinition = {
   id: string;
@@ -178,6 +191,10 @@ export type AchievementDefinition = {
   description: string;
   category: AchievementCategory;
   rarity: AchievementRarity;
+  gameId?: GameId;
+  icon?: string;
+  targetLabel?: string;
+  xpReward?: number;
 };
 
 export type AchievementUnlock = {

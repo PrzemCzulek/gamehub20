@@ -59,6 +59,11 @@ const achievementStyleByRarity: Record<string, { card: string; badge: string; ac
     badge: 'border-amber-200/55 bg-amber-200/12 text-amber-100',
     accent: 'from-amber-200/80 via-cyan-200/20 to-transparent',
   },
+  mythic: {
+    card: 'border-fuchsia-200/50 bg-fuchsia-300/[0.11] shadow-[0_0_44px_rgba(217,70,239,0.22)]',
+    badge: 'border-fuchsia-200/55 bg-fuchsia-300/12 text-fuchsia-100',
+    accent: 'from-cyan-200/70 via-fuchsia-300/35 to-amber-200/35',
+  },
 };
 
 export function FeedbackToast({ item, onDismiss }: FeedbackToastProps) {
