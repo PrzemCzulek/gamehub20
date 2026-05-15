@@ -34,8 +34,10 @@ import { preloadFeedbackSounds } from './utils/audioFeedback';
 import { canPlayGameOnDevice, canSubmitScoreForGame, getDeviceType, type DeviceType } from './utils/device';
 
 type AppView = 'home' | 'game' | 'profile';
+type CategoryFilterId = GameTag | 'hardcore';
+type CategoryFilter = { id: CategoryFilterId; label: string; tags: GameTag[] };
 
-const categoryFilters: Array<{ id: GameTag | 'hardcore'; label: string; tags: GameTag[] }> = [
+const categoryFilters: CategoryFilter[] = [
   { id: 'reflex', label: 'Reflex', tags: ['reflex'] },
   { id: 'memory', label: 'Memory', tags: ['memory'] },
   { id: 'precision', label: 'Precision', tags: ['precision'] },
@@ -127,6 +129,16 @@ function getGameTitle(gameId: GameId): string {
   return games.find((game) => game.id === gameId)?.title ?? gameId;
 }
 
+function getCategoryGameCount(category: CategoryFilter): number {
+  return games.filter((game) => game.tags?.some((tag) => category.tags.includes(tag))).length;
+}
+
+function getSortedCategoryFilters(): Array<CategoryFilter & { count: number }> {
+  return categoryFilters
+    .map((category) => ({ ...category, count: getCategoryGameCount(category) }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+}
+
 function DeviceBlockCard({ onChooseOther }: { onChooseOther: () => void }) {
   return (
     <div className="rounded-xl border border-fuchsia-300/20 bg-slate-950/70 p-5 text-center shadow-[0_0_34px_rgba(168,85,247,0.12)]">
@@ -213,7 +225,7 @@ function TopBar({
   );
 }
 
-function CategoryFoundation({ selectedCategory, onSelect }: { selectedCategory: string | null; onSelect: (category: string | null) => void }) {
+function CategoryFoundation({ categories, selectedCategory, onSelect }: { categories: Array<CategoryFilter & { count: number }>; selectedCategory: CategoryFilterId | null; onSelect: (category: CategoryFilterId | null) => void }) {
   return (
     <section className="rounded-xl border border-white/10 bg-slate-950/45 p-3.5 shadow-[0_0_28px_rgba(34,211,238,0.04)]">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -221,11 +233,11 @@ function CategoryFoundation({ selectedCategory, onSelect }: { selectedCategory: 
           <p className="text-xs font-black uppercase tracking-[0.24em] text-cyan-200">Kategorie</p>
           <h2 className="mt-0.5 text-lg font-bold text-white">Arcade lanes</h2>
         </div>
-        <p className="text-sm text-slate-400">Lanes / playlists / events.</p>
+        <p className="text-sm text-slate-400">Filtruj deck.</p>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
         <button
-          className={`relative rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition duration-200 ${
+          className={`relative shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition duration-200 ${
             selectedCategory === null
               ? 'border-cyan-300 bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.24)] after:absolute after:inset-x-3 after:-bottom-1 after:h-px after:bg-white/80'
               : 'border-white/10 bg-black/15 text-slate-300 hover:border-cyan-300/25 hover:bg-cyan-300/10 hover:text-white'
@@ -233,14 +245,11 @@ function CategoryFoundation({ selectedCategory, onSelect }: { selectedCategory: 
           onClick={() => onSelect(null)}
           type="button"
         >
-          Wszystkie
+          Wszystkie <span className="opacity-60">{games.length}</span>
         </button>
-        {categoryFilters.map((category) => {
-          const count = games.filter((game) => game.tags?.some((tag) => category.tags.includes(tag))).length;
-
-          return (
+        {categories.map((category) => (
             <button
-              className={`relative rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition duration-200 ${
+              className={`relative shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition duration-200 ${
                 selectedCategory === category.id
                   ? 'border-cyan-300 bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.24)] after:absolute after:inset-x-3 after:-bottom-1 after:h-px after:bg-white/80'
                   : 'border-white/10 bg-black/20 text-slate-300 hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-white'
@@ -249,14 +258,13 @@ function CategoryFoundation({ selectedCategory, onSelect }: { selectedCategory: 
               onClick={() => onSelect(selectedCategory === category.id ? null : category.id)}
               type="button"
             >
-              {category.label} <span className="opacity-60">{count}</span>
+              {category.label} <span className="opacity-60">{category.count}</span>
             </button>
-          );
-        })}
+        ))}
       </div>
       {selectedCategory && (
         <p className="mt-3 text-xs text-cyan-100">
-          Aktywna grupa: {categoryFilters.find((category) => category.id === selectedCategory)?.label}. Pełne filtrowanie widoków zostanie dodane w kolejnym etapie.
+          Aktywna grupa: {categories.find((category) => category.id === selectedCategory)?.label}
         </p>
       )}
     </section>
@@ -266,7 +274,7 @@ function CategoryFoundation({ selectedCategory, onSelect }: { selectedCategory: 
 export default function App() {
   const [activeView, setActiveView] = useState<AppView>('home');
   const [activeGameId, setActiveGameId] = useState<GameId>('reaction-time');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryFilterId | null>(null);
   const [revision, setRevision] = useState(0);
   const [deviceType, setDeviceType] = useState<DeviceType>(() => getDeviceType());
   const [needsNick, setNeedsNick] = useState(() => !hasValidPlayerName(getProfile().playerName));
@@ -279,6 +287,23 @@ export default function App() {
   const firstPlayableGame = games.find((game) => canPlayGameOnDevice(game, deviceType));
   const dailyQuest = questDefinitions.find((quest) => quest.type === 'daily');
   const dailyProgress = dailyQuest ? questProgress.find((item) => item.questId === dailyQuest.id) : undefined;
+  const categoryOptions = useMemo(() => getSortedCategoryFilters(), []);
+  const selectedCategoryConfig = selectedCategory ? categoryOptions.find((category) => category.id === selectedCategory) : undefined;
+  const filteredGames = useMemo(
+    () => selectedCategoryConfig ? games.filter((game) => game.tags?.some((tag) => selectedCategoryConfig.tags.includes(tag))) : games,
+    [selectedCategoryConfig],
+  );
+  const recommendedGame = filteredGames.find((game) => game.id === activeGameId) ?? filteredGames[0] ?? activeGame;
+  const latestScore = profile.recentScores[0];
+  const dailyQuestTarget = dailyQuest?.target.amount ?? 1;
+  const dailyQuestProgress = dailyProgress?.progress ?? 0;
+  const dailyQuestPercent = dailyQuest ? Math.min(100, Math.round((dailyQuestProgress / Math.max(dailyQuestTarget, 1)) * 100)) : 0;
+
+  useEffect(() => {
+    if (filteredGames.length > 0 && !filteredGames.some((game) => game.id === activeGameId)) {
+      setActiveGameId(filteredGames[0].id);
+    }
+  }, [activeGameId, filteredGames]);
 
   useEffect(() => {
     const handleFirstInteraction = () => {
@@ -572,10 +597,15 @@ export default function App() {
                 <div className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-center">
                   <div>
                     <div className="inline-flex rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.22em] text-cyan-100">
-                      Daily arcade
+                      Lobby command
                     </div>
                     <h1 className="mt-3 max-w-3xl text-3xl font-black tracking-tight text-white sm:text-4xl">Arcade Skill Lobby</h1>
-                    <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">Szybki wybór gry. Ranking. Progres. Questy.</p>
+                    <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">Wybierz grę. Pobij rekord. Zgarnij progres.</p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button className="rounded-md bg-cyan-300 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-cyan-100" onClick={() => handleOpenGame(recommendedGame.id)} type="button">Graj teraz</button>
+                      <button className="rounded-md border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-bold text-slate-200 transition hover:border-cyan-300/30 hover:text-white" onClick={() => setActiveView('profile')} type="button">Profil</button>
+                      <button className="rounded-md border border-violet-300/20 bg-violet-300/[0.07] px-4 py-2 text-sm font-bold text-violet-100 transition hover:border-violet-200/40" onClick={() => setActiveView('profile')} type="button">Questy</button>
+                    </div>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
                     <div className="rounded-xl border border-white/10 bg-black/25 px-4 py-3">
@@ -587,37 +617,44 @@ export default function App() {
                       <strong className="mt-1 block text-2xl text-white">L{profile.level}</strong>
                     </div>
                     <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] px-4 py-3 shadow-[0_0_20px_rgba(34,211,238,0.08)]">
-                      <span className="text-xs uppercase tracking-wide text-cyan-100">Featured challenge</span>
+                      <span className="text-xs uppercase tracking-wide text-cyan-100">Dzienny cel</span>
                       <strong className="mt-1 block truncate text-sm text-white">{dailyQuest?.title ?? 'Quest offline'}</strong>
-                      <span className="mt-1 block text-xs text-slate-400">{dailyProgress ? `${dailyProgress.progress}/${dailyQuest?.target.amount ?? 1}` : 'Czeka na progres'}</span>
+                      <span className="mt-1 block text-xs text-slate-400">{dailyQuest ? `${dailyQuestProgress}/${dailyQuestTarget}` : 'Brak celu'}</span>
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-cyan-300 transition-all duration-500 shadow-[0_0_12px_rgba(34,211,238,0.45)]" style={{ width: `${dailyQuestPercent}%` }} /></div>
                     </div>
                   </div>
                 </div>
               </section>
 
-              <GameCarousel activeGameId={activeGameId} games={games} onOpenGame={handleOpenGame} onSelectGame={setActiveGameId} />
-              <CategoryFoundation selectedCategory={selectedCategory} onSelect={setSelectedCategory} />
+              {filteredGames.length > 0 ? (
+                <GameCarousel activeGameId={activeGameId} games={filteredGames} onOpenGame={handleOpenGame} onSelectGame={setActiveGameId} />
+              ) : (
+                <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-6 text-center text-sm text-slate-400">Brak gier w tej kategorii.</div>
+              )}
+              <CategoryFoundation categories={categoryOptions} selectedCategory={selectedCategory} onSelect={setSelectedCategory} />
 
               <section className="grid gap-3 lg:grid-cols-3">
                 <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">Featured mode</p>
-                  <h3 className="mt-2 text-lg font-bold text-white">{activeGame.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-400">{activeGame.description}</p>
-                  <button className="mt-4 rounded-md bg-cyan-300 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-cyan-200" onClick={() => handleOpenGame(activeGame.id)} type="button">
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-200">Kontynuuj</p>
+                  <h3 className="mt-2 truncate text-lg font-bold text-white">{recommendedGame.title}</h3>
+                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-400">{recommendedGame.description}</p>
+                  <button className="mt-4 rounded-md bg-cyan-300 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-cyan-200" onClick={() => handleOpenGame(recommendedGame.id)} type="button">
                     Wejdź do gry
                   </button>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-200">Events</p>
-                  <h3 className="mt-2 text-lg font-bold text-white">Seasonal playlists</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-400">Rotacje, PvP, challenge modes.</p>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-violet-200">Dzienny cel</p>
+                  <h3 className="mt-2 truncate text-lg font-bold text-white">{dailyQuest?.title ?? 'Quest offline'}</h3>
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-violet-300 transition-all duration-500 shadow-[0_0_12px_rgba(168,85,247,0.45)]" style={{ width: `${dailyQuestPercent}%` }} /></div>
+                  <div className="mt-3 flex items-center justify-between gap-3 text-sm text-slate-400"><span>{dailyQuest ? `${dailyQuestProgress}/${dailyQuestTarget}` : 'Brak celu'}</span><button className="rounded-md border border-violet-300/25 bg-violet-300/10 px-3 py-1.5 text-xs font-bold uppercase text-violet-100 transition hover:border-violet-200/45" onClick={() => setActiveView('profile')} type="button">{dailyProgress?.completed && !dailyProgress.isClaimed ? 'Odbierz w profilu' : 'Questy'}</button></div>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-100">Quick activity</p>
-                  <h3 className="mt-2 text-lg font-bold text-white">Ostatnie wyniki</h3>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-100">Ostatni wynik</p>
+                  <h3 className="mt-2 truncate text-lg font-bold text-white">{latestScore ? getGameTitle(latestScore.gameId) : 'Start run'}</h3>
                   <p className="mt-2 text-sm leading-6 text-slate-400">
-                    {profile.recentScores[0] ? `${getGameTitle(profile.recentScores[0].gameId)}: ${profile.recentScores[0].scoreLabel}` : 'Brak wyników.'}
+                    {latestScore ? latestScore.scoreLabel : 'Zagraj pierwszą rundę.'}
                   </p>
+                  <button className="mt-4 rounded-md border border-amber-300/25 bg-amber-300/10 px-4 py-2 text-sm font-bold text-amber-100 transition hover:border-amber-200/45" onClick={() => handleOpenGame(latestScore?.gameId ?? recommendedGame.id)} type="button">{latestScore ? 'Powtórz' : 'Graj teraz'}</button>
                 </div>
               </section>
             </div>
@@ -632,7 +669,7 @@ export default function App() {
                     onClick={() => setActiveView('home')}
                     type="button"
                   >
-                    ← Lobby
+                    â† Lobby
                   </button>
                   <div className="min-w-0">
                     <p className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-slate-500">
@@ -706,3 +743,4 @@ export default function App() {
     </main>
   );
 }
+
